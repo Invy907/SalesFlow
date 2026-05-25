@@ -1,0 +1,168 @@
+{
+  "meta": {
+    "title": "Salesflow",
+    "description": "A Japanese-style estimate and invoice dashboard."
+  },
+  "brand": {
+    "name": "SalesFlow",
+    "eyebrow": "SalesFlow"
+  },
+  "sidebar": {
+    "workspaceLabel": "WORKSPACE",
+    "workspaceName": "Studio Hikari",
+    "workspaceDescription": "A Japanese invoice workflow dashboard for freelancers and small teams",
+    "libraryLabel": "LIBRARY",
+    "planTitle": "Using the free plan",
+    "planDescriptionPrefix": "You have created",
+    "planDescriptionHighlight": "6 invoices",
+    "planDescriptionSuffix": "out of 10 this month.",
+    "planCta": "View plan"
+  },
+  "nav": {
+    "primary": [
+      { "label": "Home" },
+      { "label": "Estimates" },
+      { "label": "Delivery Notes" },
+      { "label": "Invoices", "badge": "12" },
+      { "label": "Receipts" },
+      { "label": "Orders" },
+      { "label": "Reports" }
+    ],
+    "secondary": [
+      { "label": "Inbox" },
+      { "label": "Clients" },
+      { "label": "Items" },
+      { "label": "History" },
+      { "label": "Settings" }
+    ]
+  },
+  "hero": {
+    "eyebrow": "HOME DASHBOARD",
+    "title": "Japanese invoice operations in one place",
+    "description": "Check estimates, delivery notes, invoices, clients, and payment status at a glance, then jump straight into work.",
+    "primaryCta": "Create new document",
+    "secondaryCta": "Preview PDF"
+  },
+  "summary": {
+    "badge": "onboarding",
+    "title": "See the most important work right away",
+    "description": "We grouped invoices due this week, unsent estimates, and items waiting for payment by priority.",
+    "cards": [
+      { "label": "Issued this month", "value": "¥1,280,000" },
+      { "label": "Awaiting payment", "value": "¥824,000" },
+      { "label": "Pending", "value": "6 items" }
+    ]
+  },
+  "quickActions": {
+    "title": "Quick actions",
+    "description": "Your most-used documents and management menus are organized as cards.",
+    "cta": "View all",
+    "items": [
+      {
+        "title": "Estimate",
+        "description": "Create one from a template in minutes",
+        "metric": "14 this month"
+      },
+      {
+        "title": "Delivery Note",
+        "description": "Convert from estimate data in one click",
+        "metric": "3 unsent"
+      },
+      {
+        "title": "Invoice",
+        "description": "Auto-organize tax rates and due dates",
+        "metric": "Awaiting payment ¥824,000"
+      },
+      {
+        "title": "Order Management",
+        "description": "Track project progress and amounts at a glance",
+        "metric": "8 active"
+      },
+      {
+        "title": "Clients",
+        "description": "Manage contacts and payment terms together",
+        "metric": "42 registered"
+      },
+      {
+        "title": "Item Management",
+        "description": "Save common services as reusable catalog items",
+        "metric": "27 items"
+      }
+    ]
+  },
+  "timeline": {
+    "title": "Recent document flow",
+    "description": "Quickly check issue status and due dates by client.",
+    "badge": "live",
+    "duePrefix": "Due",
+    "items": [
+      {
+        "client": "Kumo Design LLC",
+        "amount": "¥220,000",
+        "status": "Sent",
+        "due": "May 28"
+      },
+      {
+        "client": "Aster Studio",
+        "amount": "¥148,000",
+        "status": "Draft",
+        "due": "May 24"
+      },
+      {
+        "client": "Northwind Inc.",
+        "amount": "¥456,000",
+        "status": "Awaiting payment",
+        "due": "May 31"
+      }
+    ]
+  },
+  "tips": {
+    "eyebrow": "FLOW TIP",
+    "title": "Habits that make invoicing faster",
+    "items": [
+      "Convert estimates into delivery notes and invoices automatically to reduce input work",
+      "Template payment deadlines and honorifics for each client",
+      "Finish invoice PDF generation and email delivery on the same screen",
+      "Prioritize only unpaid items to reduce missed collections"
+    ]
+  },
+  "guide": {
+    "title": "Getting started",
+    "description": "First-time setup checklist",
+    "steps": [
+      "Register 3 client records",
+      "Save 5 item templates",
+      "Complete the default tax setup"
+    ]
+  },
+  "notices": {
+    "title": "Announcements",
+    "cta": "See more",
+    "items": [
+      {
+        "title": "We launched a new UI for sending invoices by email",
+        "date": "2026.05.20",
+        "category": "Update"
+      },
+      {
+        "title": "We improved tax rate display for Japan's invoice system",
+        "date": "2026.05.12",
+        "category": "Compliance"
+      },
+      {
+        "title": "Draft saving is now available for recurring invoices",
+        "date": "2026.04.28",
+        "category": "New Feature"
+      }
+    ]
+  },
+  "smartAction": {
+    "eyebrow": "SMART ACTION",
+    "title": "You can automate overdue payment reminders too",
+    "description": "Once Supabase is connected, this structure can naturally support reminder automation based on issue dates, due dates, and payment status.",
+    "cta": "See integration layout"
+  },
+  "localeSwitcher": {
+    "label": "Language"
+  }
+}

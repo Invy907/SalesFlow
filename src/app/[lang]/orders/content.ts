@@ -1,0 +1,276 @@
+import type { AppLocale } from "@/contexts/language-context";
+
+const labels = {
+  ja: {
+    title: "受注管理",
+    searchPlaceholder: "取引先名、注文番号、件名",
+    searchDetail: "詳細検索",
+    search: "検索",
+    createOrder: "受注情報を作成",
+    status: "ステータス",
+    addStatus: "ステータスを追加",
+    statusPlaceholder: "ステータス",
+    cancel: "キャンセル",
+    add: "追加",
+    unprocessed: "未処理",
+    processed: "処理済",
+    trash: "ごみ箱",
+    listUnprocessed: "未処理",
+    emptyList: "受注情報はありません。",
+    emptyDetail: "受注情報を選択して詳細を確認できます。",
+    modal: {
+      title: "受注情報の作成",
+      client: "取引先",
+      orderDate: "注文日",
+      deliveryDate: "納期",
+      time: "時刻",
+      orderNumber: "注文番号",
+      subject: "件名",
+      status: "ステータス",
+      commentPlaceholder: "注文に関するコメントを記載できます。",
+      save: "保存",
+      required: "必須",
+    },
+    submenu: {
+      management: "受注管理",
+      form: "受注フォーム",
+    },
+    form: {
+      emailAlert: {
+        title: "受注フォーム機能を使うためにはメールアドレスの確認が必要です。",
+        body: "下のボタンをクリックすると、ご登録のメールアドレス（bluebourne907@gmail.com）に確認メールを送信します。メール内のリンクをクリックして、メールアドレスの確認を完了してください。",
+        button: "確認メールを送信",
+      },
+      landing: {
+        subtitle: "SalesFlowの受注フォーム機能",
+        title: "オンライン受注フォームで\n日々の受注業務を簡単に",
+        features: [
+          {
+            title: "受注業務を電子化したい",
+            desc: "請求書と同じ感覚で受注フォームを作成し、メールで送付できます。",
+          },
+          {
+            title: "発注側はSalesFlowアカウント不要",
+            desc: "お客様はフォームに数量を入力するだけで、注文が完了します。",
+          },
+          {
+            title: "繰り返し注文に対応",
+            desc: "よく使う品目を登録しておけば、繰り返し注文もスムーズに受け付けられます。",
+          },
+        ],
+        ctaHeading: "ぜひSalesFlowの受注フォーム機能をお試しください！",
+        ctaButton: "オンライン受注フォームを作ってみる",
+        howTitle: "フォームを作ってメールを送るだけのかんたん操作",
+        steps: [
+          { title: "受注フォームを作成後、メールで送信" },
+          { title: "お客様はフォームに数量を入れるだけ" },
+          { title: "受注管理ページでまとめて管理" },
+        ],
+      },
+      new: {
+        title: "受注フォームの新規作成",
+        companyName: "会社名",
+        client: "取引先",
+        subject: "件名",
+        logo: "ロゴ",
+        logoEmpty: "登録されていません",
+        expiration: "有効期限",
+        noDate: "指定なし",
+        noExpiration: "有効期限なし",
+        itemHeaders: ["品番・品名", "単位", "単価", "税区分"] as const,
+        unitPlaceholder: "単位",
+        addRow: "+ 行の追加",
+        save: "保存する",
+        required: "必須",
+        charCount: (current: number, max: number) => `${current} / ${max}`,
+      },
+    },
+    companyRequiredAlert:
+      "受注フォーム機能を利用するには、自社情報の必須項目を設定してください。",
+  },
+  ko: {
+    title: "수주 관리",
+    searchPlaceholder: "거래처명, 주문번호, 건명",
+    searchDetail: "상세 검색",
+    search: "검색",
+    createOrder: "수주 정보 작성",
+    status: "상태",
+    addStatus: "상태 추가",
+    statusPlaceholder: "상태",
+    cancel: "취소",
+    add: "추가",
+    unprocessed: "미처리",
+    processed: "처리 완료",
+    trash: "휴지통",
+    listUnprocessed: "미처리",
+    emptyList: "수주 정보가 없습니다.",
+    emptyDetail: "수주 정보를 선택하면 상세를 확인할 수 있습니다.",
+    modal: {
+      title: "수주 정보 작성",
+      client: "거래처",
+      orderDate: "주문일",
+      deliveryDate: "납기",
+      time: "시각",
+      orderNumber: "주문번호",
+      subject: "건명",
+      status: "상태",
+      commentPlaceholder: "주문 관련 코멘트를 입력할 수 있습니다.",
+      save: "저장",
+      required: "필수",
+    },
+    submenu: {
+      management: "수주 관리",
+      form: "수주 폼",
+    },
+    form: {
+      emailAlert: {
+        title: "수주 폼 기능을 사용하려면 이메일 주소 확인이 필요합니다.",
+        body: "아래 버튼을 클릭하면 등록된 이메일 주소(bluebourne907@gmail.com)로 확인 메일을 보냅니다. 메일 내 링크를 클릭하여 이메일 확인을 완료해 주세요.",
+        button: "확인 메일 보내기",
+      },
+      landing: {
+        subtitle: "SalesFlow 수주 폼 기능",
+        title: "온라인 수주 폼으로\n일상적인 수주 업무를 간편하게",
+        features: [
+          {
+            title: "수주 업무를 전자화하고 싶다",
+            desc: "청구서와 같은 방식으로 수주 폼을 만들어 이메일로 보낼 수 있습니다.",
+          },
+          {
+            title: "발주 측은 SalesFlow 계정 불필요",
+            desc: "고객은 폼에 수량만 입력하면 주문이 완료됩니다.",
+          },
+          {
+            title: "반복 주문 지원",
+            desc: "자주 쓰는 품목을 등록해 두면 반복 주문도 원활하게 받을 수 있습니다.",
+          },
+        ],
+        ctaHeading: "SalesFlow 수주 폼 기능을 꼭 사용해 보세요!",
+        ctaButton: "온라인 수주 폼 만들어 보기",
+        howTitle: "폼을 만들고 메일만 보내면 되는 간단한 조작",
+        steps: [
+          { title: "수주 폼 작성 후 이메일로 발송" },
+          { title: "고객은 폼에 수량만 입력" },
+          { title: "수주 관리 페이지에서 일괄 관리" },
+        ],
+      },
+      new: {
+        title: "수주 폼 신규 작성",
+        companyName: "회사명",
+        client: "거래처",
+        subject: "건명",
+        logo: "로고",
+        logoEmpty: "등록되어 있지 않습니다",
+        expiration: "유효 기간",
+        noDate: "지정 없음",
+        noExpiration: "유효 기간 없음",
+        itemHeaders: ["품번·품명", "단위", "단가", "세금 구분"] as const,
+        unitPlaceholder: "단위",
+        addRow: "+ 행 추가",
+        save: "저장",
+        required: "필수",
+        charCount: (current: number, max: number) => `${current} / ${max}`,
+      },
+    },
+    companyRequiredAlert:
+      "수주 폼 기능을 이용하려면 자사 정보의 필수 항목을 설정해 주세요.",
+  },
+  en: {
+    title: "Order Management",
+    searchPlaceholder: "Client name, order number, subject",
+    searchDetail: "Advanced Search",
+    search: "Search",
+    createOrder: "Create Order Information",
+    status: "Status",
+    addStatus: "Add Status",
+    statusPlaceholder: "Status",
+    cancel: "Cancel",
+    add: "Add",
+    unprocessed: "Unprocessed",
+    processed: "Processed",
+    trash: "Trash",
+    listUnprocessed: "Unprocessed",
+    emptyList: "No order information.",
+    emptyDetail: "Select order information to view details.",
+    modal: {
+      title: "Create Order Information",
+      client: "Client",
+      orderDate: "Order Date",
+      deliveryDate: "Delivery Date",
+      time: "Time",
+      orderNumber: "Order Number",
+      subject: "Subject",
+      status: "Status",
+      commentPlaceholder: "You can write comments about the order here.",
+      save: "Save",
+      required: "Required",
+    },
+    submenu: {
+      management: "Order Management",
+      form: "Order Form",
+    },
+    form: {
+      emailAlert: {
+        title: "Email verification is required to use the order form feature.",
+        body: "Click the button below to send a verification email to your registered address (bluebourne907@gmail.com). Click the link in the email to complete verification.",
+        button: "Send verification email",
+      },
+      landing: {
+        subtitle: "SalesFlow Order Form Feature",
+        title: "Simplify daily order tasks\nwith online order forms",
+        features: [
+          {
+            title: "Digitize order processing",
+            desc: "Create order forms as easily as invoices and send them by email.",
+          },
+          {
+            title: "No SalesFlow account needed for buyers",
+            desc: "Customers can complete orders by simply entering quantities on the form.",
+          },
+          {
+            title: "Supports repeat orders",
+            desc: "Register frequently used items to handle repeat orders smoothly.",
+          },
+        ],
+        ctaHeading: "Try SalesFlow's order form feature!",
+        ctaButton: "Try creating an online order form",
+        howTitle: "Simple workflow: create a form and send an email",
+        steps: [
+          { title: "Create an order form and send it by email" },
+          { title: "Customers just enter quantities" },
+          { title: "Manage everything on the order management page" },
+        ],
+      },
+      new: {
+        title: "Create New Order Form",
+        companyName: "Company Name",
+        client: "Client",
+        subject: "Subject",
+        logo: "Logo",
+        logoEmpty: "Not registered",
+        expiration: "Expiration Date",
+        noDate: "Not specified",
+        noExpiration: "No expiration date",
+        itemHeaders: ["Item No. / Name", "Unit", "Unit Price", "Tax"] as const,
+        unitPlaceholder: "Unit",
+        addRow: "+ Add row",
+        save: "Save",
+        required: "Required",
+        charCount: (current: number, max: number) => `${current} / ${max}`,
+      },
+    },
+    companyRequiredAlert:
+      "To use the order form feature, please set the required company information fields.",
+  },
+} as const;
+
+export function getOrdersContent(lang: AppLocale) {
+  return labels[lang];
+}
+
+export function getOrdersHref(lang: AppLocale, page: "management" | "form" | "form-new" = "management") {
+  const base = `/${lang}/orders`;
+  if (page === "form") return `${base}/form`;
+  if (page === "form-new") return `${base}/form/new`;
+  return base;
+}

@@ -1,0 +1,168 @@
+{
+  "meta": {
+    "title": "Salesflow",
+    "description": "일본형 견적서·청구서 대시보드."
+  },
+  "brand": {
+    "name": "SalesFlow",
+    "eyebrow": "SalesFlow"
+  },
+  "sidebar": {
+    "workspaceLabel": "WORKSPACE",
+    "workspaceName": "Studio Hikari",
+    "workspaceDescription": "프리랜서와 소규모 팀을 위한 일본형 청구 업무 대시보드",
+    "libraryLabel": "LIBRARY",
+    "planTitle": "무료 플랜 이용 중",
+    "planDescriptionPrefix": "이번 달 청구서는 10건 중",
+    "planDescriptionHighlight": "6건",
+    "planDescriptionSuffix": "을 작성했어요.",
+    "planCta": "플랜 보기"
+  },
+  "nav": {
+    "primary": [
+      { "label": "홈" },
+      { "label": "견적서" },
+      { "label": "납품서" },
+      { "label": "청구서", "badge": "12" },
+      { "label": "영수증" },
+      { "label": "수주 관리" },
+      { "label": "리포트" }
+    ],
+    "secondary": [
+      { "label": "받은 편지함" },
+      { "label": "거래처" },
+      { "label": "품목 관리" },
+      { "label": "이용 내역" },
+      { "label": "설정" }
+    ]
+  },
+  "hero": {
+    "eyebrow": "HOME DASHBOARD",
+    "title": "일본식 청구 업무를 한 화면에서",
+    "description": "견적서, 납품서, 청구서, 거래처, 입금 상태를 빠르게 확인하고 바로 작업을 시작할 수 있는 홈 화면입니다.",
+    "primaryCta": "새 문서 만들기",
+    "secondaryCta": "PDF 미리보기"
+  },
+  "summary": {
+    "badge": "onboarding",
+    "title": "지금 처리할 업무를 바로 찾을 수 있어요",
+    "description": "이번 주 마감 청구서, 미발송 견적서, 입금 확인이 필요한 건을 우선순위 순으로 정리했습니다.",
+    "cards": [
+      { "label": "이번 달 발행", "value": "¥1,280,000" },
+      { "label": "입금 대기", "value": "¥824,000" },
+      { "label": "미처리", "value": "6건" }
+    ]
+  },
+  "quickActions": {
+    "title": "빠른 작업",
+    "description": "자주 쓰는 문서와 관리 메뉴를 카드로 정리했습니다.",
+    "cta": "전체 보기",
+    "items": [
+      {
+        "title": "견적서",
+        "description": "템플릿으로 몇 분 만에 작성",
+        "metric": "이번 달 14건"
+      },
+      {
+        "title": "납품서",
+        "description": "견적 데이터에서 원클릭 변환",
+        "metric": "미발송 3건"
+      },
+      {
+        "title": "청구서",
+        "description": "세율과 지급 기한을 자동 정리",
+        "metric": "입금 대기 ¥824,000"
+      },
+      {
+        "title": "수주 관리",
+        "description": "프로젝트별 진행과 금액을 한눈에",
+        "metric": "진행 중 8건"
+      },
+      {
+        "title": "거래처",
+        "description": "담당자와 지급 조건을 한곳에서 관리",
+        "metric": "등록 42곳"
+      },
+      {
+        "title": "품목 관리",
+        "description": "자주 쓰는 서비스를 상품 마스터화",
+        "metric": "품목 27건"
+      }
+    ]
+  },
+  "timeline": {
+    "title": "최근 문서 흐름",
+    "description": "거래처별 발행 상태와 마감일을 빠르게 확인할 수 있습니다.",
+    "badge": "live",
+    "duePrefix": "마감",
+    "items": [
+      {
+        "client": "Kumo Design 합동회사",
+        "amount": "¥220,000",
+        "status": "발송 완료",
+        "due": "5월 28일"
+      },
+      {
+        "client": "Aster Studio",
+        "amount": "¥148,000",
+        "status": "임시 저장",
+        "due": "5월 24일"
+      },
+      {
+        "client": "Northwind 주식회사",
+        "amount": "¥456,000",
+        "status": "입금 대기",
+        "due": "5월 31일"
+      }
+    ]
+  },
+  "tips": {
+    "eyebrow": "FLOW TIP",
+    "title": "청구를 더 빠르게 만드는 습관",
+    "items": [
+      "견적서에서 납품서와 청구서로 자동 변환해 입력을 줄이기",
+      "거래처별 지급 기한과 호칭을 템플릿화하기",
+      "청구서 PDF와 이메일 발송을 같은 화면에서 끝내기",
+      "입금 대기 건만 우선 표시해 미회수를 줄이기"
+    ]
+  },
+  "guide": {
+    "title": "시작 가이드",
+    "description": "초기 설정 체크리스트",
+    "steps": [
+      "거래처 정보 3건 등록",
+      "품목 템플릿 5건 저장",
+      "기본 세율 설정 완료"
+    ]
+  },
+  "notices": {
+    "title": "공지사항",
+    "cta": "더 보기",
+    "items": [
+      {
+        "title": "청구서 메일 발송용 새 UI를 공개했습니다",
+        "date": "2026.05.20",
+        "category": "업데이트"
+      },
+      {
+        "title": "인보이스 제도 대응 세율 표시를 개선했습니다",
+        "date": "2026.05.12",
+        "category": "법규 대응"
+      },
+      {
+        "title": "정기 청구 임시 저장 기능을 추가했습니다",
+        "date": "2026.04.28",
+        "category": "신기능"
+      }
+    ]
+  },
+  "smartAction": {
+    "eyebrow": "SMART ACTION",
+    "title": "입금 지연 알림도 자동화할 수 있어요",
+    "description": "나중에 Supabase와 연결하면 발행일, 지급 기한, 입금 상태에 맞춘 자동 리마인드를 자연스럽게 추가할 수 있습니다.",
+    "cta": "연동 구조 보기"
+  },
+  "localeSwitcher": {
+    "label": "Language"
+  }
+}

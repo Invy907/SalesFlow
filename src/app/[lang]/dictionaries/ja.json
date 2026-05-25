@@ -1,0 +1,168 @@
+{
+  "meta": {
+    "title": "Salesflow",
+    "description": "日本向け見積書・請求書ダッシュボード。"
+  },
+  "brand": {
+    "name": "SalesFlow",
+    "eyebrow": "SalesFlow"
+  },
+  "sidebar": {
+    "workspaceLabel": "WORKSPACE",
+    "workspaceName": "Studio Hikari",
+    "workspaceDescription": "フリーランスと小規模チームのための、日本向け請求業務ダッシュボード",
+    "libraryLabel": "LIBRARY",
+    "planTitle": "無料プランを利用中",
+    "planDescriptionPrefix": "今月の請求書は10通中",
+    "planDescriptionHighlight": "6通",
+    "planDescriptionSuffix": "を作成しました。",
+    "planCta": "プランを見る"
+  },
+  "nav": {
+    "primary": [
+      { "label": "ホーム" },
+      { "label": "見積書" },
+      { "label": "納品書" },
+      { "label": "請求書", "badge": "12" },
+      { "label": "領収書" },
+      { "label": "受注管理" },
+      { "label": "レポート" }
+    ],
+    "secondary": [
+      { "label": "受信箱" },
+      { "label": "取引先" },
+      { "label": "品目管理" },
+      { "label": "ご利用履歴" },
+      { "label": "設定" }
+    ]
+  },
+  "hero": {
+    "eyebrow": "HOME DASHBOARD",
+    "title": "日本の請求業務を、ひとつの画面で",
+    "description": "見積書、納品書、請求書、取引先、入金状況までをすばやく確認し、そのまま作業を始められるホーム画面です。",
+    "primaryCta": "新しい書類を作成",
+    "secondaryCta": "PDFをプレビュー"
+  },
+  "summary": {
+    "badge": "onboarding",
+    "title": "今やるべき業務が、すぐ見つかります",
+    "description": "今週が期限の請求書、未送付の見積書、入金確認が必要な案件を優先度順にまとめました。",
+    "cards": [
+      { "label": "今月発行", "value": "¥1,280,000" },
+      { "label": "入金待ち", "value": "¥824,000" },
+      { "label": "未処理", "value": "6件" }
+    ]
+  },
+  "quickActions": {
+    "title": "クイックアクション",
+    "description": "よく使う書類と管理メニューをカードでまとめました。",
+    "cta": "すべて見る",
+    "items": [
+      {
+        "title": "見積書",
+        "description": "テンプレートから数分で作成",
+        "metric": "今月 14件"
+      },
+      {
+        "title": "納品書",
+        "description": "見積データからワンクリック変換",
+        "metric": "未送付 3件"
+      },
+      {
+        "title": "請求書",
+        "description": "税率と支払期限を自動整理",
+        "metric": "入金待ち ¥824,000"
+      },
+      {
+        "title": "受注管理",
+        "description": "案件ごとの進行と金額を一覧化",
+        "metric": "進行中 8件"
+      },
+      {
+        "title": "取引先",
+        "description": "担当者と支払条件をまとめて管理",
+        "metric": "登録 42社"
+      },
+      {
+        "title": "品目管理",
+        "description": "よく使うサービスを商品マスタ化",
+        "metric": "品目 27件"
+      }
+    ]
+  },
+  "timeline": {
+    "title": "最近の書類フロー",
+    "description": "取引先ごとの発行状況と締切日をすばやく確認できます。",
+    "badge": "live",
+    "duePrefix": "締切",
+    "items": [
+      {
+        "client": "Kumo Design合同会社",
+        "amount": "¥220,000",
+        "status": "送付済み",
+        "due": "5月28日"
+      },
+      {
+        "client": "Aster Studio",
+        "amount": "¥148,000",
+        "status": "下書き",
+        "due": "5月24日"
+      },
+      {
+        "client": "Northwind株式会社",
+        "amount": "¥456,000",
+        "status": "入金待ち",
+        "due": "5月31日"
+      }
+    ]
+  },
+  "tips": {
+    "eyebrow": "FLOW TIP",
+    "title": "請求をもっと速くする習慣",
+    "items": [
+      "見積書から納品書と請求書へ自動変換して入力を減らす",
+      "取引先ごとに支払期限と敬称をテンプレート化する",
+      "請求書PDFとメール送付を同じ画面で完了させる",
+      "入金待ち案件だけを優先表示して未回収を減らす"
+    ]
+  },
+  "guide": {
+    "title": "スタートガイド",
+    "description": "初回設定のチェックリスト",
+    "steps": [
+      "取引先情報を3件登録",
+      "品目テンプレートを5件保存",
+      "基本の税率設定を完了"
+    ]
+  },
+  "notices": {
+    "title": "お知らせ",
+    "cta": "もっと見る",
+    "items": [
+      {
+        "title": "請求書メール送付の新UIを公開しました",
+        "date": "2026.05.20",
+        "category": "アップデート"
+      },
+      {
+        "title": "インボイス制度向けの税率表示を改善しました",
+        "date": "2026.05.12",
+        "category": "法令対応"
+      },
+      {
+        "title": "定期請求の下書き保存ができるようになりました",
+        "date": "2026.04.28",
+        "category": "新機能"
+      }
+    ]
+  },
+  "smartAction": {
+    "eyebrow": "SMART ACTION",
+    "title": "入金遅延の通知も自動化できます",
+    "description": "あとでSupabaseと接続すれば、発行日、支払期限、入金状況に応じた自動リマインドを無理なく追加できます。",
+    "cta": "連携構成を見る"
+  },
+  "localeSwitcher": {
+    "label": "Language"
+  }
+}
