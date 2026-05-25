@@ -12,49 +12,51 @@ export function InvoiceSubNav({ active }: { active: SubNavActive }) {
   const { lang } = useLanguage();
   const ui = getInvoiceContent(lang);
 
-  const base = `/${lang}`;
   const hrefs: Record<SubNavActive, string> = {
-    invoices: `${base}/invoices`,
-    periodic: `${base}/invoices/periodic`,
-    csv_upload: `${base}/invoices/csv_upload`,
+    invoices: "/invoices",
+    periodic: "/invoices/periodic",
+    csv_upload: "/invoices/csv_upload",
   };
 
   let ctaHref: string | null = null;
   let ctaLabel: string | null = null;
   if (active === "invoices") {
-    ctaHref = `${base}/invoices/new`;
+    ctaHref = "/invoices/new";
     ctaLabel = ui.createInvoice;
   } else if (active === "periodic") {
-    ctaHref = "#";
+    ctaHref = "/invoices/periodic/new";
     ctaLabel = ui.periodicCreate;
   }
 
   return (
-    <div className="border-b border-slate-200 bg-white px-[42px]">
-      <div className="flex h-[52px] w-[935px] items-center gap-4">
+    <div className="border-b border-slate-200 bg-white">
+      <div className="mx-auto flex max-w-[1260px] items-center px-8">
         {subNavRoutes.map((key, index) => {
           const isActive = active === key;
           return (
             <Link
               key={key}
               href={hrefs[key]}
-              className={
+              className={[
+                "px-5 py-4 text-[15px] font-medium transition",
                 isActive
-                  ? "rounded-full bg-[#14a7bb] px-4 py-1.5 text-[13px] font-semibold text-white"
-                  : "text-[13px] font-medium text-[#14a7bb] hover:underline"
-              }
+                  ? "-mb-px rounded-t border border-b-white border-slate-300 bg-white text-slate-900"
+                  : "text-slate-500 hover:text-slate-700",
+              ].join(" ")}
             >
               {ui.subNav[index]}
             </Link>
           );
         })}
         {ctaHref && ctaLabel ? (
-          <Link
-            href={ctaHref}
-            className="ml-auto inline-flex items-center justify-center rounded bg-[#f59b45] px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-[#ef8d32]"
-          >
-            {ctaLabel}
-          </Link>
+          <div className="ml-auto">
+            <Link
+              href={ctaHref}
+              className="inline-flex items-center justify-center rounded bg-[#f59b45] px-5 py-3 text-[15px] font-semibold text-white transition hover:bg-[#ef8d32]"
+            >
+              {ctaLabel}
+            </Link>
+          </div>
         ) : null}
       </div>
     </div>

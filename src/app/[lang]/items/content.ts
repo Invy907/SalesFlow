@@ -305,8 +305,8 @@ export function getItemsContent(lang: AppLocale) {
   return labels[lang];
 }
 
-export function getItemsHref(lang: AppLocale, page: "list" | "new" | "bulk" = "list") {
-  const base = `/${lang}/items`;
+export function getItemsHref(_lang: AppLocale, page: "list" | "new" | "bulk" = "list") {
+  const base = "/items";
   if (page === "new") return `${base}/new`;
   if (page === "bulk") return `${base}/bulk`;
   return base;

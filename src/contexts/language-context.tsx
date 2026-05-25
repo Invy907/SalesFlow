@@ -7,6 +7,7 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
+import { LOCALE_COOKIE_NAME } from "@/lib/locale";
 
 export type AppLocale = "ja" | "ko" | "en";
 
@@ -20,6 +21,11 @@ const LanguageContext = createContext<LanguageContextValue>({
   setLang: () => {},
 });
 
+function persistLocale(locale: AppLocale) {
+  localStorage.setItem(LOCALE_COOKIE_NAME, locale);
+  document.cookie = `${LOCALE_COOKIE_NAME}=${locale};path=/;max-age=31536000;samesite=lax`;
+}
+
 export function LanguageProvider({
   children,
   initialLang = "ja",
@@ -30,14 +36,12 @@ export function LanguageProvider({
   const [lang, setLangState] = useState<AppLocale>(initialLang);
 
   useEffect(() => {
-    const stored = localStorage.getItem("salesflow-lang") as AppLocale | null;
-    if (stored && ["ja", "ko", "en"].includes(stored)) {
-      setLangState(stored);
-    }
-  }, []);
+    setLangState(initialLang);
+    persistLocale(initialLang);
+  }, [initialLang]);
 
   const setLang = (newLang: AppLocale) => {
-    localStorage.setItem("salesflow-lang", newLang);
+    persistLocale(newLang);
     setLangState(newLang);
   };
 

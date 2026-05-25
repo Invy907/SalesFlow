@@ -1,3 +1,5 @@
+import type { AppLocale } from "@/contexts/language-context";
+
 export type InvoiceLocale = "ja" | "ko" | "en";
 
 const labels = {
@@ -114,6 +116,30 @@ const labels = {
     periodicSearch: "取引先, 件名",
     periodicTabs: ["一覧", "ごみ箱"],
     periodicEmpty: "自動作成予約はありません",
+    periodicNewAbout: "自動作成予約について",
+    periodicNewTabs: ["基本情報", "課税設定", "自動メール送信"],
+    startDate: "開始日",
+    cycle: "周期",
+    cycleMonthly: "毎月",
+    cycleYearly: "毎年",
+    cycleWeekly: "毎週",
+    daySuffix: "日",
+    lastDay: "末日",
+    endDate: "終了日",
+    endDateNone: "なし",
+    paymentDueMonthCurrent: "当月",
+    paymentDueMonthNext: "翌月",
+    separateDateLink: "請求書の作成日を請求日と別にしたい場合",
+    periodicLineItemsNotice:
+      "取引先名や備考、品番・品名などの各項目に「{month}」「{year}」といった可変の文字列を設定すると、請求日にあわせて自動で更新されます。",
+    periodicEmailTitle: "自動メール送信",
+    periodicEmailNote: "請求書の自動作成時に、取引先へメールを自動送信できます。",
+    periodicEmailEnable: "自動メール送信を有効にする",
+    periodicEmailSubject: "件名",
+    periodicEmailBody: "本文",
+    periodicEmailSubjectPlaceholder: "請求書を送付いたします",
+    periodicEmailBodyPlaceholder: "いつもお世話になっております。\n請求書を送付いたしますのでご確認ください。",
+    remarksCounter: "0/1000",
     // 一括作成/郵送 페이지
     csvUploadTitle: "請求書の一括作成（CSVアップロード）",
     csvUploadDesc: "CSVファイルをアップロードすることで、複数の請求書を一括で作成できます。",
@@ -318,6 +344,30 @@ const labels = {
     periodicSearch: "거래처, 제목",
     periodicTabs: ["목록", "휴지통"],
     periodicEmpty: "자동 작성 예약이 없습니다",
+    periodicNewAbout: "자동 작성 예약 안내",
+    periodicNewTabs: ["기본 정보", "과세 설정", "자동 메일 발송"],
+    startDate: "시작일",
+    cycle: "주기",
+    cycleMonthly: "매월",
+    cycleYearly: "매년",
+    cycleWeekly: "매주",
+    daySuffix: "일",
+    lastDay: "말일",
+    endDate: "종료일",
+    endDateNone: "없음",
+    paymentDueMonthCurrent: "당월",
+    paymentDueMonthNext: "익월",
+    separateDateLink: "청구서 작성일과 청구일을 다르게 하려는 경우",
+    periodicLineItemsNotice:
+      "거래처명, 비고, 품번·품명 등 각 항목에 「{month}」「{year}」 같은 가변 문자열을 설정하면 청구일에 맞춰 자동으로 갱신됩니다.",
+    periodicEmailTitle: "자동 메일 발송",
+    periodicEmailNote: "청구서 자동 작성 시 거래처에 메일을 자동 발송할 수 있습니다.",
+    periodicEmailEnable: "자동 메일 발송 사용",
+    periodicEmailSubject: "제목",
+    periodicEmailBody: "본문",
+    periodicEmailSubjectPlaceholder: "청구서를 송부드립니다",
+    periodicEmailBodyPlaceholder: "평소 감사합니다.\n청구서를 송부드리니 확인 부탁드립니다.",
+    remarksCounter: "0/1000",
     csvUploadTitle: "청구서 일괄 작성（CSV 업로드）",
     csvUploadDesc: "CSV 파일을 업로드하여 여러 청구서를 일괄 작성할 수 있습니다.",
     csvUploadTemplateLink: "기입용 템플릿",
@@ -517,6 +567,30 @@ const labels = {
     periodicSearch: "Client, subject",
     periodicTabs: ["List", "Trash"],
     periodicEmpty: "No auto-create schedules",
+    periodicNewAbout: "About auto-create schedules",
+    periodicNewTabs: ["Basic info", "Tax settings", "Auto email"],
+    startDate: "Start date",
+    cycle: "Cycle",
+    cycleMonthly: "Monthly",
+    cycleYearly: "Yearly",
+    cycleWeekly: "Weekly",
+    daySuffix: " day",
+    lastDay: "Last day",
+    endDate: "End date",
+    endDateNone: "None",
+    paymentDueMonthCurrent: "Current month",
+    paymentDueMonthNext: "Next month",
+    separateDateLink: "If you want the creation date to differ from the invoice date",
+    periodicLineItemsNotice:
+      "If you set variables such as \"{month}\" or \"{year}\" in client name, remarks, or item fields, they will update automatically based on the invoice date.",
+    periodicEmailTitle: "Automatic email",
+    periodicEmailNote: "You can automatically send an email to the client when an invoice is created.",
+    periodicEmailEnable: "Enable automatic email",
+    periodicEmailSubject: "Subject",
+    periodicEmailBody: "Body",
+    periodicEmailSubjectPlaceholder: "Sending your invoice",
+    periodicEmailBodyPlaceholder: "Thank you for your business.\nPlease find the attached invoice.",
+    remarksCounter: "0/1000",
     csvUploadTitle: "Bulk invoice creation (CSV upload)",
     csvUploadDesc: "Upload a CSV file to create multiple invoices at once.",
     csvUploadTemplateLink: "entry template",
@@ -620,4 +694,14 @@ export function getInvoiceContent(locale: string) {
   }
 
   return labels.ja;
+}
+
+export function getInvoiceHref(
+  _lang: AppLocale,
+  page: "invoices" | "periodic" | "csv_upload" = "invoices",
+) {
+  const base = "/invoices";
+  if (page === "periodic") return `${base}/periodic`;
+  if (page === "csv_upload") return `${base}/csv_upload`;
+  return base;
 }

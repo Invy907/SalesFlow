@@ -153,8 +153,8 @@ export function getReportsContent(lang: AppLocale) {
   return labels[lang];
 }
 
-export function getReportsTabHref(lang: AppLocale, tab: ReportsTabKey) {
-  const base = `/${lang}/reports`;
+export function getReportsTabHref(_lang: AppLocale, tab: ReportsTabKey) {
+  const base = "/reports";
   if (tab === "main") return base;
   return `${base}/${tab}`;
 }

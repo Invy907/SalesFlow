@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { MonthFieldInput } from "@/components/month-field-input";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
 import { getReportsContent } from "./content";
@@ -9,6 +11,8 @@ export default function ReportsPage() {
   const { lang } = useLanguage();
   const ui = getReportsContent(lang);
   const main = ui.main;
+  const [periodFrom, setPeriodFrom] = useState<string>(main.periodFrom);
+  const [periodTo, setPeriodTo] = useState<string>(main.periodTo);
   const legends = [
     { key: "previous", label: main.legendPrevious, color: "bg-slate-400" },
     { key: "unpaid", label: main.legendUnpaid, color: "bg-[#f59b45]" },
@@ -32,12 +36,12 @@ export default function ReportsPage() {
             <div className="flex items-end gap-2">
               <label className="block">
                 <span className="mb-1 block text-[13px] font-medium text-slate-600">&nbsp;</span>
-                <input className="field w-[120px] bg-white" defaultValue={main.periodFrom} readOnly />
+                <MonthFieldInput value={periodFrom} onChange={setPeriodFrom} />
               </label>
               <span className="pb-3 text-slate-500">～</span>
               <label className="block">
                 <span className="mb-1 block text-[13px] font-medium text-slate-600">&nbsp;</span>
-                <input className="field w-[120px] bg-white" defaultValue={main.periodTo} readOnly />
+                <MonthFieldInput value={periodTo} onChange={setPeriodTo} />
               </label>
             </div>
             <button

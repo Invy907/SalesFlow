@@ -27,7 +27,7 @@ export default function NewOrderFormPage() {
 
   useEffect(() => {
     if (!isCompanyProfileComplete()) {
-      router.replace(`/${lang}/settings/company?from=order-form`);
+      router.replace("/settings/company?from=order-form");
       return;
     }
 

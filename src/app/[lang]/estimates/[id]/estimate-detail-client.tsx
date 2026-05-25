@@ -23,7 +23,7 @@ export function EstimateDetailClient({ id }: Props) {
   const issueMenuRef = useRef<HTMLDivElement>(null);
 
   const shareUrl = useMemo(
-    () => `https://salesflow.local/ja/estimates/${id}/shared-preview`,
+    () => `https://salesflow.local/estimates/${id}/shared-preview`,
     [id],
   );
 
@@ -107,7 +107,7 @@ export function EstimateDetailClient({ id }: Props) {
         openModal("email");
         return;
       case "fax":
-        window.location.href = `/${lang}/estimates/${id}/fax`;
+        window.location.href = `/estimates/${id}/fax`;
         return;
       case "download":
         handleDownloadPdf();
@@ -162,7 +162,7 @@ export function EstimateDetailClient({ id }: Props) {
               DOC {ui.issueAction} ▼
             </button>
             <Link
-              href={`/${lang}/estimates/${id}/edit`}
+              href={`/estimates/${id}/edit`}
               className="rounded border border-slate-300 bg-white px-6 py-3 text-[18px] font-semibold text-slate-700"
             >
               EDIT {ui.editAction}
@@ -335,7 +335,7 @@ export function EstimateDetailClient({ id }: Props) {
 
         <div className="mt-8">
           <Link
-            href={`/${lang}/estimates`}
+            href="/estimates"
             className="text-[16px] font-semibold text-cyan-600 hover:text-cyan-700"
           >
             ← {ui.backToList}

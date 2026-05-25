@@ -984,8 +984,8 @@ export function getSettingsContent(lang: AppLocale) {
   return labels[lang];
 }
 
-export function getSettingsTabHref(lang: AppLocale, tab: SettingsTabKey) {
-  const base = `/${lang}/settings`;
+export function getSettingsTabHref(_lang: AppLocale, tab: SettingsTabKey) {
+  const base = "/settings";
   if (tab === "top") {
     return base;
   }

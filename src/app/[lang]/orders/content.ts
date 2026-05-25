@@ -268,8 +268,8 @@ export function getOrdersContent(lang: AppLocale) {
   return labels[lang];
 }
 
-export function getOrdersHref(lang: AppLocale, page: "management" | "form" | "form-new" = "management") {
-  const base = `/${lang}/orders`;
+export function getOrdersHref(_lang: AppLocale, page: "management" | "form" | "form-new" = "management") {
+  const base = "/orders";
   if (page === "form") return `${base}/form`;
   if (page === "form-new") return `${base}/form/new`;
   return base;

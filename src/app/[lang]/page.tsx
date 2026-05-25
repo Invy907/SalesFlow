@@ -30,10 +30,11 @@ const copy: Record<AppLocale, any> = {
       primaryCta: "\u65b0\u898f\u4f5c\u6210",
       secondaryCta: "\u30b5\u30f3\u30d7\u30eb\u8acb\u6c42\u66f8\u3092\u898b\u308b",
       createMenu: [
-        "\u898b\u7a4d\u66f8\u3092\u4f5c\u6210",
-        "\u7d0d\u54c1\u66f8\u3092\u4f5c\u6210",
-        "\u8acb\u6c42\u66f8\u3092\u4f5c\u6210",
-        "\u9818\u53ce\u66f8\u3092\u4f5c\u6210",
+        { label: "\u898b\u7a4d\u66f8\u3092\u4f5c\u6210", href: "estimates/new" },
+        { label: "\u7d0d\u54c1\u66f8\u3092\u4f5c\u6210", href: "delivery-notes/new" },
+        { label: "\u8acb\u6c42\u66f8\u3092\u4f5c\u6210", href: "invoices/new" },
+        { label: "\u9818\u53ce\u66f8\u3092\u4f5c\u6210", href: "receipts/new" },
+        { label: "\u53d7\u6ce8\u60c5\u5831\u3092\u4f5c\u6210", href: "orders" },
       ],
     },
     summary: {
@@ -57,21 +58,21 @@ const copy: Record<AppLocale, any> = {
           title: "\u898b\u7a4d\u66f8",
           description: "\u30c6\u30f3\u30d7\u30ec\u30fc\u30c8\u304b\u3089\u6570\u5206\u3067\u4f5c\u6210",
           metric: "\u4eca\u6708 14\u4ef6",
-          href: "/ja/estimates",
+          href: "/estimates",
           action: "\u4f5c\u6210\u3059\u308b",
         },
         {
           title: "\u7d0d\u54c1\u66f8",
           description: "\u898b\u7a4d\u66f8\u30c7\u30fc\u30bf\u304b\u3089\u3059\u3050\u5909\u63db",
           metric: "\u672a\u9001\u4ed8 3\u4ef6",
-          href: "/ja/delivery-notes",
+          href: "/delivery-notes",
           action: "\u4f5c\u6210\u3059\u308b",
         },
         {
           title: "\u8acb\u6c42\u66f8",
           description: "\u7a0e\u7387\u3068\u652f\u6255\u671f\u9650\u3092\u81ea\u52d5\u6574\u7406",
           metric: "\u672a\u5165\u91d1 \u00a5824,000",
-          href: "/ja/invoices",
+          href: "/invoices",
           action: "\u4f5c\u6210\u3059\u308b",
         },
         {
@@ -181,10 +182,11 @@ const copy: Record<AppLocale, any> = {
       primaryCta: "\uc0c8\ub85c \ub9cc\ub4e4\uae30",
       secondaryCta: "\uc0d8\ud50c \uccad\uad6c\uc11c \ubcf4\uae30",
       createMenu: [
-        "\uacac\uc801\uc11c \ub9cc\ub4e4\uae30",
-        "\ub0a9\ud488\uc11c \ub9cc\ub4e4\uae30",
-        "\uccad\uad6c\uc11c \ub9cc\ub4e4\uae30",
-        "\uc601\uc218\uc99d \ub9cc\ub4e4\uae30",
+        { label: "\uacac\uc801\uc11c \ub9cc\ub4e4\uae30", href: "estimates/new" },
+        { label: "\ub0a9\ud488\uc11c \ub9cc\ub4e4\uae30", href: "delivery-notes/new" },
+        { label: "\uccad\uad6c\uc11c \ub9cc\ub4e4\uae30", href: "invoices/new" },
+        { label: "\uc601\uc218\uc99d \ub9cc\ub4e4\uae30", href: "receipts/new" },
+        { label: "\uc218\uc8fc \uad00\ub9ac", href: "orders" },
       ],
     },
     summary: {
@@ -204,9 +206,9 @@ const copy: Record<AppLocale, any> = {
         "\uc790\uc8fc \uc4f0\ub294 \ubb38\uc11c \uc791\uc131\uacfc \uad00\ub9ac \uba54\ub274\ub85c \ubc14\ub85c \uc774\ub3d9\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4.",
       cta: "\uc804\uccb4 \ubcf4\uae30",
       items: [
-        { title: "\uacac\uc801\uc11c", description: "\ud15c\ud50c\ub9bf\uc73c\ub85c \ube60\ub974\uac8c \uc791\uc131", metric: "\uc774\ubc88 \ub2ec 14\uac74", href: "/ja/estimates", action: "\uc791\uc131\ud558\uae30" },
-        { title: "\ub0a9\ud488\uc11c", description: "\uacac\uc801\uc11c \ub370\uc774\ud130\uc5d0\uc11c \ubc14\ub85c \ubcc0\ud658", metric: "\ubbf8\ubc1c\uc1a1 3\uac74", href: "/ja/delivery-notes", action: "\uc791\uc131\ud558\uae30" },
-        { title: "\uccad\uad6c\uc11c", description: "\uc138\uc728\uacfc \uc9c0\uae09\uae30\ud55c\uc744 \uc790\ub3d9 \uc815\ub9ac", metric: "\ubbf8\uc785\uae08 \u00a5824,000", href: "/ja/invoices", action: "\uc791\uc131\ud558\uae30" },
+        { title: "\uacac\uc801\uc11c", description: "\ud15c\ud50c\ub9bf\uc73c\ub85c \ube60\ub974\uac8c \uc791\uc131", metric: "\uc774\ubc88 \ub2ec 14\uac74", href: "/estimates", action: "\uc791\uc131\ud558\uae30" },
+        { title: "\ub0a9\ud488\uc11c", description: "\uacac\uc801\uc11c \ub370\uc774\ud130\uc5d0\uc11c \ubc14\ub85c \ubcc0\ud658", metric: "\ubbf8\ubc1c\uc1a1 3\uac74", href: "/delivery-notes", action: "\uc791\uc131\ud558\uae30" },
+        { title: "\uccad\uad6c\uc11c", description: "\uc138\uc728\uacfc \uc9c0\uae09\uae30\ud55c\uc744 \uc790\ub3d9 \uc815\ub9ac", metric: "\ubbf8\uc785\uae08 \u00a5824,000", href: "/invoices", action: "\uc791\uc131\ud558\uae30" },
         { title: "\uc218\uc8fc \uad00\ub9ac", description: "\uc9c4\ud589 \uc0c1\ud669\uacfc \uae08\uc561\uc744 \ud568\uaed8 \ud655\uc778", metric: "\uc9c4\ud589 \uc911 8\uac74", href: "#", action: "\ud655\uc778\ud558\uae30" },
         { title: "\uac70\ub798\ucc98", description: "\uc5f0\ub77d\ucc98\uc640 \uc9c0\uae09 \uc870\uac74\uc744 \ud568\uaed8 \uad00\ub9ac", metric: "\ub4f1\ub85d 42\uac74", href: "#", action: "\ub4f1\ub85d\ud558\uae30" },
         { title: "\ud488\ubaa9 \uad00\ub9ac", description: "\uc790\uc8fc \uc4f0\ub294 \ud56d\ubaa9\uc744 \ud15c\ud50c\ub9bf\ud654", metric: "\ud488\ubaa9 27\uac74", href: "#", action: "\uad00\ub9ac\ud558\uae30" },
@@ -263,7 +265,13 @@ const copy: Record<AppLocale, any> = {
         "Create estimates, delivery notes, invoices, and receipts, then check sending status and payment confirmation in the same workflow.",
       primaryCta: "Create New",
       secondaryCta: "View Sample Invoice",
-      createMenu: ["Create estimate", "Create delivery note", "Create invoice", "Create receipt"],
+      createMenu: [
+        { label: "Create estimate", href: "estimates/new" },
+        { label: "Create delivery note", href: "delivery-notes/new" },
+        { label: "Create invoice", href: "invoices/new" },
+        { label: "Create receipt", href: "receipts/new" },
+        { label: "Order management", href: "orders" },
+      ],
     },
     summary: {
       badge: "Priority",
@@ -281,9 +289,9 @@ const copy: Record<AppLocale, any> = {
       description: "Jump into the documents and menus you use most often.",
       cta: "View all",
       items: [
-        { title: "Estimate", description: "Create from a template in minutes", metric: "14 this month", href: "/ja/estimates", action: "Create" },
-        { title: "Delivery Note", description: "Convert from estimate data instantly", metric: "3 unsent", href: "/ja/delivery-notes", action: "Create" },
-        { title: "Invoice", description: "Auto-sort tax rates and due dates", metric: "Awaiting payment \u00a5824,000", href: "/ja/invoices", action: "Create" },
+        { title: "Estimate", description: "Create from a template in minutes", metric: "14 this month", href: "/estimates", action: "Create" },
+        { title: "Delivery Note", description: "Convert from estimate data instantly", metric: "3 unsent", href: "/delivery-notes", action: "Create" },
+        { title: "Invoice", description: "Auto-sort tax rates and due dates", metric: "Awaiting payment \u00a5824,000", href: "/invoices", action: "Create" },
         { title: "Order Management", description: "Track project progress and amounts", metric: "8 active", href: "#", action: "Review" },
         { title: "Clients", description: "Manage contacts and payment terms together", metric: "42 registered", href: "#", action: "Register" },
         { title: "Item Management", description: "Save reusable work item templates", metric: "27 items", href: "#", action: "Manage" },
@@ -382,17 +390,18 @@ export default function Home() {
 
                   {createMenuOpen ? (
                     <div className="absolute right-0 top-[56px] z-20 min-w-[220px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_24px_48px_rgba(15,23,42,0.14)]">
-                      {ui.hero.createMenu.map((item: string) => (
-                        <button
-                          key={item}
-                          type="button"
+                      {ui.hero.createMenu.map((item: { label: string; href: string }) => (
+                        <Link
+                          key={item.label}
+                          href={`/${item.href}`}
+                          onClick={() => setCreateMenuOpen(false)}
                           className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                         >
-                          <span>{item}</span>
+                          <span>{item.label}</span>
                           <span aria-hidden="true" className="text-slate-400">
                             →
                           </span>
-                        </button>
+                        </Link>
                       ))}
                     </div>
                   ) : null}

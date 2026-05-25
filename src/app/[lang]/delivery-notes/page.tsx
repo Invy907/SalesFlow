@@ -18,7 +18,7 @@ export default function DeliveryNotesPage() {
               {ui.listTitle}
             </h1>
             <Link
-              href="/ja/delivery-notes/new"
+              href="/delivery-notes/new"
               className="inline-flex items-center justify-center rounded bg-[#f59b45] px-6 py-4 text-lg font-semibold text-white transition hover:bg-[#ef8d32]"
             >
               {ui.createDeliveryNote}

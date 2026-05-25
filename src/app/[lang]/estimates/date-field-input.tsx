@@ -8,6 +8,8 @@ type Props = {
   onChange: (value: string) => void;
   placeholder: string;
   variant?: "field" | "card";
+  inactive?: boolean;
+  onActivate?: () => void;
 };
 
 const calendarCopy = {
@@ -107,7 +109,14 @@ function CalendarIcon({ className }: { className?: string }) {
   );
 }
 
-export function DateFieldInput({ value, onChange, placeholder, variant = "field" }: Props) {
+export function DateFieldInput({
+  value,
+  onChange,
+  placeholder,
+  variant = "field",
+  inactive = false,
+  onActivate,
+}: Props) {
   const { lang } = useLanguage();
   const ui = calendarCopy[lang] ?? calendarCopy.ja;
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -255,11 +264,15 @@ export function DateFieldInput({ value, onChange, placeholder, variant = "field"
       <div ref={rootRef} className="relative">
         <button
           type="button"
-          onClick={() => setIsOpen((open) => !open)}
+          onClick={() => {
+            onActivate?.();
+            setIsOpen((open) => !open);
+          }}
           className={[
             "group flex w-full items-center justify-between rounded-2xl border px-5 py-4 text-left transition",
             "bg-linear-to-br from-white via-slate-50 to-cyan-50/60",
             "shadow-[0_14px_35px_rgba(15,23,42,0.06)]",
+            inactive && !isOpen ? "opacity-60" : "",
             isOpen
               ? "border-cyan-400 shadow-[0_20px_45px_rgba(34,184,207,0.16)]"
               : "border-slate-200 hover:border-cyan-300 hover:shadow-[0_18px_40px_rgba(34,184,207,0.12)]",
@@ -291,9 +304,13 @@ export function DateFieldInput({ value, onChange, placeholder, variant = "field"
     <div ref={rootRef} className="relative">
       <button
         type="button"
-        onClick={() => setIsOpen((open) => !open)}
+        onClick={() => {
+          onActivate?.();
+          setIsOpen((open) => !open);
+        }}
         className={[
           "field flex w-full items-center gap-3 text-left text-[16px] transition",
+          inactive && !isOpen ? "opacity-60" : "",
           isOpen ? "border-cyan-400 shadow-[0_0_0_3px_rgba(34,184,207,0.14)]" : "",
         ].join(" ")}
       >

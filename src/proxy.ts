@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-
-const locales = ["ja", "ko", "en"] as const;
-const defaultLocale = "ja";
+import {
+  APP_LOCALES,
+  DEFAULT_LOCALE,
+  LOCALE_COOKIE_NAME,
+  isAppLocale,
+} from "@/lib/locale";
 
 function getPreferredLocale(request: NextRequest) {
   const header = request.headers.get("accept-language");
 
   if (!header) {
-    return defaultLocale;
+    return DEFAULT_LOCALE;
   }
 
   const accepted = header
@@ -17,50 +20,57 @@ function getPreferredLocale(request: NextRequest) {
     .filter(Boolean);
 
   for (const language of accepted) {
-    const exactMatch = locales.find((locale) => locale === language);
+    const exactMatch = APP_LOCALES.find((locale) => locale === language);
 
     if (exactMatch) {
       return exactMatch;
     }
 
     const baseLanguage = language.split("-")[0];
-    const baseMatch = locales.find((locale) => locale === baseLanguage);
+    const baseMatch = APP_LOCALES.find((locale) => locale === baseLanguage);
 
     if (baseMatch) {
       return baseMatch;
     }
   }
 
-  return defaultLocale;
+  return DEFAULT_LOCALE;
+}
+
+function getLocaleFromRequest(request: NextRequest) {
+  const cookieLocale = request.cookies.get(LOCALE_COOKIE_NAME)?.value;
+
+  if (cookieLocale && isAppLocale(cookieLocale)) {
+    return cookieLocale;
+  }
+
+  return getPreferredLocale(request);
 }
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const pathnameHasLocale = locales.some(
-    (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`),
-  );
+  for (const locale of APP_LOCALES) {
+    if (pathname === `/${locale}`) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
 
-  if (pathnameHasLocale) {
-    return NextResponse.next();
+    if (pathname.startsWith(`/${locale}/`)) {
+      const url = request.nextUrl.clone();
+      url.pathname = pathname.slice(`/${locale}`.length) || "/";
+      return NextResponse.redirect(url);
+    }
   }
 
-  if (pathname === "/") {
-    const url = request.nextUrl.clone();
-    url.pathname = `/${defaultLocale}`;
-
-    return NextResponse.rewrite(url);
-  }
-
-  const locale = getPreferredLocale(request);
+  const locale = getLocaleFromRequest(request);
   const url = request.nextUrl.clone();
-  url.pathname = `/${locale}${pathname}`;
+  url.pathname = pathname === "/" ? `/${locale}` : `/${locale}${pathname}`;
 
-  return NextResponse.redirect(url);
+  return NextResponse.rewrite(url);
 }
 
 export const config = {
-  matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
-  ],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)"],
 };

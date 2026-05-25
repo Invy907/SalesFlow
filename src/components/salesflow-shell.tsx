@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { useLanguage } from "@/contexts/language-context";
+import { useRouter } from "next/navigation";
+import { useLanguage, type AppLocale } from "@/contexts/language-context";
 import { getOrdersContent, getOrdersHref } from "@/app/[lang]/orders/content";
+import { getInvoiceContent, getInvoiceHref } from "@/app/[lang]/invoices/content";
 import { getReportsContent, getReportsTabHref } from "@/app/[lang]/reports/content";
 
 type ActiveItem =
@@ -125,18 +127,17 @@ const secondaryItems: Array<{ key: ActiveItem; href: string }> = [
   { key: "settings", href: "/settings" },
 ];
 
-const SIDEBAR_WIDTH = 148;
-const MAIN_FRAME_WIDTH = 1020;
+const SIDEBAR_WIDTH = 210;
 
 const primaryNavClass = (active: boolean) =>
   [
-    "flex items-center justify-between rounded px-3 py-2 text-[14px] font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-white/25",
+    "flex items-center justify-between rounded px-4 py-3 text-[19px] font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-white/25",
     active ? "bg-[#58606d] text-white" : "text-white/95 hover:bg-white/8",
   ].join(" ");
 
 const secondaryNavClass = (active: boolean) =>
   [
-    "block rounded px-3 py-2 text-[13px] transition outline-none focus-visible:ring-2 focus-visible:ring-white/25",
+    "block rounded px-4 py-2.5 text-[17px] transition outline-none focus-visible:ring-2 focus-visible:ring-white/25",
     active ? "bg-[#58606d] text-white" : "text-white/95 hover:bg-white/8",
   ].join(" ");
 
@@ -203,12 +204,18 @@ function SidebarFlyoutLink({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
-      className="block px-3 py-2 text-[13px] text-slate-700 hover:bg-slate-50 hover:text-[#14a7bb]"
+      className="block px-4 py-2.5 text-[15px] text-slate-700 hover:bg-slate-50 hover:text-[#14a7bb]"
     >
       {label}
     </Link>
   );
 }
+
+const localeDisplayNames: Record<AppLocale, string> = {
+  ja: "\u65e5\u672c\u8a9e",
+  ko: "\ud55c\uad6d\uc5b4",
+  en: "English",
+};
 
 const profileMenuItems = [
   { key: "edit-profile", icon: <UserIcon /> },
@@ -218,11 +225,13 @@ const profileMenuItems = [
 ] as const;
 
 export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
-  const { lang } = useLanguage();
+  const router = useRouter();
+  const { lang, setLang } = useLanguage();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [languageOpen, setLanguageOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const languageRef = useRef<HTMLDivElement>(null);
   const ui = copy[lang] ?? copy.ja;
-  const basePath = `/${lang}`;
   const homeHref = "/";
 
   useEffect(() => {
@@ -232,37 +241,72 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
       if (profileRef.current && !profileRef.current.contains(target)) {
         setProfileOpen(false);
       }
+
+      if (languageRef.current && !languageRef.current.contains(target)) {
+        setLanguageOpen(false);
+      }
     }
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  function handleLanguageSelect(nextLang: AppLocale) {
+    setLang(nextLang);
+    setLanguageOpen(false);
+    router.refresh();
+  }
+
   return (
-    <main className="min-h-screen bg-[#f3f6f8] text-slate-900">
+    <main className="min-h-screen bg-[#f4f7fb] text-slate-900">
       <div className="flex min-h-screen">
         <aside
           className="sticky top-0 hidden h-screen shrink-0 flex-col border-r border-slate-300 bg-[#434a56] text-white lg:flex"
           style={{ width: SIDEBAR_WIDTH }}
         >
-          <div className="border-b border-slate-300/40 bg-white px-3 py-7">
-            <Link href={homeHref} className="flex items-center gap-2">
-              <div className="h-7 w-3.5 bg-cyan-500 [clip-path:polygon(0_0,100%_0,100%_70%,45%_100%,0_100%)]" />
-              <span className="text-[17px] font-semibold tracking-wide text-slate-800">
+          <div className="border-b border-slate-300/40 bg-white px-4 py-5">
+            <Link href={homeHref} className="flex items-center gap-2.5">
+              <div className="h-7 w-4 bg-cyan-500 [clip-path:polygon(0_0,100%_0,100%_70%,45%_100%,0_100%)]" />
+              <span className="text-[22px] font-semibold tracking-wide text-slate-800">
                 SalesFlow
               </span>
             </Link>
           </div>
 
           <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
-            <div className="space-y-0.5 px-2 py-4">
+            <div className="space-y-1 px-3 py-5">
               {primaryItems.map((item) => {
                 const href =
                   item.key === "home"
                     ? homeHref
                     : item.href === "#"
                       ? "#"
-                      : `${basePath}${item.href}`;
+                      : item.href;
+
+                if (item.key === "invoices") {
+                  const invoiceTabs = getInvoiceContent(lang).subNav;
+                  return (
+                    <SidebarSubmenu
+                      key={item.key}
+                      href={href}
+                      label={ui.nav[item.key]}
+                      active={activeItem === item.key}
+                    >
+                      <SidebarFlyoutLink
+                        href={getInvoiceHref(lang, "invoices")}
+                        label={invoiceTabs[0]}
+                      />
+                      <SidebarFlyoutLink
+                        href={getInvoiceHref(lang, "periodic")}
+                        label={invoiceTabs[1]}
+                      />
+                      <SidebarFlyoutLink
+                        href={getInvoiceHref(lang, "csv_upload")}
+                        label={invoiceTabs[2]}
+                      />
+                    </SidebarSubmenu>
+                  );
+                }
 
                 if (item.key === "orders") {
                   const orderTabs = getOrdersContent(lang).submenu;
@@ -312,7 +356,7 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
               <SidebarDivider />
 
               <Link
-                href={`${basePath}${inboxItem.href}`}
+                href={inboxItem.href}
                 className={secondaryNavClass(activeItem === inboxItem.key)}
               >
                 {ui.nav[inboxItem.key]}
@@ -321,7 +365,7 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
               <SidebarDivider />
 
               {secondaryItems.map((item) => {
-                const href = item.href === "#" ? "#" : `${basePath}${item.href}`;
+                const href = item.href === "#" ? "#" : item.href;
 
                 return (
                   <Link key={item.key} href={href} className={secondaryNavClass(activeItem === item.key)}>
@@ -332,24 +376,79 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
             </div>
           </div>
 
-          <div className="shrink-0 px-2 pb-4">
-            <div className="relative border-t border-slate-300/20 pt-3">
-              <div ref={profileRef} className="relative">
+          <div className="shrink-0 px-3 pb-4">
+            <div className="relative border-t border-slate-300/20 pt-4">
+              <div ref={languageRef} className="relative">
+                <button
+                  type="button"
+                  aria-label={localeDisplayNames[lang]}
+                  onClick={() => {
+                    setLanguageOpen((open) => !open);
+                    setProfileOpen(false);
+                  }}
+                  className={[
+                    "flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition",
+                    languageOpen
+                      ? "border-white bg-[#0f1627] shadow-[0_0_0_2px_rgba(255,255,255,0.85)]"
+                      : "border-white/20 bg-[#39414d] text-white/75 hover:border-white/40 hover:text-white",
+                  ].join(" ")}
+                >
+                  <span className="flex h-11 w-11 items-center justify-center rounded-[16px] bg-white/6">
+                    <GlobeIcon />
+                  </span>
+                  <span>
+                    <span className="block text-xs font-medium text-white/45">{ui.langLabel}</span>
+                    <span className="block text-sm font-semibold text-white">
+                      {localeDisplayNames[lang]}
+                    </span>
+                  </span>
+                </button>
+
+                {languageOpen ? (
+                  <div className="absolute bottom-[76px] left-0 z-20 w-[252px] overflow-hidden rounded-[20px] border border-slate-200 bg-white py-4 shadow-[0_24px_48px_rgba(15,23,42,0.16)]">
+                    {(["ko", "ja", "en"] as const).map((locale) => {
+                      const selected = locale === lang;
+
+                      return (
+                        <button
+                          key={locale}
+                          type="button"
+                          onClick={() => handleLanguageSelect(locale)}
+                          className={[
+                            "flex w-full items-center justify-between px-5 py-3 text-left text-[20px] font-medium transition",
+                            selected
+                              ? "bg-[#eef2ff] text-[#4338ca]"
+                              : "text-slate-700 hover:bg-slate-50",
+                          ].join(" ")}
+                        >
+                          <span>{localeDisplayNames[locale]}</span>
+                          <span className={selected ? "opacity-100" : "opacity-0"}>
+                            <CheckIcon />
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+
+              <div ref={profileRef} className="relative mt-3">
                 <button
                   type="button"
                   aria-label="Profile menu"
                   onClick={() => {
                     setProfileOpen((open) => !open);
+                    setLanguageOpen(false);
                   }}
                   className={[
-                    "flex w-full items-center gap-2 rounded-xl border px-2 py-2 text-left transition",
+                    "flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition",
                     profileOpen
                       ? "border-[#6b5cff] bg-[#0f1627] shadow-[0_0_0_2px_rgba(107,92,255,0.9)]"
                       : "border-white/12 bg-white/[0.03] hover:border-white/18 hover:bg-white/4",
                   ].join(" ")}
                 >
-                  <AvatarBadge compact />
-                  <span className="min-w-0 truncate text-[11px] font-semibold text-white">
+                  <AvatarBadge />
+                  <span className="min-w-0 truncate text-sm font-semibold text-white">
                     {profile.name}
                   </span>
                 </button>
@@ -396,17 +495,10 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
           </div>
         </aside>
 
-        <div className="flex min-h-screen min-w-0 flex-1 flex-col bg-[#f3f6f8]">
-          <div className="flex flex-1">
-            <div
-              className="min-h-full shrink-0 bg-white"
-              style={{ width: MAIN_FRAME_WIDTH }}
-            >
-              {children}
-            </div>
-          </div>
-          <footer className="bg-[#f3f6f8] px-6 py-3">
-            <div className="flex w-[1020px] items-center justify-between text-xs text-slate-400">
+        <div className="flex min-h-screen flex-1 flex-col">
+          <div className="flex-1 bg-white">{children}</div>
+          <footer className="bg-[#eef3f8] px-6 py-3">
+            <div className="mx-auto flex max-w-[1440px] items-center justify-between text-xs text-slate-400">
               <div className="flex items-center gap-3">
                 {ui.footer.map((item) => (
                   <a key={item} href="#" className="transition hover:text-slate-600">
@@ -414,6 +506,7 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
                   </a>
                 ))}
               </div>
+              <div>{ui.langLabel}</div>
             </div>
           </footer>
         </div>
@@ -439,6 +532,18 @@ function ChevronRightIcon() {
   return (
     <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 fill-current opacity-70">
       <path d="M7.21 14.77a.75.75 0 0 1 .02-1.06L10.94 10 7.23 6.29a.75.75 0 1 1 1.06-1.06l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-.02Z" />
+    </svg>
+  );
+}
+
+function GlobeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7 stroke-current">
+      <circle cx="12" cy="12" r="8.25" strokeWidth="1.7" />
+      <path
+        d="M3.75 12h16.5M12 3.75a12.3 12.3 0 0 1 0 16.5m0-16.5a12.3 12.3 0 0 0 0 16.5"
+        strokeWidth="1.7"
+      />
     </svg>
   );
 }
@@ -478,6 +583,19 @@ function DownloadIcon() {
         d="M5.75 15.75v2.5A1.75 1.75 0 0 0 7.5 20h9a1.75 1.75 0 0 0 1.75-1.75v-2.5"
         strokeWidth="1.7"
         strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6 stroke-current">
+      <path
+        d="m5.75 12.75 4.1 4.1 8.4-9.6"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );
