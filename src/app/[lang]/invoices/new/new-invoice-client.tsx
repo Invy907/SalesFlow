@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { SalesFlowShell } from "@/components/salesflow-shell";
+import { getSupportHref } from "@/app/[lang]/support/content";
 import { useLanguage } from "@/contexts/language-context";
 import {
   DocumentBottomBar,
@@ -54,9 +56,12 @@ export function NewInvoiceClient() {
           <span className="flex items-center gap-1 rounded bg-cyan-600 px-2 py-0.5 text-xs font-bold text-white">
             ご案内
           </span>
-          <a href="#" className="text-sm text-cyan-600 underline">
+          <Link
+            href={getSupportHref(lang, "invoice-guide")}
+            className="text-sm text-cyan-600 underline"
+          >
             {ui.guideLink} ↗
-          </a>
+          </Link>
         </div>
 
         {/* 탭 */}

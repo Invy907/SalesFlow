@@ -1,13 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
+import { ListPageTabs } from "../list-page-shared";
 import { getEstimateContent } from "./content";
 
 export default function EstimatesPage() {
   const { lang } = useLanguage();
   const ui = getEstimateContent(lang);
+  const [activeTab, setActiveTab] = useState(0);
+  const isTrashTab = activeTab === 2;
 
   return (
     <SalesFlowShell activeItem="estimates">
@@ -15,15 +19,23 @@ export default function EstimatesPage() {
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <h1 className="text-[32px] font-bold tracking-tight text-slate-900">
-              {ui.listTitle}
+              {ui.tabTitles[activeTab]}
             </h1>
-            <Link
-              href="/estimates/new"
-              className="inline-flex items-center justify-center rounded bg-[#f59b45] px-6 py-4 text-lg font-semibold text-white transition hover:bg-[#ef8d32]"
-            >
-              {ui.createEstimate}
-            </Link>
+            {!isTrashTab ? (
+              <Link
+                href="/estimates/new"
+                className="inline-flex items-center justify-center rounded bg-[#f59b45] px-6 py-4 text-lg font-semibold text-white transition hover:bg-[#ef8d32]"
+              >
+                {ui.createEstimate}
+              </Link>
+            ) : null}
           </div>
+
+          {isTrashTab ? (
+            <p className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-[14px] text-amber-900">
+              {ui.trashNote}
+            </p>
+          ) : null}
 
           <div className="flex flex-col items-start gap-4 border-b border-slate-200 pb-4">
             <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:justify-end">
@@ -41,25 +53,17 @@ export default function EstimatesPage() {
               </button>
             </div>
 
-            <div className="flex w-full justify-end gap-10 text-xl text-slate-500">
-              {ui.tabs.map((tab, index) => (
-                <button
-                  key={tab}
-                  className={[
-                    "border-b-[3px] px-1 pb-3",
-                    index === 0
-                      ? "border-cyan-500 font-medium text-slate-900"
-                      : "border-transparent",
-                  ].join(" ")}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
+            <ListPageTabs
+              tabs={ui.tabs}
+              activeIndex={activeTab}
+              onTabChange={setActiveTab}
+              align="end"
+              size="lg"
+            />
           </div>
 
           <div className="flex min-h-[720px] items-center justify-center text-[22px] text-slate-300">
-            {ui.empty}
+            {ui.tabEmpty[activeTab]}
           </div>
         </div>
       </div>

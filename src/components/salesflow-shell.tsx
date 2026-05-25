@@ -20,6 +20,7 @@ type ActiveItem =
   | "items"
   | "inbox"
   | "history"
+  | "support"
   | "settings";
 
 type SalesFlowShellProps = {
@@ -47,6 +48,7 @@ const copy = {
       items: "\u54c1\u76ee\u7ba1\u7406",
       inbox: "\u53d7\u4fe1\u7bb1",
       history: "\u3054\u5229\u7528\u5c65\u6b74",
+      support: "\u30b5\u30dd\u30fc\u30c8",
       settings: "\u8a2d\u5b9a",
     },
     footer: ["SalesFlow"],
@@ -71,6 +73,7 @@ const copy = {
       items: "\ud488\ubaa9 \uad00\ub9ac",
       inbox: "\ubc1b\uc740 \ubb38\uc11c\ud568",
       history: "\uc774\uc6a9 \ub0b4\uc5ed",
+      support: "\uc9c0\uc6d0",
       settings: "\uc124\uc815",
     },
     footer: ["SalesFlow"],
@@ -95,6 +98,7 @@ const copy = {
       items: "Item Management",
       inbox: "Inbox",
       history: "Usage History",
+      support: "Support",
       settings: "Settings",
     },
     footer: ["SalesFlow"],
@@ -124,6 +128,7 @@ const secondaryItems: Array<{ key: ActiveItem; href: string }> = [
   { key: "clients", href: "/clients" },
   { key: "items", href: "/items" },
   { key: "history", href: "/usage" },
+  { key: "support", href: "/support" },
   { key: "settings", href: "/settings" },
 ];
 

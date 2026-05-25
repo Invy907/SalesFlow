@@ -3,24 +3,39 @@ import type { ReactNode } from "react";
 export function ListPageTabs({
   tabs,
   activeIndex = 0,
+  onTabChange,
+  align = "start",
+  size = "md",
 }: {
   tabs: readonly string[];
   activeIndex?: number;
+  onTabChange?: (index: number) => void;
+  align?: "start" | "end";
+  size?: "md" | "lg";
 }) {
   return (
-    <div className="flex gap-8 border-b border-slate-200 text-[17px]">
+    <div
+      className={[
+        "flex gap-8 border-b border-slate-200",
+        size === "lg" ? "text-xl" : "text-[17px]",
+        align === "end" ? "w-full justify-end" : "",
+      ].join(" ")}
+    >
       {tabs.map((tab, index) => (
-        <span
+        <button
           key={tab}
+          type="button"
+          onClick={() => onTabChange?.(index)}
           className={[
-            "border-b-[3px] px-1 pb-3",
+            "border-b-[3px] px-1 pb-3 transition",
             index === activeIndex
               ? "border-cyan-500 font-medium text-slate-900"
-              : "border-transparent text-slate-500",
+              : "border-transparent text-slate-500 hover:text-slate-700",
+            onTabChange ? "cursor-pointer" : "cursor-default",
           ].join(" ")}
         >
           {tab}
-        </span>
+        </button>
       ))}
     </div>
   );
