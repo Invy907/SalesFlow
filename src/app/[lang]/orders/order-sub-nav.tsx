@@ -16,19 +16,20 @@ export function OrderSubNav({ active }: { active: OrderSubNavActive }) {
   ];
 
   return (
-    <div className="border-b border-slate-200 bg-white px-[42px]">
-      <div className="flex h-[52px] w-[935px] items-center gap-4">
+    <div className="border-b border-slate-200 bg-white px-4 sm:px-6 lg:px-8">
+      <div className="-mx-4 flex h-[52px] items-center gap-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
         {tabs.map((tab) => {
           const isActive = active === tab.key;
           return (
             <Link
               key={tab.key}
               href={tab.href}
-              className={
+              className={[
+                "shrink-0 whitespace-nowrap",
                 isActive
                   ? "rounded-full bg-[#14a7bb] px-4 py-1.5 text-[13px] font-semibold text-white"
-                  : "text-[13px] font-medium text-[#14a7bb] hover:underline"
-              }
+                  : "text-[13px] font-medium text-[#14a7bb] hover:underline",
+              ].join(" ")}
             >
               {tab.label}
             </Link>

@@ -139,7 +139,7 @@ export default function NewOrderFormPage() {
           <div className="mt-12 flex justify-center pb-8">
             <button
               type="button"
-              className="min-w-[280px] rounded bg-[#14a7bb] px-8 py-3.5 text-[16px] font-semibold text-white transition hover:bg-[#1096a8]"
+              className="w-full rounded bg-[#14a7bb] px-8 py-3.5 text-[16px] font-semibold text-white transition hover:bg-[#1096a8] sm:w-auto sm:min-w-[280px]"
             >
               {form.save}
             </button>

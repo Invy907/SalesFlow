@@ -54,7 +54,8 @@ export function ItemsInfoTable({
   rows: Array<{ label: string; value: ReactNode }>;
 }) {
   return (
-    <table className="w-full border-collapse text-[14px]">
+    <div className="overflow-x-auto">
+    <table className="w-full min-w-[480px] border-collapse text-[14px]">
       <tbody>
         {rows.map((row) => (
           <tr key={row.label} className="border-b border-slate-200 last:border-b-0">
@@ -66,5 +67,6 @@ export function ItemsInfoTable({
         ))}
       </tbody>
     </table>
+    </div>
   );
 }

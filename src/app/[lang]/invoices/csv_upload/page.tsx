@@ -21,7 +21,7 @@ export default function InvoicesCsvUploadPage() {
 
       <InvoiceSubNav active="csv_upload" />
 
-      <div className="mx-auto max-w-[1260px] px-8 py-8">
+      <div className="mx-auto w-full max-w-[1260px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <div className="flex flex-col gap-8">
           <div>
             <h1 className="text-[26px] font-bold tracking-tight text-slate-900">

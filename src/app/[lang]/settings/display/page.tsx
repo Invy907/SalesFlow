@@ -18,7 +18,7 @@ export default function SettingsDisplayPage() {
     <SalesFlowShell activeItem="settings">
       <SettingsSubNav active="display" />
 
-      <div className="mx-auto max-w-[1260px] px-8 py-10 pb-28">
+      <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-20 sm:px-6 sm:py-8 sm:pb-24 lg:px-8 lg:py-10 lg:pb-28">
         <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{display.title}</h1>
 
         <div className="mt-10 space-y-8">

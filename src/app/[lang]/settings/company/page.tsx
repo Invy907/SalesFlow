@@ -62,7 +62,7 @@ function SettingsCompanyPageContent() {
     <SalesFlowShell activeItem="settings">
       <SettingsSubNav active="company" />
 
-      <div className="mx-auto max-w-[1260px] px-8 py-10 pb-28">
+      <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-20 sm:px-6 sm:py-8 sm:pb-24 lg:px-8 lg:py-10 lg:pb-28">
         {showOrderFormAlert ? <SettingsWarningAlert message={company.orderFormAlert} /> : null}
 
         <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{company.title}</h1>
@@ -79,7 +79,7 @@ function SettingsCompanyPageContent() {
             >
               <div className="flex flex-wrap gap-3">
                 <input
-                  className="field w-[180px]"
+                  className="field w-full max-w-[180px]"
                   placeholder="000-0000"
                   value={profile.postalCode}
                   onChange={(event) => updateField("postalCode", event.target.value)}

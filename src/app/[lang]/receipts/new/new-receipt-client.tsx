@@ -38,26 +38,28 @@ export function NewReceiptClient() {
 
   return (
     <SalesFlowShell activeItem="receipts">
-      <div className="mx-auto max-w-[1260px] px-8 py-10 pb-32">
-        <h1 className="text-[30px] font-bold tracking-tight text-slate-900">
+      <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-28 lg:px-8 lg:py-10 lg:pb-32">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[30px]">
           {ui.newTitle}
         </h1>
 
-        <div className="mt-10 flex gap-10 border-b border-slate-200 text-[18px] text-slate-500">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={[
-                "border-b-[3px] px-4 pb-3",
-                activeTab === tab.key
-                  ? "border-cyan-500 font-semibold text-slate-900"
-                  : "border-transparent",
-              ].join(" ")}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="-mx-4 mt-8 overflow-x-auto px-4 sm:mx-0 sm:mt-10 sm:px-0">
+          <div className="flex min-w-max gap-6 border-b border-slate-200 text-base text-slate-500 sm:gap-10 sm:text-[18px]">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={[
+                  "shrink-0 whitespace-nowrap border-b-[3px] px-3 pb-3 sm:px-4",
+                  activeTab === tab.key
+                    ? "border-cyan-500 font-semibold text-slate-900"
+                    : "border-transparent",
+                ].join(" ")}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* 基本情報 탭 */}
@@ -132,7 +134,7 @@ export function NewReceiptClient() {
               <FormField label={ui.postalCode}>
                 <div className="flex gap-3">
                   <input
-                    className="field w-[180px]"
+                    className="field w-full max-w-[180px]"
                     placeholder={ui.postalCodePlaceholder}
                   />
                   <button className="rounded border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700">

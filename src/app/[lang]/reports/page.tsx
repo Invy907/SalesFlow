@@ -21,7 +21,7 @@ export default function ReportsPage() {
 
   return (
     <SalesFlowShell activeItem="reports">
-      <div className="mx-auto max-w-[1260px] px-8 py-10 pb-16">
+      <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
         <ReportsSubNav active="main" />
         <h1 className="mt-8 text-[30px] font-bold tracking-tight text-slate-900">{main.title}</h1>
 
@@ -66,7 +66,7 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          <div className="relative h-[280px] px-8 py-6">
+          <div className="relative h-[280px] px-4 py-6 sm:px-8">
             <div className="absolute inset-x-8 top-6 bottom-12 border-l border-b border-slate-200">
               {[5, 4, 3, 2, 1, 0].map((tick) => (
                 <div

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { pageContainerClass } from "@/components/page-container";
 import { LocalizedFileInput } from "@/components/localized-file-input";
 import { DateFieldInput } from "../estimates/date-field-input";
 import { toDateInputValue } from "../estimates/date-field-utils";
@@ -187,25 +188,36 @@ export function DocumentBottomBar({
 }: DocumentBottomBarProps) {
   return (
     <div className="sticky bottom-0 border-t border-slate-300 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex max-w-[1260px] items-center justify-between gap-4 px-8 py-4">
-        <div className="flex items-center gap-8 text-[18px] text-slate-700">
+      <div
+        className={[
+          pageContainerClass({ spaciousBottom: false, className: "py-4" }),
+          "flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between",
+        ].join(" ")}
+      >
+        <div className="flex flex-wrap items-center gap-4 text-base text-slate-700 sm:gap-8 sm:text-[18px]">
           <span>
             {subtotalLabel}{" "}
-            <strong className="ml-2 text-[22px] tabular-nums">{formatDocumentAmount(totals.subtotal)} 円</strong>
+            <strong className="ml-1 text-lg tabular-nums sm:ml-2 sm:text-[22px]">
+              {formatDocumentAmount(totals.subtotal)} 円
+            </strong>
           </span>
           <span>
             {taxLabel}{" "}
-            <strong className="ml-2 text-[22px] tabular-nums">{formatDocumentAmount(totals.tax)} 円</strong>
+            <strong className="ml-1 text-lg tabular-nums sm:ml-2 sm:text-[22px]">
+              {formatDocumentAmount(totals.tax)} 円
+            </strong>
           </span>
         </div>
-        <div className="flex items-center gap-10">
-          <span className="text-[22px] font-semibold text-slate-800">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6 lg:gap-10">
+          <span className="text-lg font-semibold text-slate-800 sm:text-[22px]">
             {totalLabel}{" "}
-            <strong className="ml-4 text-[44px] tabular-nums">{formatDocumentAmount(totals.total)} 円</strong>
+            <strong className="ml-2 text-2xl tabular-nums sm:ml-4 sm:text-[44px]">
+              {formatDocumentAmount(totals.total)} 円
+            </strong>
           </span>
           <button
             type="button"
-            className="rounded bg-[#14a7bb] px-12 py-4 text-[18px] font-semibold text-white transition hover:bg-[#1096a8]"
+            className="w-full rounded bg-[#14a7bb] px-8 py-3.5 text-base font-semibold text-white transition hover:bg-[#1096a8] sm:w-auto sm:px-12 sm:py-4 sm:text-[18px]"
           >
             {saveLabel}
           </button>
@@ -226,29 +238,34 @@ export function DocumentPageShell<T extends DocumentTabKey>({
   children,
 }: DocumentPageShellProps<T>) {
   return (
-    <div data-active-item={activeItem} className="mx-auto max-w-[1260px] px-8 py-10 pb-32">
+    <div
+      data-active-item={activeItem}
+      className={pageContainerClass({ spaciousBottom: true })}
+    >
       <div className="flex flex-wrap items-baseline gap-4">
-        <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{title}</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[30px]">{title}</h1>
         {titleAddon}
         {titleLink}
       </div>
 
-      <div className="mt-8 flex gap-8 border-b border-slate-200 text-[18px] text-slate-500">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => onTabChange(tab.key)}
-            className={[
-              "border-b-[3px] px-4 pb-3",
-              activeTab === tab.key
-                ? "border-cyan-500 font-semibold text-slate-900"
-                : "border-transparent",
-            ].join(" ")}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="-mx-4 mt-6 overflow-x-auto px-4 sm:mx-0 sm:mt-8 sm:px-0">
+        <div className="flex min-w-max gap-4 border-b border-slate-200 text-base text-slate-500 sm:gap-8 sm:text-[18px]">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => onTabChange(tab.key)}
+              className={[
+                "shrink-0 whitespace-nowrap border-b-[3px] px-3 pb-3 sm:px-4",
+                activeTab === tab.key
+                  ? "border-cyan-500 font-semibold text-slate-900"
+                  : "border-transparent",
+              ].join(" ")}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {children}
@@ -405,7 +422,7 @@ export function CommonRecipientSection({
     <>
       <FormField label={postalCodeLabel}>
         <div className="flex gap-3">
-          <input className="field w-[180px]" placeholder={postalCodePlaceholder} />
+          <input className="field w-full max-w-[180px]" placeholder={postalCodePlaceholder} />
           <button className="rounded border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700">
             {postalCodeLookupLabel}
           </button>
@@ -479,7 +496,7 @@ export function SenderDetailFields({
             <div className="flex flex-wrap gap-3">
               <input
                 name={`${storagePrefix}PostalCode`}
-                className="field w-[180px]"
+                className="field w-full max-w-[180px]"
                 placeholder="000-0000"
               />
               <button
@@ -662,7 +679,12 @@ export function CommonLineItemsTable({
         </button>
       </div>
 
-      <div className={compact ? "min-w-0 rounded border border-slate-300" : "overflow-x-auto rounded border border-slate-300"}>
+      <div
+        className={[
+          "max-w-full rounded border border-slate-300",
+          compact ? "min-w-0" : "overflow-x-auto",
+        ].join(" ")}
+      >
         <table
           className={[
             "w-full table-fixed border-collapse bg-white text-left",

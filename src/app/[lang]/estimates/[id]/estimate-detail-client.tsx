@@ -134,7 +134,7 @@ export function EstimateDetailClient({ id }: Props) {
 
   return (
     <>
-      <div className="mx-auto max-w-[1260px] px-8 py-10">
+      <div className="mx-auto w-full max-w-[1260px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
         <div className="space-y-3">
           <div className="rounded border border-emerald-200 bg-emerald-50 px-5 py-4 text-[17px] text-emerald-700">
             ✓ {ui.successClient} (
@@ -148,7 +148,7 @@ export function EstimateDetailClient({ id }: Props) {
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="mt-8 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <h1 className="text-[34px] font-bold tracking-tight text-slate-900">
             {ui.detailTitle}
           </h1>
@@ -213,8 +213,8 @@ export function EstimateDetailClient({ id }: Props) {
           </button>
         </div>
 
-        <div className="mt-8 grid gap-8 xl:grid-cols-[1.3fr_0.9fr]">
-          <div className="grid grid-cols-[160px_1fr] gap-y-3 text-[18px]">
+        <div className="mt-8 grid gap-8 lg:grid-cols-[1.3fr_0.9fr]">
+          <div className="grid grid-cols-1 gap-y-3 text-base sm:grid-cols-[160px_1fr] sm:text-[18px]">
             <div className="text-slate-700">{ui.estimateNumber}</div>
             <div className="font-medium">{ui.estimateNumberValue}</div>
             <div className="text-slate-700">{ui.client}</div>

@@ -47,10 +47,10 @@ export function NewInvoiceClient() {
     <SalesFlowShell
       activeItem="invoices"
     >
-      <div className="mx-auto max-w-[1260px] px-8 py-10 pb-32">
+      <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-28 lg:px-8 lg:py-10 lg:pb-32">
         {/* 제목 + 가이드 링크 */}
         <div className="flex flex-wrap items-baseline gap-4">
-          <h1 className="text-[30px] font-bold tracking-tight text-slate-900">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[30px]">
             {ui.newTitle}
           </h1>
           <span className="flex items-center gap-1 rounded bg-cyan-600 px-2 py-0.5 text-xs font-bold text-white">
@@ -65,21 +65,23 @@ export function NewInvoiceClient() {
         </div>
 
         {/* 탭 */}
-        <div className="mt-8 flex gap-8 border-b border-slate-200 text-[18px] text-slate-500">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={[
-                "border-b-[3px] px-4 pb-3",
-                activeTab === tab.key
-                  ? "border-cyan-500 font-semibold text-slate-900"
-                  : "border-transparent",
-              ].join(" ")}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          <div className="mt-8 flex min-w-max gap-4 border-b border-slate-200 text-base text-slate-500 sm:gap-8 sm:text-[18px]">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={[
+                  "shrink-0 whitespace-nowrap border-b-[3px] px-3 pb-3 sm:px-4",
+                  activeTab === tab.key
+                    ? "border-cyan-500 font-semibold text-slate-900"
+                    : "border-transparent",
+                ].join(" ")}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* 基本情報 탭 */}
@@ -162,7 +164,7 @@ export function NewInvoiceClient() {
                 <FormField label={ui.postalCode}>
                   <div className="flex gap-3">
                     <input
-                      className="field w-[180px]"
+                      className="field w-full max-w-[180px]"
                       placeholder={ui.postalCodePlaceholder}
                     />
                     <button className="rounded border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700">

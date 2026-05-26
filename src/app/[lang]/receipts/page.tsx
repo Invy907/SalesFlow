@@ -15,7 +15,7 @@ export default function ReceiptsPage() {
 
   return (
     <SalesFlowShell activeItem="receipts">
-      <div className="mx-auto min-h-[calc(100vh-72px)] max-w-[1260px] px-8 py-10">
+      <div className="mx-auto min-h-[calc(100vh-72px)] w-full max-w-[1260px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <h1 className="text-[32px] font-bold tracking-tight text-slate-900">

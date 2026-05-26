@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
   Boxes,
@@ -20,13 +20,16 @@ import {
   Home,
   Inbox,
   LogOut,
+  Menu,
   PackageCheck,
   ReceiptText,
   ScrollText,
   Settings,
   User,
+  X,
   type LucideIcon,
 } from "lucide-react";
+import { MobileShellNavigation } from "@/components/shell-navigation";
 import { useLanguage, type AppLocale } from "@/contexts/language-context";
 import { getOrdersContent, getOrdersHref } from "@/app/[lang]/orders/content";
 import { getInvoiceContent, getInvoiceHref } from "@/app/[lang]/invoices/content";
@@ -294,12 +297,40 @@ const profileMenuItemsAfterLanguage = [
 
 export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { lang, setLang } = useLanguage();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
+  const [mobileLanguageMenuOpen, setMobileLanguageMenuOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const mobileProfileRef = useRef<HTMLDivElement>(null);
   const ui = copy[lang] ?? copy.ja;
   const homeHref = "/";
+
+  const closeMobileNav = () => setMobileNavOpen(false);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setMobileNavOpen(false);
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [mobileNavOpen]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -308,6 +339,11 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
       if (profileRef.current && !profileRef.current.contains(target)) {
         setProfileOpen(false);
         setLanguageMenuOpen(false);
+      }
+
+      if (mobileProfileRef.current && !mobileProfileRef.current.contains(target)) {
+        setMobileProfileOpen(false);
+        setMobileLanguageMenuOpen(false);
       }
     }
 
@@ -486,105 +522,135 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
               </button>
 
               {profileOpen ? (
-                <div className="absolute bottom-0 left-[calc(100%+8px)] z-20 w-[280px] overflow-hidden rounded-xl border border-slate-700/30 bg-[#141c2b] text-white shadow-xl">
-                  <div className="flex items-center gap-3 px-4 py-3">
-                    <AvatarBadge compact />
-                    <p className="min-w-0 truncate text-sm font-semibold text-white">{profile.name}</p>
-                  </div>
-
-                  <div className="border-t border-white/10">
-                    {profileMenuItemsBeforeLanguage.map((item) => {
-                      const Icon = item.icon;
-
-                      return (
-                        <button
-                          key={item.key}
-                          type="button"
-                          className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-white/4"
-                        >
-                          <Icon className="h-4 w-4 text-white/80" strokeWidth={1.75} aria-hidden="true" />
-                          <span>{getProfileMenuLabel(item.key)}</span>
-                        </button>
-                      );
-                    })}
-
-                    <div className="border-t border-white/10">
-                      <button
-                        type="button"
-                        onClick={() => setLanguageMenuOpen((open) => !open)}
-                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-white/4"
-                        aria-expanded={languageMenuOpen}
-                      >
-                        <Globe className="h-4 w-4 shrink-0 text-white/80" strokeWidth={1.75} aria-hidden="true" />
-                        <span className="min-w-0 flex-1">{ui.profileMenu.languageSettings}</span>
-                        <span className="truncate text-xs text-white/45">{localeDisplayNames[lang]}</span>
-                        <ChevronDown
-                          className={[
-                            "h-4 w-4 shrink-0 text-white/50 transition",
-                            languageMenuOpen ? "rotate-180" : "",
-                          ].join(" ")}
-                          strokeWidth={1.75}
-                          aria-hidden="true"
-                        />
-                      </button>
-
-                      {languageMenuOpen ? (
-                        <div className="space-y-0.5 px-2 pb-2">
-                          {(["ko", "ja", "en"] as const).map((locale) => {
-                            const selected = locale === lang;
-
-                            return (
-                              <button
-                                key={locale}
-                                type="button"
-                                onClick={() => handleLanguageSelect(locale)}
-                                className={[
-                                  "flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition",
-                                  selected
-                                    ? "bg-white/10 text-white"
-                                    : "text-white/70 hover:bg-white/5 hover:text-white",
-                                ].join(" ")}
-                              >
-                                <span>{localeDisplayNames[locale]}</span>
-                                {selected ? (
-                                  <Check className="h-4 w-4 text-cyan-300" strokeWidth={2} aria-hidden="true" />
-                                ) : null}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : null}
-                    </div>
-
-                    {profileMenuItemsAfterLanguage.map((item) => {
-                      const Icon = item.icon;
-
-                      return (
-                        <button
-                          key={item.key}
-                          type="button"
-                          className={[
-                            "flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-white/4",
-                            item.key === "logout" ? "border-t border-white/10" : "",
-                          ].join(" ")}
-                        >
-                          <Icon className="h-4 w-4 text-white/80" strokeWidth={1.75} aria-hidden="true" />
-                          <span>{getProfileMenuLabelAfter(item.key)}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                <ProfileDropdown
+                  lang={lang}
+                  ui={ui}
+                  languageMenuOpen={languageMenuOpen}
+                  onToggleLanguageMenu={() => setLanguageMenuOpen((open) => !open)}
+                  onLanguageSelect={handleLanguageSelect}
+                  getProfileMenuLabel={getProfileMenuLabel}
+                  getProfileMenuLabelAfter={getProfileMenuLabelAfter}
+                  placement="sidebar"
+                />
               ) : null}
             </div>
           </div>
         </aside>
 
-        <div className="flex min-h-screen flex-1 flex-col">
-          <div className="flex-1 bg-white">{children}</div>
-          <footer className="bg-[#eef3f8] px-6 py-3">
-            <div className="mx-auto flex max-w-[1440px] items-center justify-between text-xs text-slate-400">
-              <div className="flex items-center gap-3">
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+          <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 border-b border-slate-200 bg-white px-4 lg:hidden">
+            <button
+              type="button"
+              aria-label="Open menu"
+              aria-expanded={mobileNavOpen}
+              onClick={() => setMobileNavOpen(true)}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-slate-700 transition hover:bg-slate-100"
+            >
+              <Menu className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+            </button>
+
+            <Link href={homeHref} className="flex min-w-0 flex-1 items-center gap-2">
+              <img
+                src="/salesflow-sf-mark.svg"
+                alt=""
+                aria-hidden
+                className="h-7 w-auto shrink-0"
+              />
+              <span className="truncate text-lg font-semibold tracking-wide text-slate-800">
+                SalesFlow
+              </span>
+            </Link>
+
+            <div ref={mobileProfileRef} className="relative shrink-0">
+              <button
+                type="button"
+                aria-label="Profile menu"
+                aria-expanded={mobileProfileOpen}
+                onClick={() => {
+                  setMobileProfileOpen((open) => {
+                    if (open) setMobileLanguageMenuOpen(false);
+                    return !open;
+                  });
+                }}
+                className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-slate-100"
+              >
+                <AvatarBadge compact />
+              </button>
+
+              {mobileProfileOpen ? (
+                <ProfileDropdown
+                  lang={lang}
+                  ui={ui}
+                  languageMenuOpen={mobileLanguageMenuOpen}
+                  onToggleLanguageMenu={() => setMobileLanguageMenuOpen((open) => !open)}
+                  onLanguageSelect={(locale) => {
+                    handleLanguageSelect(locale);
+                    setMobileProfileOpen(false);
+                  }}
+                  getProfileMenuLabel={getProfileMenuLabel}
+                  getProfileMenuLabelAfter={getProfileMenuLabelAfter}
+                  placement="header"
+                />
+              ) : null}
+            </div>
+          </header>
+
+          {mobileNavOpen ? (
+            <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
+              <button
+                type="button"
+                aria-label="Close menu"
+                className="absolute inset-0 bg-black/40"
+                onClick={closeMobileNav}
+              />
+              <aside className="relative flex h-full w-[min(280px,85vw)] flex-col border-r border-slate-300 bg-[#434a56] text-white shadow-xl">
+                <div className="flex items-center justify-between border-b border-slate-300/40 bg-white px-4 py-4">
+                  <Link
+                    href={homeHref}
+                    onClick={closeMobileNav}
+                    className="flex min-w-0 items-center gap-2"
+                  >
+                    <img
+                      src="/salesflow-sf-mark.svg"
+                      alt=""
+                      aria-hidden
+                      className="h-7 w-auto shrink-0"
+                    />
+                    <span className="truncate text-lg font-semibold text-slate-800">SalesFlow</span>
+                  </Link>
+                  <button
+                    type="button"
+                    aria-label="Close menu"
+                    onClick={closeMobileNav}
+                    className="flex h-10 w-10 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100"
+                  >
+                    <X className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+                  </button>
+                </div>
+
+                <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+                  <MobileShellNavigation
+                    activeItem={activeItem}
+                    lang={lang}
+                    labels={ui.nav}
+                    navIcons={navIcons}
+                    homeHref={homeHref}
+                    onNavigate={closeMobileNav}
+                  />
+                </div>
+
+                <div className="shrink-0 border-t border-slate-300/20 px-4 py-3">
+                  <p className="truncate text-sm font-medium text-white/90">{profile.name}</p>
+                  <p className="truncate text-xs text-white/50">{profile.email}</p>
+                </div>
+              </aside>
+            </div>
+          ) : null}
+
+          <div className="flex-1 bg-white pt-14 lg:pt-0">{children}</div>
+          <footer className="bg-[#eef3f8] px-4 py-3 sm:px-6">
+            <div className="mx-auto flex max-w-[1440px] flex-col gap-2 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-3">
                 {ui.footer.map((item) => (
                   <a key={item} href="#" className="transition hover:text-slate-600">
                     {item}
@@ -597,6 +663,130 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
         </div>
       </div>
     </main>
+  );
+}
+
+type ShellUi = (typeof copy)[AppLocale];
+
+function ProfileDropdown({
+  lang,
+  ui,
+  languageMenuOpen,
+  onToggleLanguageMenu,
+  onLanguageSelect,
+  getProfileMenuLabel,
+  getProfileMenuLabelAfter,
+  placement,
+}: {
+  lang: AppLocale;
+  ui: ShellUi;
+  languageMenuOpen: boolean;
+  onToggleLanguageMenu: () => void;
+  onLanguageSelect: (locale: AppLocale) => void;
+  getProfileMenuLabel: (key: (typeof profileMenuItemsBeforeLanguage)[number]["key"]) => string;
+  getProfileMenuLabelAfter: (key: (typeof profileMenuItemsAfterLanguage)[number]["key"]) => string;
+  placement: "sidebar" | "header";
+}) {
+  const positionClass =
+    placement === "sidebar"
+      ? "absolute bottom-0 left-[calc(100%+8px)] z-20"
+      : "absolute right-0 top-[calc(100%+8px)] z-50";
+
+  return (
+    <div
+      className={[
+        positionClass,
+        "w-[min(280px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-700/30 bg-[#141c2b] text-white shadow-xl",
+      ].join(" ")}
+    >
+      <div className="flex items-center gap-3 px-4 py-3">
+        <AvatarBadge compact />
+        <p className="min-w-0 truncate text-sm font-semibold text-white">{profile.name}</p>
+      </div>
+
+      <div className="border-t border-white/10">
+        {profileMenuItemsBeforeLanguage.map((item) => {
+          const Icon = item.icon;
+
+          return (
+            <button
+              key={item.key}
+              type="button"
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-white/4"
+            >
+              <Icon className="h-4 w-4 text-white/80" strokeWidth={1.75} aria-hidden="true" />
+              <span>{getProfileMenuLabel(item.key)}</span>
+            </button>
+          );
+        })}
+
+        <div className="border-t border-white/10">
+          <button
+            type="button"
+            onClick={onToggleLanguageMenu}
+            className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-white/4"
+            aria-expanded={languageMenuOpen}
+          >
+            <Globe className="h-4 w-4 shrink-0 text-white/80" strokeWidth={1.75} aria-hidden="true" />
+            <span className="min-w-0 flex-1">{ui.profileMenu.languageSettings}</span>
+            <span className="truncate text-xs text-white/45">{localeDisplayNames[lang]}</span>
+            <ChevronDown
+              className={[
+                "h-4 w-4 shrink-0 text-white/50 transition",
+                languageMenuOpen ? "rotate-180" : "",
+              ].join(" ")}
+              strokeWidth={1.75}
+              aria-hidden="true"
+            />
+          </button>
+
+          {languageMenuOpen ? (
+            <div className="space-y-0.5 px-2 pb-2">
+              {(["ko", "ja", "en"] as const).map((locale) => {
+                const selected = locale === lang;
+
+                return (
+                  <button
+                    key={locale}
+                    type="button"
+                    onClick={() => onLanguageSelect(locale)}
+                    className={[
+                      "flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition",
+                      selected
+                        ? "bg-white/10 text-white"
+                        : "text-white/70 hover:bg-white/5 hover:text-white",
+                    ].join(" ")}
+                  >
+                    <span>{localeDisplayNames[locale]}</span>
+                    {selected ? (
+                      <Check className="h-4 w-4 text-cyan-300" strokeWidth={2} aria-hidden="true" />
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
+
+        {profileMenuItemsAfterLanguage.map((item) => {
+          const Icon = item.icon;
+
+          return (
+            <button
+              key={item.key}
+              type="button"
+              className={[
+                "flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-white/4",
+                item.key === "logout" ? "border-t border-white/10" : "",
+              ].join(" ")}
+            >
+              <Icon className="h-4 w-4 text-white/80" strokeWidth={1.75} aria-hidden="true" />
+              <span>{getProfileMenuLabelAfter(item.key)}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

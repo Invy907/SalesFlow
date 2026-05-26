@@ -65,7 +65,7 @@ export default function OrdersPage() {
   return (
     <SalesFlowShell activeItem="orders">
       <OrderSubNav active="management" />
-      <div className="mx-auto max-w-[1440px] px-8 py-8 pb-16">
+      <div className="mx-auto w-full max-w-[1440px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:pb-16">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
 

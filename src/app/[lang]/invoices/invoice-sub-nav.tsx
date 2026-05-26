@@ -30,29 +30,33 @@ export function InvoiceSubNav({ active }: { active: SubNavActive }) {
 
   return (
     <div className="border-b border-slate-200 bg-white">
-      <div className="mx-auto flex max-w-[1260px] items-center px-8">
-        {subNavRoutes.map((key, index) => {
-          const isActive = active === key;
-          return (
-            <Link
-              key={key}
-              href={hrefs[key]}
-              className={[
-                "px-5 py-4 text-[15px] font-medium transition",
-                isActive
-                  ? "-mb-px rounded-t border border-b-white border-slate-300 bg-white text-slate-900"
-                  : "text-slate-500 hover:text-slate-700",
-              ].join(" ")}
-            >
-              {ui.subNav[index]}
-            </Link>
-          );
-        })}
+      <div className="mx-auto flex w-full max-w-[1260px] flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:gap-0 sm:px-6 sm:py-0 lg:px-8">
+        <div className="-mx-4 flex min-w-0 overflow-x-auto px-4 sm:mx-0 sm:flex-1 sm:px-0">
+          <div className="flex min-w-max">
+            {subNavRoutes.map((key, index) => {
+              const isActive = active === key;
+              return (
+                <Link
+                  key={key}
+                  href={hrefs[key]}
+                  className={[
+                    "shrink-0 whitespace-nowrap px-4 py-3 text-sm font-medium transition sm:px-5 sm:py-4 sm:text-[15px]",
+                    isActive
+                      ? "-mb-px rounded-t border border-b-white border-slate-300 bg-white text-slate-900"
+                      : "text-slate-500 hover:text-slate-700",
+                  ].join(" ")}
+                >
+                  {ui.subNav[index]}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
         {ctaHref && ctaLabel ? (
-          <div className="ml-auto">
+          <div className="shrink-0 sm:ml-auto">
             <Link
               href={ctaHref}
-              className="inline-flex items-center justify-center rounded bg-[#f59b45] px-5 py-3 text-[15px] font-semibold text-white transition hover:bg-[#ef8d32]"
+              className="inline-flex w-full items-center justify-center rounded bg-[#f59b45] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#ef8d32] sm:w-auto sm:text-[15px]"
             >
               {ctaLabel}
             </Link>

@@ -51,7 +51,7 @@ export function NewPeriodicInvoiceClient() {
     <SalesFlowShell activeItem="invoices">
       <InvoiceSubNav active="periodic" />
 
-      <div className="mx-auto max-w-[1260px] px-8 py-8 pb-32">
+      <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-28 lg:px-8 lg:pb-32">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <h1 className="text-[28px] font-bold tracking-tight text-slate-900">{ui.periodicTitle}</h1>
           <a href="#" className="inline-flex items-center gap-1 text-[14px] text-cyan-600 hover:underline">

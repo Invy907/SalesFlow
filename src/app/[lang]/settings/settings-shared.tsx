@@ -11,7 +11,7 @@ export function SettingsSubNav({ active }: { active: SettingsTabKey }) {
 
   return (
     <div className="border-b border-slate-200 bg-[#eef3f8]">
-      <div className="mx-auto max-w-[1260px] overflow-x-auto px-8">
+      <div className="mx-auto max-w-[1260px] overflow-x-auto px-4 sm:px-6 lg:px-8">
         <div className="flex min-w-max gap-1 py-3">
           {ui.tabKeys.map((key, index) => {
             const isActive = key === active;
@@ -68,7 +68,7 @@ export function SettingsFormField({
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid gap-4 border-b border-slate-200 py-6 md:grid-cols-[220px_1fr] md:items-start">
+    <div className="grid gap-4 border-b border-slate-200 py-6 sm:grid-cols-1 md:grid-cols-[220px_1fr] md:items-start">
       <div>
         <div className="flex items-center gap-2 text-[16px] font-semibold text-slate-800">
           <span>{label}</span>
@@ -95,8 +95,8 @@ export function SettingsInfoTable({
   }>;
 }) {
   return (
-    <div className="overflow-hidden rounded border border-slate-200 bg-white">
-      <table className="w-full border-collapse text-[15px]">
+    <div className="overflow-x-auto rounded border border-slate-200 bg-white">
+      <table className="w-full min-w-[480px] border-collapse text-[15px]">
         <tbody>
           {rows.map((row) => (
             <tr key={row.label} className="border-b border-slate-200 last:border-b-0">
@@ -211,11 +211,11 @@ export function SettingsTemplateBlock({
 export function SettingsSaveBar({ label, onSave }: { label: string; onSave?: () => void }) {
   return (
     <div className="sticky bottom-0 border-t border-slate-300 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex max-w-[1260px] justify-center px-8 py-5">
+      <div className="mx-auto flex max-w-[1260px] justify-center px-4 py-5 sm:px-6 lg:px-8">
         <button
           type="button"
           onClick={onSave}
-          className="min-w-[280px] rounded bg-[#14a7bb] px-10 py-4 text-[17px] font-semibold text-white transition hover:bg-[#1096a8]"
+          className="w-full max-w-[280px] rounded bg-[#14a7bb] px-10 py-4 text-[17px] font-semibold text-white transition hover:bg-[#1096a8] sm:w-auto sm:min-w-[280px]"
         >
           {label}
         </button>

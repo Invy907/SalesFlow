@@ -13,7 +13,7 @@ export default function InvoicesPeriodicPage() {
     <SalesFlowShell activeItem="invoices">
       <InvoiceSubNav active="periodic" />
 
-      <div className="mx-auto min-h-[calc(100vh-130px)] max-w-[1260px] px-8 py-8">
+      <div className="mx-auto min-h-[calc(100vh-130px)] w-full max-w-[1260px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <div className="flex flex-col gap-5">
           <h1 className="text-[28px] font-bold tracking-tight text-slate-900">
             {ui.periodicTitle}

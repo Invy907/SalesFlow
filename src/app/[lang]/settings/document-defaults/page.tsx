@@ -34,7 +34,7 @@ export default function SettingsDocumentDefaultsPage() {
     <SalesFlowShell activeItem="settings">
       <SettingsSubNav active="document-defaults" />
 
-      <div className="mx-auto max-w-[1260px] px-8 py-10 pb-28">
+      <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-20 sm:px-6 sm:py-8 sm:pb-24 lg:px-8 lg:py-10 lg:pb-28">
         <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{doc.title}</h1>
         <p className="mt-4 max-w-[900px] text-[15px] leading-7 text-slate-600">{doc.intro}</p>
 

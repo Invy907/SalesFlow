@@ -69,7 +69,7 @@ export default function Home() {
   return (
     <SalesFlowShell activeItem="home">
       <div className="bg-[#f4f7fb]">
-        <div className="mx-auto max-w-[1260px] px-8 py-10 pb-16">
+        <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
           <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-sm text-slate-500">

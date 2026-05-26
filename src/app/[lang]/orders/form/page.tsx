@@ -77,7 +77,7 @@ function CtaSection({ heading, buttonLabel, href }: { heading: string; buttonLab
       <p className="text-[18px] font-bold text-slate-900">{heading}</p>
       <Link
         href={href}
-        className="mt-6 inline-flex min-w-[360px] items-center justify-center rounded bg-[#14a7bb] px-8 py-4 text-[16px] font-semibold text-white transition hover:bg-[#1096a8]"
+        className="mt-6 inline-flex w-full max-w-full items-center justify-center rounded bg-[#14a7bb] px-8 py-4 text-[16px] font-semibold text-white transition hover:bg-[#1096a8] sm:w-auto sm:min-w-[280px]"
       >
         {buttonLabel}
       </Link>

@@ -166,7 +166,7 @@ export function DateFieldInput({
   };
 
   const calendarPanel = isOpen ? (
-    <div className="absolute left-0 top-[calc(100%+10px)] z-40 w-[320px] overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_28px_80px_rgba(15,23,42,0.18)]">
+    <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-40 mx-auto w-full max-w-[min(320px,calc(100vw-2rem))] overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_28px_80px_rgba(15,23,42,0.18)] sm:right-auto sm:mx-0">
       <div className="bg-linear-to-r from-slate-950 via-slate-900 to-cyan-700 px-5 py-4 text-white">
         <div className="flex items-center justify-between gap-3">
           <button

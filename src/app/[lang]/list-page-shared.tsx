@@ -16,11 +16,17 @@ export function ListPageTabs({
   return (
     <div
       className={[
-        "flex gap-8 border-b border-slate-200",
-        size === "lg" ? "text-xl" : "text-[17px]",
-        align === "end" ? "w-full justify-end" : "",
+        "-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0",
+        align === "end" ? "w-full" : "",
       ].join(" ")}
     >
+      <div
+        className={[
+          "flex min-w-max gap-4 border-b border-slate-200 sm:gap-8",
+          size === "lg" ? "text-lg sm:text-xl" : "text-base sm:text-[17px]",
+          align === "end" ? "w-full justify-end" : "",
+        ].join(" ")}
+      >
       {tabs.map((tab, index) => (
         <button
           key={tab}
@@ -37,6 +43,7 @@ export function ListPageTabs({
           {tab}
         </button>
       ))}
+      </div>
     </div>
   );
 }
@@ -52,7 +59,7 @@ export function ListPrimaryButton({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex shrink-0 items-center justify-center rounded bg-[#f59b45] px-6 py-3.5 text-[16px] font-semibold text-white transition hover:bg-[#ef8d32]"
+      className="inline-flex w-full shrink-0 items-center justify-center rounded bg-[#f59b45] px-6 py-3.5 text-[16px] font-semibold text-white transition hover:bg-[#ef8d32] sm:w-auto"
     >
       {label}
     </button>
@@ -67,7 +74,7 @@ export function ListSearchBar({
   searchLabel: string;
 }) {
   return (
-    <div className="flex w-full max-w-[520px] rounded border border-slate-300 bg-white">
+    <div className="flex w-full max-w-full rounded border border-slate-300 bg-white sm:max-w-[520px]">
       <input
         className="min-w-0 flex-1 px-4 py-3 text-[15px] text-slate-700 outline-none placeholder:text-slate-300"
         placeholder={placeholder}
