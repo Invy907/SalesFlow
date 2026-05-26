@@ -42,6 +42,10 @@ export async function generateMetadata(
   return {
     title: dict.meta.title,
     description: dict.meta.description,
+    icons: {
+      icon: "/salesflow-sf-mark.svg",
+      apple: "/salesflow-sf-mark.svg",
+    },
   };
 }
 

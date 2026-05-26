@@ -15,6 +15,21 @@ export default function SupportPage() {
         <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
         <p className="mt-4 max-w-[900px] text-[15px] leading-7 text-slate-600">{ui.intro}</p>
 
+        <section className="mt-10 overflow-hidden rounded border border-slate-200 bg-white">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 px-5 py-4">
+            <div>
+              <h2 className="text-[20px] font-bold text-slate-900">{ui.announcementsSection}</h2>
+              <p className="mt-1 text-[14px] text-slate-600">{ui.announcementsDescription}</p>
+            </div>
+            <Link
+              href={getSupportHref(lang, "announcements")}
+              className="inline-flex items-center gap-1 text-sm font-semibold text-[#14a7bb] transition hover:text-[#1096a8]"
+            >
+              {ui.announcementsLink} →
+            </Link>
+          </div>
+        </section>
+
         <section className="mt-10">
           <h2 className="text-[20px] font-bold text-slate-900">{ui.guidesSection}</h2>
           <div className="mt-5 grid gap-4 md:grid-cols-2">

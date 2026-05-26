@@ -47,8 +47,21 @@ function getLocaleFromRequest(request: NextRequest) {
   return getPreferredLocale(request);
 }
 
+function buildLocalizedPath(pathname: string, locale: string) {
+  if (pathname === "/") {
+    return `/${locale}`;
+  }
+
+  return `/${locale}${pathname}`;
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Let Next.js serve public/static assets as-is.
+  if (/\.[a-zA-Z0-9]+$/.test(pathname)) {
+    return NextResponse.next();
+  }
 
   for (const locale of APP_LOCALES) {
     if (pathname === `/${locale}`) {
@@ -65,12 +78,16 @@ export function proxy(request: NextRequest) {
   }
 
   const locale = getLocaleFromRequest(request);
-  const url = request.nextUrl.clone();
-  url.pathname = pathname === "/" ? `/${locale}` : `/${locale}${pathname}`;
+  const localizedPath = buildLocalizedPath(pathname, locale);
 
-  return NextResponse.rewrite(url);
+  return NextResponse.rewrite(new URL(localizedPath, request.url));
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)"],
+  matcher: [
+    {
+      source: "/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
+      locale: false,
+    },
+  ],
 };

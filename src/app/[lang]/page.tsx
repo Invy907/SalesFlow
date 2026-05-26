@@ -12,6 +12,7 @@ import {
   type HomeTaskGroup,
   type QuickCreateKey,
 } from "./home-content";
+import { getAnnouncementsHref } from "./support/announcements/content";
 
 const toneStyles = {
   amber: {
@@ -255,26 +256,31 @@ export default function Home() {
                 <h2 className="text-[18px] font-semibold text-slate-900">
                   {ui.notices.title}
                 </h2>
-                <a
-                  href="#"
+                <Link
+                  href={getAnnouncementsHref(lang)}
                   className="text-sm font-semibold text-[#14a7bb] transition hover:text-[#1096a8]"
                 >
                   {ui.notices.seeAll} →
-                </a>
+                </Link>
               </div>
 
               <ul className="divide-y divide-slate-100">
                 {ui.notices.items.map((notice) => (
-                  <li key={notice.title} className="px-5 py-4">
-                    <div className="flex items-center gap-2 text-[12px] text-slate-500">
-                      <span className="rounded bg-cyan-50 px-2 py-0.5 text-[11px] font-semibold text-[#14a7bb] ring-1 ring-cyan-100">
-                        {notice.category}
-                      </span>
-                      <span>{notice.date}</span>
-                    </div>
-                    <p className="mt-2 text-[14px] leading-6 text-slate-700">
-                      {notice.title}
-                    </p>
+                  <li key={notice.id}>
+                    <Link
+                      href={getAnnouncementsHref(lang, notice.id)}
+                      className="block px-5 py-4 transition hover:bg-slate-50"
+                    >
+                      <div className="flex items-center gap-2 text-[12px] text-slate-500">
+                        <span className="rounded bg-cyan-50 px-2 py-0.5 text-[11px] font-semibold text-[#14a7bb] ring-1 ring-cyan-100">
+                          {notice.category}
+                        </span>
+                        <span>{notice.date}</span>
+                      </div>
+                      <p className="mt-2 text-[14px] leading-6 text-slate-700">
+                        {notice.title}
+                      </p>
+                    </Link>
                   </li>
                 ))}
               </ul>

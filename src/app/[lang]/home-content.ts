@@ -1,4 +1,5 @@
 import type { AppLocale } from "@/contexts/language-context";
+import type { AnnouncementId } from "./support/announcements/content";
 
 export type TaskTone = "amber" | "cyan" | "slate";
 
@@ -51,6 +52,7 @@ export type HomeRecentItem = {
 };
 
 export type HomeNotice = {
+  id: AnnouncementId;
   title: string;
   date: string;
   category: string;
@@ -284,16 +286,19 @@ const ja: HomeContent = {
     seeAll: "もっと見る",
     items: [
       {
+        id: "invoice-guide-added",
         title: "請求書の作り方ガイドを追加しました",
         date: "2026.05.25",
         category: "新機能",
       },
       {
+        id: "invoice-email-ui-update",
         title: "請求書メール送付画面のUIを更新しました",
         date: "2026.05.20",
         category: "アップデート",
       },
       {
+        id: "invoice-tax-display",
         title: "インボイス制度向けの税率表示を改善",
         date: "2026.05.12",
         category: "法対応",
@@ -487,16 +492,19 @@ const ko: HomeContent = {
     seeAll: "더 보기",
     items: [
       {
+        id: "invoice-guide-added",
         title: "청구서 작성 가이드를 추가했습니다",
         date: "2026.05.25",
         category: "신기능",
       },
       {
+        id: "invoice-email-ui-update",
         title: "청구서 메일 발송 화면 UI를 업데이트했습니다",
         date: "2026.05.20",
         category: "업데이트",
       },
       {
+        id: "invoice-tax-display",
         title: "일본 인보이스 제도용 세율 표시를 개선했습니다",
         date: "2026.05.12",
         category: "법규 대응",
@@ -690,16 +698,19 @@ const en: HomeContent = {
     seeAll: "See more",
     items: [
       {
+        id: "invoice-guide-added",
         title: "Added the invoice creation guide",
         date: "2026.05.25",
         category: "New feature",
       },
       {
+        id: "invoice-email-ui-update",
         title: "Updated the invoice email sending UI",
         date: "2026.05.20",
         category: "Update",
       },
       {
+        id: "invoice-tax-display",
         title: "Improved tax display for Japan invoice compliance",
         date: "2026.05.12",
         category: "Compliance",

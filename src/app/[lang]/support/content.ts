@@ -5,6 +5,9 @@ const labels = {
     title: "サポート",
     intro:
       "SalesFlowの使い方やお困りごとについて、よくある質問やお問い合わせ方法をご案内します。",
+    announcementsSection: "お知らせ",
+    announcementsDescription: "新機能・改善・メンテナンス情報を確認できます。",
+    announcementsLink: "お知らせ一覧を見る",
     guidesSection: "ガイド",
     guides: [
       {
@@ -41,6 +44,9 @@ const labels = {
     title: "지원",
     intro:
       "SalesFlow 사용 방법이나 문의 사항에 대해 자주 묻는 질문과 문의 방법을 안내합니다.",
+    announcementsSection: "공지사항",
+    announcementsDescription: "신기능, 개선, 점검 안내를 확인할 수 있습니다.",
+    announcementsLink: "공지사항 전체 보기",
     guidesSection: "가이드",
     guides: [
       {
@@ -77,6 +83,9 @@ const labels = {
     title: "Support",
     intro:
       "Find answers to common questions and learn how to contact us about SalesFlow.",
+    announcementsSection: "Announcements",
+    announcementsDescription: "Read about new features, improvements, and maintenance.",
+    announcementsLink: "View all announcements",
     guidesSection: "Guides",
     guides: [
       {
@@ -117,8 +126,9 @@ export function getSupportContent(lang: AppLocale) {
 
 export function getSupportHref(
   _lang: AppLocale,
-  page: "top" | "invoice-guide" = "top",
+  page: "top" | "invoice-guide" | "announcements" = "top",
 ) {
   if (page === "invoice-guide") return "/support/invoice-guide";
+  if (page === "announcements") return "/support/announcements";
   return "/support";
 }
