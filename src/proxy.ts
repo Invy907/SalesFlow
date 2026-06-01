@@ -6,6 +6,10 @@ import {
   LOCALE_COOKIE_NAME,
   isAppLocale,
 } from "@/lib/locale";
+import { updateSession } from "@/lib/supabase/middleware";
+
+// Matches /ja, /ja/anything — but NOT /ja/auth/...
+const PROTECTED_PREFIX_RE = /^\/(?:ja|en|ko)(\/(?!auth).*)?$/;
 
 function getPreferredLocale(request: NextRequest) {
   const header = request.headers.get("accept-language");
@@ -55,7 +59,7 @@ function buildLocalizedPath(pathname: string, locale: string) {
   return `/${locale}${pathname}`;
 }
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Let Next.js serve public/static assets as-is.
@@ -80,7 +84,20 @@ export function proxy(request: NextRequest) {
   const locale = getLocaleFromRequest(request);
   const localizedPath = buildLocalizedPath(pathname, locale);
 
-  return NextResponse.rewrite(new URL(localizedPath, request.url));
+  const rewriteResponse = NextResponse.rewrite(new URL(localizedPath, request.url));
+
+  // Refresh Supabase session on every request
+  const { response, user } = await updateSession(request, rewriteResponse);
+
+  // Redirect unauthenticated users from protected routes to sign-in
+  if (PROTECTED_PREFIX_RE.test(localizedPath) && !user) {
+    const signInUrl = request.nextUrl.clone();
+    // Use locale-less path so the proxy doesn't double-redirect
+    signInUrl.pathname = "/auth/sign-in";
+    return NextResponse.redirect(signInUrl);
+  }
+
+  return response;
 }
 
 export const config = {
