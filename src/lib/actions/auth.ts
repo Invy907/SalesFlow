@@ -2,7 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { buildAuthCallbackUrl, getServerSiteUrl } from "@/lib/site-url";
+import { buildAuthCallbackUrl } from "@/lib/site-url";
+import { getServerSiteUrl } from "@/lib/site-url.server";
 
 type AuthResult = { error: string } | { success: true; message?: string };
 
