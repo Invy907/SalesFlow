@@ -59,12 +59,23 @@ function buildLocalizedPath(pathname: string, locale: string) {
   return `/${locale}${pathname}`;
 }
 
+/** Routes under `app/auth/` (not `app/[lang]/auth/`). Must not be locale-rewritten. */
+function isRootAuthApiPath(pathname: string) {
+  return pathname === "/auth/callback" || pathname === "/auth/sign-out";
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Let Next.js serve public/static assets as-is.
   if (/\.[a-zA-Z0-9]+$/.test(pathname)) {
     return NextResponse.next();
+  }
+
+  if (isRootAuthApiPath(pathname)) {
+    const passThrough = NextResponse.next();
+    const { response } = await updateSession(request, passThrough);
+    return response;
   }
 
   for (const locale of APP_LOCALES) {

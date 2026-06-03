@@ -13,7 +13,11 @@ import {
   GoogleSignInButton,
 } from "../_components/auth-card";
 import { SignInPageShell } from "../_components/sign-in-shell";
-import { buildAuthCallbackUrl, getClientSiteUrl } from "@/lib/site-url";
+import {
+  buildOAuthCallbackUrl,
+  getClientSiteUrl,
+  setAuthNextPathCookie,
+} from "@/lib/site-url";
 import { CheckCircle2 } from "lucide-react";
 
 const initialState = null;
@@ -30,10 +34,11 @@ function SignInForm({ lang }: { lang: string }) {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     setGoogleError(null);
+    setAuthNextPathCookie(`/${lang}`);
     const supabase = createSupabaseBrowserClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: buildAuthCallbackUrl(getClientSiteUrl(), `/${lang}`) },
+      options: { redirectTo: buildOAuthCallbackUrl(getClientSiteUrl()) },
     });
     if (error) {
       setGoogleError(
