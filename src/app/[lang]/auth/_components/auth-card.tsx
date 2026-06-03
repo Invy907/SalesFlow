@@ -2,46 +2,80 @@ import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
+type AuthCardVariant = "default" | "sign-in";
+
 interface AuthCardProps {
   title: string;
   description?: string;
   children: ReactNode;
   footer?: ReactNode;
   lang: string;
+  variant?: AuthCardVariant;
 }
 
-export function AuthCard({ title, description, children, footer, lang }: AuthCardProps) {
-  return (
-    <div className="w-full max-w-[420px]">
-      {/* Logo */}
-      <div className="flex justify-center mb-8">
-        <Link href={`/${lang}`} className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-lg bg-cyan-500 flex items-center justify-center shadow-sm group-hover:bg-cyan-600 transition-colors">
-            <Image
-              src="/salesflow-sf-mark.svg"
-              alt="SalesFlow"
-              width={22}
-              height={22}
-              className="brightness-0 invert"
-            />
-          </div>
-          <span className="text-xl font-bold text-slate-800 tracking-tight">SalesFlow</span>
-        </Link>
-      </div>
+export function AuthCard({
+  title,
+  description,
+  children,
+  footer,
+  lang,
+  variant = "default",
+}: AuthCardProps) {
+  const isSignIn = variant === "sign-in";
 
-      {/* Card */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-        <div className="mb-6">
-          <h1 className="text-[1.4rem] font-bold text-slate-900 leading-snug">{title}</h1>
+  return (
+    <div className={isSignIn ? "w-full" : "w-full max-w-[420px]"}>
+      {!isSignIn && (
+        <div className="mb-8 flex justify-center">
+          <Link href={`/${lang}`} className="group flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-500 shadow-sm transition-colors group-hover:bg-cyan-600">
+              <Image
+                src="/salesflow-sf-mark.svg"
+                alt="SalesFlow"
+                width={22}
+                height={22}
+                className="brightness-0 invert"
+              />
+            </div>
+            <span className="text-xl font-bold tracking-tight text-slate-800">SalesFlow</span>
+          </Link>
+        </div>
+      )}
+
+      <div
+        className={
+          isSignIn
+            ? "rounded-3xl border border-white/80 bg-white/85 p-8 shadow-xl shadow-slate-900/[0.06] ring-1 ring-slate-200/50 backdrop-blur-xl sm:p-9 lg:p-10"
+            : "rounded-2xl border border-slate-200 bg-white p-8 shadow-sm"
+        }
+      >
+        <div className={isSignIn ? "mb-7" : "mb-6"}>
+          <h1
+            className={
+              isSignIn
+                ? "text-[1.5rem] font-bold leading-snug tracking-tight text-slate-900"
+                : "text-[1.4rem] font-bold leading-snug text-slate-900"
+            }
+          >
+            {title}
+          </h1>
           {description && (
-            <p className="mt-1.5 text-sm text-slate-500 leading-relaxed">{description}</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-500">{description}</p>
           )}
         </div>
         {children}
       </div>
 
       {footer && (
-        <div className="mt-5 text-center text-sm text-slate-500">{footer}</div>
+        <div
+          className={
+            isSignIn
+              ? "mt-6 rounded-2xl border border-slate-200/60 bg-white/40 px-4 py-3.5 text-center text-sm text-slate-600 backdrop-blur-sm"
+              : "mt-5 text-center text-sm text-slate-500"
+          }
+        >
+          {footer}
+        </div>
       )}
     </div>
   );
@@ -51,17 +85,31 @@ interface AuthInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
   error?: string;
   hint?: string;
+  premium?: boolean;
 }
 
-export function AuthInput({ label, error, hint, className, ...props }: AuthInputProps) {
+export function AuthInput({
+  label,
+  error,
+  hint,
+  className,
+  premium,
+  id,
+  ...props
+}: AuthInputProps) {
+  const inputId = id ?? props.name;
+
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-medium text-slate-700">{label}</label>
+    <div className="flex flex-col gap-2">
+      <label htmlFor={inputId} className="text-sm font-medium text-slate-700">
+        {label}
+      </label>
       <input
-        className={`field ${error ? "border-red-400 focus:border-red-400 focus:shadow-[0_0_0_3px_rgba(248,113,113,0.18)]" : ""} ${className ?? ""}`}
+        id={inputId}
+        className={`field ${premium ? "field-premium" : ""} ${error ? "border-red-400 focus:border-red-400 focus:shadow-[0_0_0_3px_rgba(248,113,113,0.18)]" : ""} ${className ?? ""}`}
         {...props}
       />
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {error && <p className="text-xs text-red-500" role="alert">{error}</p>}
       {hint && !error && <p className="text-xs text-slate-400">{hint}</p>}
     </div>
   );
@@ -70,19 +118,36 @@ export function AuthInput({ label, error, hint, className, ...props }: AuthInput
 interface AuthSubmitButtonProps {
   children: ReactNode;
   pending?: boolean;
+  premium?: boolean;
 }
 
-export function AuthSubmitButton({ children, pending }: AuthSubmitButtonProps) {
+export function AuthSubmitButton({ children, pending, premium }: AuthSubmitButtonProps) {
   return (
     <button
       type="submit"
       disabled={pending}
-      className="w-full h-12 rounded-lg bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-300 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+      aria-busy={pending}
+      className={
+        premium
+          ? "flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 via-cyan-500 to-teal-500 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25 transition-all duration-200 hover:from-cyan-600 hover:via-cyan-600 hover:to-teal-600 hover:shadow-cyan-500/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600 disabled:cursor-not-allowed disabled:from-cyan-300 disabled:via-cyan-300 disabled:to-teal-300 disabled:shadow-none"
+          : "flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 text-sm font-semibold text-white transition-colors hover:bg-cyan-600 disabled:bg-cyan-300"
+      }
     >
       {pending && (
-        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          />
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8v8z"
+          />
         </svg>
       )}
       {children}
@@ -90,14 +155,21 @@ export function AuthSubmitButton({ children, pending }: AuthSubmitButtonProps) {
   );
 }
 
-export function AuthDivider({ label }: { label: string }) {
+interface AuthDividerProps {
+  label: string;
+  surface?: "white" | "glass";
+}
+
+export function AuthDivider({ label, surface = "white" }: AuthDividerProps) {
+  const bgClass = surface === "glass" ? "bg-white/85" : "bg-white";
+
   return (
-    <div className="relative my-5">
-      <div className="absolute inset-0 flex items-center">
-        <div className="w-full border-t border-slate-200" />
+    <div className="relative my-6">
+      <div className="absolute inset-0 flex items-center" aria-hidden>
+        <div className="w-full border-t border-slate-200/80" />
       </div>
       <div className="relative flex justify-center text-xs">
-        <span className="bg-white px-3 text-slate-400">{label}</span>
+        <span className={`${bgClass} px-3 text-slate-400`}>{label}</span>
       </div>
     </div>
   );
@@ -109,6 +181,7 @@ interface GoogleSignInButtonProps {
   disabled?: boolean;
   label: string;
   loadingLabel: string;
+  premium?: boolean;
 }
 
 export function GoogleSignInButton({
@@ -117,13 +190,19 @@ export function GoogleSignInButton({
   disabled,
   label,
   loadingLabel,
+  premium,
 }: GoogleSignInButtonProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled || loading}
-      className="flex w-full h-12 items-center justify-center gap-2.5 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+      aria-busy={loading}
+      className={
+        premium
+          ? "flex h-12 w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200/90 bg-white text-sm font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:-translate-y-px hover:border-slate-300 hover:bg-slate-50/80 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+          : "flex h-12 w-full items-center justify-center gap-2.5 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+      }
     >
       <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
         <path

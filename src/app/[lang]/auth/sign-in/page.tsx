@@ -12,6 +12,7 @@ import {
   AuthSubmitButton,
   GoogleSignInButton,
 } from "../_components/auth-card";
+import { SignInPageShell } from "../_components/sign-in-shell";
 import { CheckCircle2 } from "lucide-react";
 
 const initialState = null;
@@ -49,81 +50,99 @@ function SignInForm({ lang }: { lang: string }) {
   };
 
   return (
-    <AuthCard
-      lang={lang}
-      title="おかえりなさい"
-      description="アカウントにサインインしてください。"
-      footer={
-        <p>
-          アカウントをお持ちでない方は{" "}
-          <Link href={`/${lang}/auth/sign-up`} className="text-cyan-600 hover:underline font-medium">
-            新規登録
-          </Link>
-        </p>
-      }
-    >
-      {resetSuccess && (
-        <div className="mb-5 flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">
-          <CheckCircle2 size={16} className="shrink-0" />
-          パスワードを変更しました。新しいパスワードでサインインしてください。
-        </div>
-      )}
+    <SignInPageShell lang={lang}>
+      <AuthCard
+        lang={lang}
+        variant="sign-in"
+        title="おかえりなさい"
+        description="メールアドレスでサインインするか、Googleアカウントをご利用ください。"
+        footer={
+          <p>
+            アカウントをお持ちでない方は{" "}
+            <Link
+              href={`/${lang}/auth/sign-up`}
+              className="font-semibold text-cyan-700 underline-offset-4 transition-colors hover:text-cyan-800 hover:underline"
+            >
+              新規登録はこちら
+            </Link>
+          </p>
+        }
+      >
+        {resetSuccess && (
+          <div
+            className="mb-5 flex items-center gap-2 rounded-xl border border-emerald-200/80 bg-emerald-50/90 px-4 py-3 text-sm text-emerald-800"
+            role="status"
+          >
+            <CheckCircle2 size={16} className="shrink-0" aria-hidden />
+            パスワードを更新しました。新しいパスワードでサインインしてください。
+          </div>
+        )}
 
-      {(callbackError || googleError) && (
-        <p className="mb-5 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-          {googleError ??
-            "Googleサインインを完了できませんでした。もう一度お試しください。"}
-        </p>
-      )}
-
-      <GoogleSignInButton
-        onClick={() => void handleGoogleSignIn()}
-        loading={googleLoading}
-        disabled={pending}
-        label="Googleでサインイン"
-        loadingLabel="Googleに移動中..."
-      />
-
-      <AuthDivider label="または" />
-
-      <form action={action} className="flex flex-col gap-4">
-        <AuthInput
-          label="メールアドレス"
-          name="email"
-          type="email"
-          placeholder="you@example.com"
-          autoComplete="email"
-          required
-        />
-        <AuthInput
-          label="パスワード"
-          name="password"
-          type="password"
-          placeholder="••••••••"
-          autoComplete="current-password"
-          required
-        />
-
-        {state && "error" in state && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-            {state.error}
+        {(callbackError || googleError) && (
+          <p
+            className="mb-5 rounded-xl border border-red-200/80 bg-red-50/90 px-4 py-3 text-sm text-red-700"
+            role="alert"
+          >
+            {googleError ??
+              "Googleサインインを完了できませんでした。もう一度お試しください。"}
           </p>
         )}
 
-        <div className="flex justify-end -mt-1">
-          <Link
-            href={`/${lang}/auth/forgot-password`}
-            className="text-xs text-slate-500 hover:text-cyan-600 hover:underline"
-          >
-            パスワードをお忘れですか？
-          </Link>
-        </div>
+        <GoogleSignInButton
+          premium
+          onClick={() => void handleGoogleSignIn()}
+          loading={googleLoading}
+          disabled={pending}
+          label="Googleでサインイン"
+          loadingLabel="Googleに移動しています..."
+        />
 
-        <AuthSubmitButton pending={pending}>
-          {pending ? "サインイン中..." : "サインイン"}
-        </AuthSubmitButton>
-      </form>
-    </AuthCard>
+        <AuthDivider label="またはメールアドレスで" surface="glass" />
+
+        <form action={action} className="flex flex-col gap-5">
+          <AuthInput
+            premium
+            label="メールアドレス"
+            name="email"
+            type="email"
+            placeholder="name@company.co.jp"
+            autoComplete="email"
+            required
+          />
+          <AuthInput
+            premium
+            label="パスワード"
+            name="password"
+            type="password"
+            placeholder="パスワードを入力"
+            autoComplete="current-password"
+            required
+          />
+
+          {state && "error" in state && (
+            <p
+              className="rounded-xl border border-red-200/80 bg-red-50/90 px-4 py-3 text-sm text-red-700"
+              role="alert"
+            >
+              {state.error}
+            </p>
+          )}
+
+          <div className="-mt-1 flex justify-end">
+            <Link
+              href={`/${lang}/auth/forgot-password`}
+              className="text-xs text-slate-500 underline-offset-2 transition-colors hover:text-cyan-700 hover:underline"
+            >
+              パスワードをお忘れですか？
+            </Link>
+          </div>
+
+          <AuthSubmitButton premium pending={pending}>
+            {pending ? "サインイン中..." : "サインイン"}
+          </AuthSubmitButton>
+        </form>
+      </AuthCard>
+    </SignInPageShell>
   );
 }
 
