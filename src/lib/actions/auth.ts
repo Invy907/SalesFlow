@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { buildAuthCallbackUrl, getServerSiteUrl } from "@/lib/site-url";
 
 type AuthResult = { error: string } | { success: true; message?: string };
 
@@ -54,12 +55,13 @@ export async function signUp(
   }
 
   const supabase = await getSupabaseServerClient();
+  const siteUrl = await getServerSiteUrl();
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: { display_name: displayName || email.split("@")[0] },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/${lang}`,
+      emailRedirectTo: buildAuthCallbackUrl(siteUrl, `/${lang}`),
     },
   });
 
@@ -88,8 +90,9 @@ export async function forgotPassword(
   }
 
   const supabase = await getSupabaseServerClient();
+  const siteUrl = await getServerSiteUrl();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/${lang}/auth/reset-password`,
+    redirectTo: buildAuthCallbackUrl(siteUrl, `/${lang}/auth/reset-password`),
   });
 
   if (error) return { error: error.message };
