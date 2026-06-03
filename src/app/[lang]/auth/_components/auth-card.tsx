@@ -102,3 +102,48 @@ export function AuthDivider({ label }: { label: string }) {
     </div>
   );
 }
+
+interface GoogleSignInButtonProps {
+  onClick: () => void;
+  loading?: boolean;
+  disabled?: boolean;
+  label: string;
+  loadingLabel: string;
+}
+
+export function GoogleSignInButton({
+  onClick,
+  loading,
+  disabled,
+  label,
+  loadingLabel,
+}: GoogleSignInButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled || loading}
+      className="flex w-full h-12 items-center justify-center gap-2.5 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
+        <path
+          d="M21.8 12.2c0-.8-.1-1.5-.2-2.2H12v4.2h5.5a4.7 4.7 0 0 1-2 3.1v2.6h3.2c1.9-1.8 3.1-4.5 3.1-7.7Z"
+          fill="#4285F4"
+        />
+        <path
+          d="M12 22c2.7 0 5-.9 6.7-2.5l-3.2-2.6c-.9.6-2.1 1-3.5 1-2.7 0-5-1.8-5.8-4.3H2.9v2.7A10 10 0 0 0 12 22Z"
+          fill="#34A853"
+        />
+        <path
+          d="M6.2 13.6a6 6 0 0 1 0-3.2V7.7H2.9a10 10 0 0 0 0 8.6l3.3-2.7Z"
+          fill="#FBBC05"
+        />
+        <path
+          d="M12 6c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 2.9 7.7l3.3 2.7C7 7.8 9.3 6 12 6Z"
+          fill="#EA4335"
+        />
+      </svg>
+      {loading ? loadingLabel : label}
+    </button>
+  );
+}
