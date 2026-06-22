@@ -26,6 +26,13 @@ body {
   font-family: var(--font-noto-sans-jp), sans-serif;
 }
 
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
 body::selection {
   background: rgba(8, 145, 178, 0.18);
 }
