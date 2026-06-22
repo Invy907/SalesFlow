@@ -47,31 +47,27 @@ const secondaryItems: Array<{ key: ShellActiveItem; href: string }> = [
 
 const primaryNavClass = (active: boolean) =>
   [
-    "flex items-center justify-between gap-2 rounded px-3 py-2.5 text-[17px] font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-white/25",
-    active ? "bg-[#58606d] text-white" : "text-white/95 hover:bg-white/8",
+    "flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-[14px] font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-[#0A4D34]/30",
+    active ? "bg-[#EAF3EF] text-[#0A4D34]" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
   ].join(" ");
 
 const secondaryNavClass = (active: boolean) =>
   [
-    "flex items-center gap-2.5 rounded px-3 py-2 text-[15px] transition outline-none focus-visible:ring-2 focus-visible:ring-white/25",
-    active ? "bg-[#58606d] text-white" : "text-white/95 hover:bg-white/8",
+    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-[#0A4D34]/30",
+    active ? "bg-[#EAF3EF] text-[#0A4D34]" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
   ].join(" ");
 
 function ShellNavIcon({
   icon: Icon,
-  size = "md",
 }: {
   icon: LucideIcon;
   size?: "md" | "sm";
 }) {
-  const className =
-    size === "sm" ? "h-4 w-4 shrink-0 opacity-80" : "h-[18px] w-[18px] shrink-0 opacity-80";
-
-  return <Icon className={className} strokeWidth={1.75} aria-hidden="true" />;
+  return <Icon className="h-5 w-5 shrink-0" strokeWidth={1.75} aria-hidden="true" />;
 }
 
 function ShellDivider() {
-  return <div className="my-3 border-t border-slate-300/20" aria-hidden="true" />;
+  return <div className="my-3 border-t border-slate-200" aria-hidden="true" />;
 }
 
 function MobileSubmenu({
@@ -109,7 +105,7 @@ function MobileSubmenu({
           aria-expanded={expanded}
           aria-label={label}
           onClick={() => setExpanded((value) => !value)}
-          className="rounded p-2 text-white/80 hover:bg-white/8"
+          className="rounded p-2 text-slate-400 hover:bg-slate-100 hover:text-[#0A4D34]"
         >
           <ChevronRight
             className={["h-4 w-4 transition", expanded ? "rotate-90" : ""].join(" ")}
@@ -119,7 +115,7 @@ function MobileSubmenu({
         </button>
       </div>
       {expanded ? (
-        <div className="ml-9 mt-1 space-y-0.5 border-l border-white/15 pl-3 pb-1">{children}</div>
+        <div className="ml-9 mt-1 space-y-0.5 border-l border-slate-200 pl-3 pb-1">{children}</div>
       ) : null}
     </div>
   );
@@ -138,7 +134,7 @@ function NestedNavLink({
     <Link
       href={href}
       onClick={onNavigate}
-      className="block rounded py-2 pr-2 text-[14px] text-white/85 hover:bg-white/8 hover:text-white"
+      className="block rounded py-2 pr-2 text-[14px] text-slate-600 hover:bg-[#EAF3EF] hover:text-[#0A4D34]"
     >
       {label}
     </Link>
@@ -169,7 +165,7 @@ export function MobileShellNavigation({
   }
 
   return (
-    <div className="space-y-1 px-3 py-5">
+    <div className="space-y-1 px-3 py-4">
       {primaryItems.map((item) => {
         const href = resolveHref(item.href);
 

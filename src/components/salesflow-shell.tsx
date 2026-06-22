@@ -178,34 +178,31 @@ const navIcons: Record<ActiveItem, LucideIcon> = {
   settings: Settings,
 };
 
-const SIDEBAR_WIDTH = 210;
+const SIDEBAR_WIDTH = 215;
 
 const primaryNavClass = (active: boolean) =>
   [
-    "flex items-center justify-between gap-2 rounded px-3 py-2.5 text-[17px] font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-white/25",
-    active ? "bg-[#58606d] text-white" : "text-white/95 hover:bg-white/8",
+    "flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-[14px] font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-[#0A4D34]/30",
+    active ? "bg-[#EAF3EF] text-[#0A4D34]" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
   ].join(" ");
 
 const secondaryNavClass = (active: boolean) =>
   [
-    "flex items-center gap-2.5 rounded px-3 py-2 text-[15px] transition outline-none focus-visible:ring-2 focus-visible:ring-white/25",
-    active ? "bg-[#58606d] text-white" : "text-white/95 hover:bg-white/8",
+    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-[#0A4D34]/30",
+    active ? "bg-[#EAF3EF] text-[#0A4D34]" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
   ].join(" ");
 
 function SidebarNavIcon({
   icon: Icon,
-  size = "md",
 }: {
   icon: LucideIcon;
   size?: "md" | "sm";
 }) {
-  const className = size === "sm" ? "h-4 w-4 shrink-0 opacity-80" : "h-[18px] w-[18px] shrink-0 opacity-80";
-
-  return <Icon className={className} strokeWidth={1.75} aria-hidden="true" />;
+  return <Icon className="h-5 w-5 shrink-0" strokeWidth={1.75} aria-hidden="true" />;
 }
 
 function SidebarDivider() {
-  return <div className="my-3 border-t border-slate-300/20" aria-hidden="true" />;
+  return <div className="my-3 border-t border-slate-200" aria-hidden="true" />;
 }
 
 function SidebarSubmenu({
@@ -272,7 +269,7 @@ function SidebarFlyoutLink({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
-      className="block px-4 py-2.5 text-[15px] text-slate-700 hover:bg-slate-50 hover:text-[#14a7bb]"
+      className="block px-4 py-2.5 text-[14px] text-slate-700 hover:bg-[#EAF3EF] hover:text-[#0A4D34]"
     >
       {label}
     </Link>
@@ -371,10 +368,10 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
     <main className="min-h-screen bg-[#f4f7fb] text-slate-900">
       <div className="flex min-h-screen">
         <aside
-          className="sticky top-0 hidden h-screen shrink-0 flex-col border-r border-slate-300 bg-[#434a56] text-white lg:flex"
+          className="sticky top-0 hidden h-screen shrink-0 flex-col border-r border-slate-200 bg-white text-slate-900 lg:flex"
           style={{ width: SIDEBAR_WIDTH }}
         >
-          <div className="border-b border-slate-300/40 bg-white px-4 py-5">
+          <div className="border-b border-slate-200 bg-white px-4 py-4">
             <Link href={homeHref} className="flex items-center gap-2.5">
               <img
                 src="/salesflow-sf-mark.svg"
@@ -382,14 +379,14 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
                 aria-hidden
                 className="h-8 w-auto shrink-0"
               />
-              <span className="text-[22px] font-semibold tracking-wide text-slate-800">
+              <span className="text-lg font-semibold text-[#0A4D34]">
                 SalesFlow
               </span>
             </Link>
           </div>
 
           <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
-            <div className="space-y-1 px-3 py-5">
+            <div className="space-y-1 px-3 py-4">
               {primaryItems.map((item) => {
                 const href =
                   item.key === "home"
@@ -499,7 +496,7 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
             </div>
           </div>
 
-          <div className="shrink-0 border-t border-slate-300/20 px-2.5 py-2.5">
+          <div className="shrink-0 border-t border-slate-200 bg-white px-3 py-3">
             <div ref={profileRef} className="relative">
               <button
                 type="button"
@@ -511,10 +508,10 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
                   });
                 }}
                 className={[
-                  "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition",
+                  "flex w-full items-center gap-2 rounded-lg px-1 py-1 text-left transition",
                   profileOpen
-                    ? "bg-white/12 text-white"
-                    : "text-white/75 hover:bg-white/8 hover:text-white",
+                    ? "bg-slate-100 text-slate-900"
+                    : "text-slate-700 hover:bg-slate-50",
                 ].join(" ")}
               >
                 <AvatarBadge compact />
@@ -603,8 +600,8 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
                 className="absolute inset-0 bg-black/40"
                 onClick={closeMobileNav}
               />
-              <aside className="relative flex h-full w-[min(280px,85vw)] flex-col border-r border-slate-300 bg-[#434a56] text-white shadow-xl">
-                <div className="flex items-center justify-between border-b border-slate-300/40 bg-white px-4 py-4">
+              <aside className="relative flex h-full w-[215px] max-w-[85vw] flex-col border-r border-slate-200 bg-white text-slate-900 shadow-xl">
+                <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-4">
                   <Link
                     href={homeHref}
                     onClick={closeMobileNav}
@@ -616,7 +613,7 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
                       aria-hidden
                       className="h-7 w-auto shrink-0"
                     />
-                    <span className="truncate text-lg font-semibold text-slate-800">SalesFlow</span>
+                    <span className="truncate text-lg font-semibold text-[#0A4D34]">SalesFlow</span>
                   </Link>
                   <button
                     type="button"
@@ -639,9 +636,9 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
                   />
                 </div>
 
-                <div className="shrink-0 border-t border-slate-300/20 px-4 py-3">
-                  <p className="truncate text-sm font-medium text-white/90">{profile.name}</p>
-                  <p className="truncate text-xs text-white/50">{profile.email}</p>
+                <div className="shrink-0 border-t border-slate-200 bg-white px-3 py-3">
+                  <p className="truncate text-sm font-semibold text-slate-800">{profile.name}</p>
+                  <p className="truncate text-xs text-slate-400">{profile.email}</p>
                 </div>
               </aside>
             </div>
@@ -696,15 +693,15 @@ function ProfileDropdown({
     <div
       className={[
         positionClass,
-        "w-[min(280px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-700/30 bg-[#141c2b] text-white shadow-xl",
+        "w-[min(280px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-700 shadow-xl",
       ].join(" ")}
     >
       <div className="flex items-center gap-3 px-4 py-3">
         <AvatarBadge compact />
-        <p className="min-w-0 truncate text-sm font-semibold text-white">{profile.name}</p>
+        <p className="min-w-0 truncate text-sm font-semibold text-slate-900">{profile.name}</p>
       </div>
 
-      <div className="border-t border-white/10">
+      <div className="border-t border-slate-200">
         {profileMenuItemsBeforeLanguage.map((item) => {
           const Icon = item.icon;
 
@@ -712,27 +709,27 @@ function ProfileDropdown({
             <button
               key={item.key}
               type="button"
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-white/4"
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-slate-50"
             >
-              <Icon className="h-4 w-4 text-white/80" strokeWidth={1.75} aria-hidden="true" />
+              <Icon className="h-4 w-4 text-slate-400" strokeWidth={1.75} aria-hidden="true" />
               <span>{getProfileMenuLabel(item.key)}</span>
             </button>
           );
         })}
 
-        <div className="border-t border-white/10">
+        <div className="border-t border-slate-200">
           <button
             type="button"
             onClick={onToggleLanguageMenu}
-            className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-white/4"
+            className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-slate-50"
             aria-expanded={languageMenuOpen}
           >
-            <Globe className="h-4 w-4 shrink-0 text-white/80" strokeWidth={1.75} aria-hidden="true" />
+            <Globe className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={1.75} aria-hidden="true" />
             <span className="min-w-0 flex-1">{ui.profileMenu.languageSettings}</span>
-            <span className="truncate text-xs text-white/45">{localeDisplayNames[lang]}</span>
+            <span className="truncate text-xs text-slate-400">{localeDisplayNames[lang]}</span>
             <ChevronDown
               className={[
-                "h-4 w-4 shrink-0 text-white/50 transition",
+                "h-4 w-4 shrink-0 text-slate-400 transition",
                 languageMenuOpen ? "rotate-180" : "",
               ].join(" ")}
               strokeWidth={1.75}
@@ -753,13 +750,13 @@ function ProfileDropdown({
                     className={[
                       "flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition",
                       selected
-                        ? "bg-white/10 text-white"
-                        : "text-white/70 hover:bg-white/5 hover:text-white",
+                        ? "bg-[#EAF3EF] text-[#0A4D34]"
+                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
                     ].join(" ")}
                   >
                     <span>{localeDisplayNames[locale]}</span>
                     {selected ? (
-                      <Check className="h-4 w-4 text-cyan-300" strokeWidth={2} aria-hidden="true" />
+                      <Check className="h-4 w-4 text-[#0A4D34]" strokeWidth={2} aria-hidden="true" />
                     ) : null}
                   </button>
                 );
@@ -776,11 +773,13 @@ function ProfileDropdown({
               key={item.key}
               type="button"
               className={[
-                "flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-white/4",
-                item.key === "logout" ? "border-t border-white/10" : "",
+                "flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-slate-50",
+                item.key === "logout"
+                  ? "border-t border-slate-200 hover:bg-[#EAF3EF] hover:text-[#0A4D34]"
+                  : "",
               ].join(" ")}
             >
-              <Icon className="h-4 w-4 text-white/80" strokeWidth={1.75} aria-hidden="true" />
+              <Icon className="h-4 w-4 text-slate-400" strokeWidth={1.75} aria-hidden="true" />
               <span>{getProfileMenuLabelAfter(item.key)}</span>
             </button>
           );
@@ -794,8 +793,8 @@ function AvatarBadge({ compact = false }: { compact?: boolean }) {
   return (
     <div
       className={[
-        "flex shrink-0 items-center justify-center rounded-full bg-[#6b67f2] font-semibold text-white",
-        compact ? "h-7 w-7 text-[10px]" : "h-9 w-9 text-sm",
+        "flex shrink-0 items-center justify-center rounded-full bg-[#0A4D34] font-semibold text-white",
+        compact ? "h-9 w-9 text-sm" : "h-9 w-9 text-sm",
       ].join(" ")}
     >
       {profile.initials}
