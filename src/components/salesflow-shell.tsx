@@ -30,6 +30,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { MobileShellNavigation } from "@/components/shell-navigation";
+import { FlowWordmark } from "@/components/flow-wordmark";
 import { useLanguage, type AppLocale } from "@/contexts/language-context";
 import { getOrdersContent, getOrdersHref } from "@/app/[lang]/orders/content";
 import { getInvoiceContent, getInvoiceHref } from "@/app/[lang]/invoices/content";
@@ -371,17 +372,14 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
           className="sticky top-0 hidden h-screen shrink-0 flex-col border-r border-slate-200 bg-white text-slate-900 lg:flex"
           style={{ width: SIDEBAR_WIDTH }}
         >
-          <div className="border-b border-slate-200 bg-white px-4 py-4">
-            <Link href={homeHref} className="flex items-center gap-2.5">
-              <img
-                src="/salesflow-sf-mark.svg"
-                alt=""
-                aria-hidden
-                className="h-8 w-auto shrink-0"
+          <div className="shrink-0 border-b border-slate-200 bg-white px-3 py-4">
+            <Link href={homeHref}>
+              <FlowWordmark
+                prefix="Sales"
+                mark="SF"
+                accent="#177A58"
+                accentEnd="#0A4D34"
               />
-              <span className="text-lg font-semibold text-[#0A4D34]">
-                SalesFlow
-              </span>
             </Link>
           </div>
 
@@ -546,16 +544,13 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
               <Menu className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
             </button>
 
-            <Link href={homeHref} className="flex min-w-0 flex-1 items-center gap-2">
-              <img
-                src="/salesflow-sf-mark.svg"
-                alt=""
-                aria-hidden
-                className="h-7 w-auto shrink-0"
+            <Link href={homeHref} className="flex min-w-0 flex-1 items-center">
+              <FlowWordmark
+                prefix="Sales"
+                mark="SF"
+                accent="#177A58"
+                accentEnd="#0A4D34"
               />
-              <span className="truncate text-lg font-semibold tracking-wide text-slate-800">
-                SalesFlow
-              </span>
             </Link>
 
             <div ref={mobileProfileRef} className="relative shrink-0">
@@ -601,19 +596,14 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
                 onClick={closeMobileNav}
               />
               <aside className="relative flex h-full w-[215px] max-w-[85vw] flex-col border-r border-slate-200 bg-white text-slate-900 shadow-xl">
-                <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-4">
-                  <Link
-                    href={homeHref}
-                    onClick={closeMobileNav}
-                    className="flex min-w-0 items-center gap-2"
-                  >
-                    <img
-                      src="/salesflow-sf-mark.svg"
-                      alt=""
-                      aria-hidden
-                      className="h-7 w-auto shrink-0"
+                <div className="flex items-center justify-between border-b border-slate-200 bg-white px-3 py-4">
+                  <Link href={homeHref} onClick={closeMobileNav} className="min-w-0">
+                    <FlowWordmark
+                      prefix="Sales"
+                      mark="SF"
+                      accent="#177A58"
+                      accentEnd="#0A4D34"
                     />
-                    <span className="truncate text-lg font-semibold text-[#0A4D34]">SalesFlow</span>
                   </Link>
                   <button
                     type="button"
