@@ -28,8 +28,8 @@ type NavLabels = Record<ShellActiveItem, string>;
 const primaryItems: Array<{ key: ShellActiveItem; href: string }> = [
   { key: "home", href: "" },
   { key: "estimates", href: "/estimates" },
-  { key: "delivery-notes", href: "/delivery-notes" },
   { key: "invoices", href: "/invoices" },
+  { key: "delivery-notes", href: "/delivery-notes" },
   { key: "receipts", href: "/receipts" },
   { key: "orders", href: "/orders" },
   { key: "reports", href: "/reports" },
