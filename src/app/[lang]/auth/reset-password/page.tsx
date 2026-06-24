@@ -4,6 +4,8 @@ import { useActionState, useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { resetPassword } from "@/lib/actions/auth";
+import { formatSalesAuthError } from "@/lib/format-action-error";
+import type { AppLocale } from "@/contexts/language-context";
 import { AuthCard, AuthInput, AuthSubmitButton } from "../_components/auth-card";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { ArrowLeft, AlertCircle } from "lucide-react";
@@ -11,6 +13,7 @@ import { ArrowLeft, AlertCircle } from "lucide-react";
 const initialState = null;
 
 function ResetPasswordForm({ lang }: { lang: string }) {
+  const locale = (lang === "ko" || lang === "en" ? lang : "ja") as AppLocale;
   const searchParams = useSearchParams();
 
   const [sessionReady, setSessionReady] = useState(false);
@@ -109,7 +112,7 @@ function ResetPasswordForm({ lang }: { lang: string }) {
 
         {state && "error" in state && (
           <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-            {state.error}
+            {formatSalesAuthError(state.error, locale)}
           </p>
         )}
 

@@ -4,6 +4,8 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { forgotPassword } from "@/lib/actions/auth";
+import { formatSalesAuthError } from "@/lib/format-action-error";
+import type { AppLocale } from "@/contexts/language-context";
 import { AuthCard, AuthInput, AuthSubmitButton } from "../_components/auth-card";
 import { CheckCircle2, ArrowLeft } from "lucide-react";
 
@@ -12,6 +14,7 @@ const initialState = null;
 export default function ForgotPasswordPage() {
   const params = useParams<{ lang: string }>();
   const lang = params.lang ?? "ja";
+  const locale = (lang === "ko" || lang === "en" ? lang : "ja") as AppLocale;
 
   const boundForgotPassword = forgotPassword.bind(null, lang);
   const [state, action, pending] = useActionState(boundForgotPassword, initialState);
@@ -68,7 +71,7 @@ export default function ForgotPasswordPage() {
 
         {state && "error" in state && (
           <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-            {state.error}
+            {formatSalesAuthError(state.error, locale)}
           </p>
         )}
 

@@ -16,7 +16,7 @@ export async function signIn(
   const password = formData.get("password") as string;
 
   if (!email || !password) {
-    return { error: "メールアドレスとパスワードを入力してください。" };
+    return { error: "AUTH_FIELDS_REQUIRED" };
   }
 
   const supabase = await getSupabaseServerClient();
@@ -24,12 +24,12 @@ export async function signIn(
 
   if (error) {
     if (error.message.includes("Invalid login")) {
-      return { error: "メールアドレスまたはパスワードが正しくありません。" };
+      return { error: "AUTH_INVALID_CREDENTIALS" };
     }
     if (error.message.includes("Email not confirmed")) {
-      return { error: "メールアドレスの確認が完了していません。受信トレイをご確認ください。" };
+      return { error: "AUTH_EMAIL_NOT_CONFIRMED" };
     }
-    return { error: error.message };
+    return { error: "AUTH_GENERIC" };
   }
 
   redirect(`/${lang}`);
@@ -46,13 +46,13 @@ export async function signUp(
   const displayName = formData.get("displayName") as string;
 
   if (!email || !password) {
-    return { error: "メールアドレスとパスワードを入力してください。" };
+    return { error: "AUTH_FIELDS_REQUIRED" };
   }
   if (password.length < 8) {
-    return { error: "パスワードは8文字以上にしてください。" };
+    return { error: "AUTH_PASSWORD_TOO_SHORT" };
   }
   if (password !== passwordConfirm) {
-    return { error: "パスワードが一致しません。" };
+    return { error: "AUTH_PASSWORD_MISMATCH" };
   }
 
   const supabase = await getSupabaseServerClient();
@@ -68,15 +68,12 @@ export async function signUp(
 
   if (error) {
     if (error.message.includes("already registered")) {
-      return { error: "このメールアドレスはすでに登録されています。" };
+      return { error: "AUTH_USER_EXISTS" };
     }
-    return { error: error.message };
+    return { error: "AUTH_GENERIC" };
   }
 
-  return {
-    success: true,
-    message: "確認メールを送信しました。受信トレイをご確認ください。",
-  };
+  return { success: true, message: "AUTH_SIGNUP_SUCCESS" };
 }
 
 export async function forgotPassword(
@@ -87,7 +84,7 @@ export async function forgotPassword(
   const email = formData.get("email") as string;
 
   if (!email) {
-    return { error: "メールアドレスを入力してください。" };
+    return { error: "AUTH_EMAIL_REQUIRED" };
   }
 
   const supabase = await getSupabaseServerClient();
@@ -96,12 +93,9 @@ export async function forgotPassword(
     redirectTo: buildAuthCallbackUrl(siteUrl, `/${lang}/auth/reset-password`),
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: "AUTH_GENERIC" };
 
-  return {
-    success: true,
-    message: "パスワードリセットのメールを送信しました。",
-  };
+  return { success: true, message: "AUTH_FORGOT_SUCCESS" };
 }
 
 export async function resetPassword(
@@ -112,14 +106,14 @@ export async function resetPassword(
   const password = formData.get("password") as string;
   const passwordConfirm = formData.get("passwordConfirm") as string;
 
-  if (!password) return { error: "新しいパスワードを入力してください。" };
-  if (password.length < 8) return { error: "パスワードは8文字以上にしてください。" };
-  if (password !== passwordConfirm) return { error: "パスワードが一致しません。" };
+  if (!password) return { error: "AUTH_PASSWORD_REQUIRED" };
+  if (password.length < 8) return { error: "AUTH_PASSWORD_TOO_SHORT" };
+  if (password !== passwordConfirm) return { error: "AUTH_PASSWORD_MISMATCH" };
 
   const supabase = await getSupabaseServerClient();
   const { error } = await supabase.auth.updateUser({ password });
 
-  if (error) return { error: error.message };
+  if (error) return { error: "AUTH_GENERIC" };
 
   redirect(`/${lang}/auth/sign-in?reset=success`);
 }

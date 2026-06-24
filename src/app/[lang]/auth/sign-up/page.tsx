@@ -4,6 +4,8 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { signUp } from "@/lib/actions/auth";
+import { formatSalesAuthError } from "@/lib/format-action-error";
+import type { AppLocale } from "@/contexts/language-context";
 import {
   AuthCard,
   AuthInput,
@@ -16,6 +18,7 @@ const initialState = null;
 export default function SignUpPage() {
   const params = useParams<{ lang: string }>();
   const lang = params.lang ?? "ja";
+  const locale = (lang === "ko" || lang === "en" ? lang : "ja") as AppLocale;
 
   const boundSignUp = signUp.bind(null, lang);
   const [state, action, pending] = useActionState(boundSignUp, initialState);
@@ -29,7 +32,7 @@ export default function SignUpPage() {
           </div>
           <h2 className="text-xl font-bold text-slate-900">確認メールを送信しました</h2>
           <p className="text-sm text-slate-500 leading-relaxed">
-            {state.message}
+            {formatSalesAuthError(state.message ?? "", locale)}
             <br />
             メール内のリンクをクリックして登録を完了してください。
           </p>
@@ -95,7 +98,7 @@ export default function SignUpPage() {
 
         {state && "error" in state && (
           <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-            {state.error}
+            {formatSalesAuthError(state.error, locale)}
           </p>
         )}
 

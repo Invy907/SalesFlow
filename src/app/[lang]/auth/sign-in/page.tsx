@@ -18,11 +18,14 @@ import {
   getClientSiteUrl,
   setAuthNextPathCookie,
 } from "@/lib/site-url";
+import { formatSalesAuthError } from "@/lib/format-action-error";
+import type { AppLocale } from "@/contexts/language-context";
 import { CheckCircle2 } from "lucide-react";
 
 const initialState = null;
 
 function SignInForm({ lang }: { lang: string }) {
+  const locale = (lang === "ko" || lang === "en" ? lang : "ja") as AppLocale;
   const searchParams = useSearchParams();
   const resetSuccess = searchParams.get("reset") === "success";
   const callbackError = searchParams.get("error") === "callback_error";
@@ -41,9 +44,7 @@ function SignInForm({ lang }: { lang: string }) {
       options: { redirectTo: buildOAuthCallbackUrl(getClientSiteUrl()) },
     });
     if (error) {
-      setGoogleError(
-        "Googleサインインを開始できませんでした。しばらくしてからもう一度お試しください。",
-      );
+      setGoogleError(formatSalesAuthError("AUTH_GOOGLE_FAILED", locale));
       setGoogleLoading(false);
     }
   };
@@ -123,7 +124,7 @@ function SignInForm({ lang }: { lang: string }) {
               className="rounded-xl border border-red-200/80 bg-red-50/90 px-4 py-3 text-sm text-red-700"
               role="alert"
             >
-              {state.error}
+              {formatSalesAuthError(state.error, locale)}
             </p>
           )}
 
