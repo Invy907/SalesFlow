@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { isSignupEmailAlreadyRegistered } from "@/lib/auth/signup";
 import { buildAuthCallbackUrl } from "@/lib/site-url";
 import { getServerSiteUrl } from "@/lib/site-url.server";
 
@@ -57,7 +58,7 @@ export async function signUp(
 
   const supabase = await getSupabaseServerClient();
   const siteUrl = await getServerSiteUrl();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -71,6 +72,10 @@ export async function signUp(
       return { error: "AUTH_USER_EXISTS" };
     }
     return { error: "AUTH_GENERIC" };
+  }
+
+  if (isSignupEmailAlreadyRegistered(data)) {
+    return { error: "AUTH_USER_EXISTS" };
   }
 
   return { success: true, message: "AUTH_SIGNUP_SUCCESS" };
