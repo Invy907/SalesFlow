@@ -1,6 +1,10 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useState, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
+import type { AppLocale } from "@/contexts/language-context";
 
 type AuthCardVariant = "default" | "sign-in";
 
@@ -86,7 +90,14 @@ interface AuthInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   hint?: string;
   premium?: boolean;
+  locale?: AppLocale;
 }
+
+const passwordToggleLabels: Record<AppLocale, { show: string; hide: string }> = {
+  ja: { show: "パスワードを表示", hide: "パスワードを非表示" },
+  ko: { show: "비밀번호 표시", hide: "비밀번호 숨기기" },
+  en: { show: "Show password", hide: "Hide password" },
+};
 
 export function AuthInput({
   label,
@@ -95,20 +106,40 @@ export function AuthInput({
   className,
   premium,
   id,
+  type,
+  locale = "ja",
   ...props
 }: AuthInputProps) {
   const inputId = id ?? props.name;
+  const [visible, setVisible] = useState(false);
+  const isPassword = type === "password";
+  const inputType = isPassword && visible ? "text" : type;
+  const toggleLabels = passwordToggleLabels[locale];
 
   return (
     <div className="flex flex-col gap-2">
       <label htmlFor={inputId} className="text-sm font-medium text-slate-700">
         {label}
       </label>
-      <input
-        id={inputId}
-        className={`field ${premium ? "field-premium" : ""} ${error ? "border-red-400 focus:border-red-400 focus:shadow-[0_0_0_3px_rgba(248,113,113,0.18)]" : ""} ${className ?? ""}`}
-        {...props}
-      />
+      <div className={isPassword ? "relative" : undefined}>
+        <input
+          id={inputId}
+          type={inputType}
+          className={`field ${premium ? "field-premium" : ""} ${error ? "border-red-400 focus:border-red-400 focus:shadow-[0_0_0_3px_rgba(248,113,113,0.18)]" : ""} ${isPassword ? "pr-11" : ""} ${className ?? ""}`}
+          {...props}
+        />
+        {isPassword ? (
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={() => setVisible((current) => !current)}
+            aria-label={visible ? toggleLabels.hide : toggleLabels.show}
+            className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 transition-colors hover:text-slate-600"
+          >
+            {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        ) : null}
+      </div>
       {error && <p className="text-xs text-red-500" role="alert">{error}</p>}
       {hint && !error && <p className="text-xs text-slate-400">{hint}</p>}
     </div>

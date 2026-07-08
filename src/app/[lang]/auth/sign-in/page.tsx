@@ -111,6 +111,7 @@ function SignInForm({ lang }: { lang: string }) {
           />
           <AuthInput
             premium
+            locale={locale}
             label="パスワード"
             name="password"
             type="password"
