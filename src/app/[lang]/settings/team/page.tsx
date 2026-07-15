@@ -32,15 +32,32 @@ export default function SettingsTeamPage() {
           <section className="overflow-hidden rounded border border-slate-200 bg-white">
             <SettingsSectionHeader title={team.inviteSection} />
             <div className="px-6 py-6">
-              <label className="block text-[16px] font-semibold text-slate-800">{team.emailLabel}</label>
-              <input type="email" className="field mt-3 max-w-[480px]" />
-              <button
-                type="button"
-                disabled
-                className="mt-4 rounded border border-slate-300 bg-slate-100 px-5 py-2.5 text-[14px] font-semibold text-slate-400"
-              >
-                {team.inviteButton}
-              </button>
+              <div className="w-full max-w-lg">
+                <label className="block text-xs font-medium text-slate-500">{team.emailLabel}</label>
+                <div className="mt-2 grid grid-cols-[minmax(0,1fr)_8.5rem_auto] items-stretch gap-2 overflow-x-auto">
+                  <input
+                    type="email"
+                    placeholder="name@example.com"
+                    className="h-10 min-w-0 rounded-lg border border-slate-200 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                  />
+                  <select
+                    aria-label={team.roleLabel}
+                    defaultValue="member"
+                    className="h-10 w-[8.5rem] shrink-0 rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-900 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                  >
+                    <option value="admin">{team.roleAdmin}</option>
+                    <option value="member">{team.roleMember}</option>
+                    <option value="viewer">{team.roleViewer}</option>
+                  </select>
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-lg border border-slate-300 bg-slate-100 px-4 text-xs font-semibold text-slate-400 disabled:cursor-not-allowed"
+                  >
+                    {team.inviteButton}
+                  </button>
+                </div>
+              </div>
             </div>
           </section>
 
