@@ -1,8 +1,11 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/supabase/database.types";
+
+export type DocumentStatus = Database["public"]["Enums"]["document_status"];
 
 export interface DocumentFilter {
   clientId?: string;
-  status?: string;
+  status?: DocumentStatus;
   from?: string;
   to?: string;
   query?: string;

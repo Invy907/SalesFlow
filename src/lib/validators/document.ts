@@ -48,8 +48,10 @@ export const createEstimateSchema = z.object({
   templateMessage: z.string().optional(),
   remarks: z.string().optional(),
   internalMemo: z.string().optional(),
-  recipientSnapshot: z.record(z.string(), z.unknown()).optional(),
-  senderSnapshot: z.record(z.string(), z.unknown()).optional(),
+  // Persisted to jsonb columns, so the values must stay JSON-serialisable
+  // rather than `unknown`.
+  recipientSnapshot: z.record(z.string(), z.json()).optional(),
+  senderSnapshot: z.record(z.string(), z.json()).optional(),
   lineItems: z.array(lineItemSchema).min(1).max(80),
 });
 
