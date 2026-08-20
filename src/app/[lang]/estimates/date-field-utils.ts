@@ -14,3 +14,7 @@ export function toDateInputValue(value?: string) {
 
   return value.replace(/\//g, "-");
 }
+
+export function toIsoDate(value: string): string {
+  return value.replace(/\//g, "-");
+}

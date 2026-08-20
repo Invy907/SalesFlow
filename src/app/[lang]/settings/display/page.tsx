@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
+import { appHrefs } from "@/lib/app-hrefs";
 import { getSettingsContent } from "../content";
 import {
   SettingsSaveBar,
@@ -30,13 +32,13 @@ export default function SettingsDisplayPage() {
               </label>
               <p className="mt-2 text-[14px] text-slate-600">
                 {display.listPerPageDesc}{" "}
-                <a href="#" className="inline-flex items-center gap-1 text-[#14a7bb] hover:underline">
+                <Link href={appHrefs.support} className="inline-flex items-center gap-1 text-[#14a7bb] hover:underline">
                   {display.help}
                   <svg viewBox="0 0 20 20" aria-hidden="true" className="h-3.5 w-3.5 fill-current">
                     <path d="M11 3a1 1 0 1 0 0 2h2.59l-6.3 6.29a1 1 0 0 0 1.42 1.42L15 6.41V9a1 1 0 1 0 2 0V4a1 1 0 0 0-1-1h-5Z" />
                     <path d="M5 5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-3a1 1 0 1 0-2 0v3H5V7h3a1 1 0 1 0 0-2H5Z" />
                   </svg>
-                </a>
+                </Link>
               </p>
               <div className="mt-4 flex items-center gap-2">
                 <select className="field w-[100px] bg-white" defaultValue="30">

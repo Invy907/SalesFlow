@@ -1,75 +1,57 @@
-"use client";
+import { requireActiveOrg } from "@/lib/guards";
+import { getDeliveryNotes } from "@/lib/db/delivery-notes";
+import { DeliveryNotesList, type DeliveryNoteListRow } from "./delivery-notes-list";
 
-import Link from "next/link";
-import { useState } from "react";
-import { SalesFlowShell } from "@/components/salesflow-shell";
-import { useLanguage } from "@/contexts/language-context";
-import { ListPageTabs } from "../list-page-shared";
-import { getDeliveryNoteContent } from "./content";
+export const dynamic = "force-dynamic";
 
-export default function DeliveryNotesPage() {
-  const { lang } = useLanguage();
-  const ui = getDeliveryNoteContent(lang);
-  const [activeTab, setActiveTab] = useState(0);
-  const isTrashTab = activeTab === 2;
+const TAB_FILTERS = [
+  { statusIn: ["draft", "issued", "sent"], trashed: false },
+  { statusIn: ["confirmed"], trashed: false },
+  { statusIn: undefined, trashed: true },
+] as const;
+
+export default async function DeliveryNotesPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ lang: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; page?: string }>;
+}) {
+  const { lang } = await params;
+  const scope = await requireActiveOrg(lang);
+  const sp = await searchParams;
+  const tab = Math.min(2, Math.max(0, Number(sp.tab ?? "0") || 0));
+  const page = Math.max(1, Number(sp.page ?? "1") || 1);
+  const query = sp.q?.trim() || undefined;
+  const filter = TAB_FILTERS[tab];
+
+  const { deliveryNotes, total } = await getDeliveryNotes(scope.orgId, {
+    statusIn: filter.statusIn ? [...filter.statusIn] : undefined,
+    trashed: filter.trashed,
+    query,
+    page,
+    pageSize: 30,
+  });
+
+  const rows: DeliveryNoteListRow[] = deliveryNotes.map((d) => ({
+    id: d.id as string,
+    documentNumber: (d.document_number as string) ?? "",
+    clientName: ((d.clients as { name?: string } | null)?.name as string) ?? "",
+    subject: (d.subject as string) ?? "",
+    issueDate: (d.issue_date as string) ?? "",
+    deliveryDate: (d.delivery_date as string) ?? "",
+    total: Number(d.total ?? 0),
+    status: (d.status as string) ?? "draft",
+  }));
 
   return (
-    <SalesFlowShell activeItem="delivery-notes">
-      <div className="mx-auto min-h-[calc(100vh-72px)] w-full max-w-[1260px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <h1 className="text-[32px] font-bold tracking-tight text-slate-900">
-              {ui.tabTitles[activeTab]}
-            </h1>
-            {!isTrashTab ? (
-              <Link
-                href="/delivery-notes/new"
-                className="inline-flex items-center justify-center rounded bg-[#f59b45] px-6 py-4 text-lg font-semibold text-white transition hover:bg-[#ef8d32]"
-              >
-                {ui.createDeliveryNote}
-              </Link>
-            ) : null}
-          </div>
-
-          {isTrashTab ? (
-            <p className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-[14px] text-amber-900">
-              {ui.trashNote}
-            </p>
-          ) : null}
-
-          <div className="flex flex-col items-start gap-4 border-b border-slate-200 pb-4">
-            <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:justify-end">
-              <div className="flex w-full max-w-[720px] rounded border border-slate-300 bg-white">
-                <input
-                  className="min-w-0 flex-1 px-4 py-3 text-[15px] text-slate-700 outline-none placeholder:text-slate-300"
-                  placeholder={ui.searchPlaceholder}
-                />
-                <button type="button" className="border-l border-slate-300 px-4 text-sm text-slate-600">
-                  {ui.searchDetail}
-                </button>
-              </div>
-              <button
-                type="button"
-                className="rounded border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700"
-              >
-                {ui.searchButton}
-              </button>
-            </div>
-
-            <ListPageTabs
-              tabs={ui.tabs}
-              activeIndex={activeTab}
-              onTabChange={setActiveTab}
-              align="end"
-              size="lg"
-            />
-          </div>
-
-          <div className="flex min-h-[720px] items-center justify-center text-[22px] text-slate-300">
-            {ui.tabEmpty[activeTab]}
-          </div>
-        </div>
-      </div>
-    </SalesFlowShell>
+    <DeliveryNotesList
+      rows={rows}
+      total={total}
+      page={page}
+      pageSize={30}
+      activeTab={tab}
+      query={query ?? ""}
+    />
   );
 }

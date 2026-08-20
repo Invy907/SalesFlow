@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
+import { appHrefs } from "@/lib/app-hrefs";
 import {
   DocumentBottomBar,
   DocumentLineItemsTable,
@@ -54,10 +56,10 @@ export function NewPeriodicInvoiceClient() {
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-28 lg:px-8 lg:pb-32">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <h1 className="text-[28px] font-bold tracking-tight text-slate-900">{ui.periodicTitle}</h1>
-          <a href="#" className="inline-flex items-center gap-1 text-[14px] text-cyan-600 hover:underline">
+          <Link href={appHrefs.support} className="inline-flex items-center gap-1 text-[14px] text-cyan-600 hover:underline">
             {ui.periodicNewAbout}
             <span aria-hidden="true">↗</span>
-          </a>
+          </Link>
         </div>
 
         <div className="mt-6 flex gap-8 border-b border-slate-200 text-[18px] text-slate-500">
@@ -234,9 +236,9 @@ export function NewPeriodicInvoiceClient() {
                     </div>
                   </FormField>
 
-                  <a href="#" className="inline-block text-sm text-cyan-600 underline">
+                  <Link href={appHrefs.support} className="inline-block text-sm text-cyan-600 underline">
                     {ui.separateDateLink}
-                  </a>
+                  </Link>
                 </div>
               </section>
             </div>
@@ -262,9 +264,9 @@ export function NewPeriodicInvoiceClient() {
                   {ui.documentRemarks}
                 </label>
                 <div className="flex items-center gap-2">
-                  <a href="#" className="text-cyan-600 underline">
+                  <Link href={appHrefs.settingsDocumentDefaults} className="text-cyan-600 underline">
                     {ui.documentSettings} ↗
-                  </a>
+                  </Link>
                   <span className="text-slate-400">
                     {remarks.length}/1000
                   </span>
@@ -286,9 +288,9 @@ export function NewPeriodicInvoiceClient() {
           <>
             <p className="mt-8 text-sm text-slate-600">
               {ui.taxSettingsNote}{" "}
-              <a href="#" className="text-cyan-600 underline">
+              <Link href={appHrefs.settingsDocumentDefaults} className="text-cyan-600 underline">
                 {ui.taxSettingsLink} ↗
-              </a>
+              </Link>
             </p>
 
             <div className="mt-10 space-y-10">
@@ -330,9 +332,9 @@ export function NewPeriodicInvoiceClient() {
               <section>
                 <SectionTitle title={ui.withholdingTitle} />
                 <p className="mt-2">
-                  <a href="#" className="text-sm text-cyan-600 underline">
+                  <Link href={appHrefs.supportInvoiceGuide} className="text-sm text-cyan-600 underline">
                     {ui.withholdingLink} ↗
-                  </a>
+                  </Link>
                 </p>
                 <div className="mt-4 space-y-3">
                   {[ui.withholdingNone, ui.withholdingWith, ui.withholdingWithout].map((label, index) => (

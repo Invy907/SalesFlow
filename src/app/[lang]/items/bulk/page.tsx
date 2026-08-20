@@ -1,16 +1,122 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
+import { bulkCreateItems, type BulkItemRow } from "@/lib/actions/items";
+import { taxCategoryFromLabel } from "@/lib/tax";
 import { getItemsContent } from "../content";
 import { ItemsInfoTable, ItemsNavTabs, ItemsSection } from "../items-shared";
+
+function parseCsvLine(line: string): string[] {
+  const out: string[] = [];
+  let cur = "";
+  let quoted = false;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    if (quoted) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') {
+          cur += '"';
+          i += 1;
+        } else {
+          quoted = false;
+        }
+      } else {
+        cur += ch;
+      }
+    } else if (ch === '"') {
+      quoted = true;
+    } else if (ch === ",") {
+      out.push(cur);
+      cur = "";
+    } else {
+      cur += ch;
+    }
+  }
+  out.push(cur);
+  return out.map((v) => v.trim());
+}
+
+function parseItemsCsv(text: string): BulkItemRow[] {
+  const lines = text.replace(/^\ufeff/, "").split(/\r?\n/).filter((l) => l.trim().length > 0);
+  return lines.slice(1).map((line, idx) => {
+    const cols = parseCsvLine(line);
+    const rate = cols[3] ?? "";
+    const taxLabel =
+      rate === "R8"
+        ? "軽減8%"
+        : rate === "8"
+          ? "8%"
+          : rate === "5"
+            ? "5%"
+            : rate === "10"
+              ? "10%"
+              : "";
+    return {
+      row: idx + 2,
+      name: cols[0] ?? "",
+      unit: cols[1] ?? "",
+      unitPrice: cols[2] ?? "",
+      taxCategory: taxLabel ? taxCategoryFromLabel(taxLabel) : "follow_company",
+    };
+  });
+}
+
+const TEMPLATE_HEADER = "品番・品名,単位,単価,消費税率,非課税フラグ,源泉徴収税対象外フラグ";
 
 export default function ItemsBulkPage() {
   const { lang } = useLanguage();
   const ui = getItemsContent(lang);
   const bulk = ui.bulk;
+  const router = useRouter();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
+  const [pending, startTransition] = useTransition();
+
+  function downloadTemplate(encoding: "utf-8" | "shift-jis") {
+    const body = `${TEMPLATE_HEADER}\r\n`;
+    const blob = new Blob([encoding === "utf-8" ? body : "\ufeff" + body], {
+      type: "text/csv;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `items-template-${encoding}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleUpload() {
+    if (!selectedFile) return;
+    setMessage(null);
+    setRowErrors({});
+
+    startTransition(async () => {
+      const text = await selectedFile.text();
+      const rows = parseItemsCsv(text);
+      if (rows.length === 0) {
+        setMessage({ kind: "error", text: ui.saveFailed });
+        return;
+      }
+
+      const result = await bulkCreateItems(rows);
+      if (result.ok) {
+        setMessage({
+          kind: "ok",
+          text: bulk.uploadResult.replace("{count}", String(result.data.created)),
+        });
+        setSelectedFile(null);
+        router.refresh();
+      } else {
+        setRowErrors(result.fieldErrors ?? {});
+        setMessage({ kind: "error", text: result.error });
+      }
+    });
+  }
 
   return (
     <SalesFlowShell activeItem="items">
@@ -19,6 +125,27 @@ export default function ItemsBulkPage() {
 
         <h1 className="mt-8 text-[30px] font-bold tracking-tight text-slate-900">{bulk.title}</h1>
         <p className="mt-3 max-w-[900px] text-[15px] leading-7 text-slate-600">{bulk.intro}</p>
+
+        {message ? (
+          <p
+            className={[
+              "mt-4 rounded px-4 py-3 text-[14px]",
+              message.kind === "ok"
+                ? "border border-green-200 bg-green-50 text-green-800"
+                : "border border-red-200 bg-red-50 text-red-700",
+            ].join(" ")}
+          >
+            {message.text}
+          </p>
+        ) : null}
+
+        {Object.keys(rowErrors).length > 0 ? (
+          <ul className="mt-3 list-disc space-y-1 pl-5 text-[13px] text-red-600">
+            {Object.entries(rowErrors).map(([k, v]) => (
+              <li key={k}>{k}: {v}</li>
+            ))}
+          </ul>
+        ) : null}
 
         <div className="mt-8 space-y-6">
           <ItemsSection title={bulk.uploadSection}>
@@ -42,8 +169,9 @@ export default function ItemsBulkPage() {
             <div className="mt-4">
               <button
                 type="button"
-                disabled={!selectedFile}
-                className="rounded bg-[#14a7bb] px-8 py-3 text-[15px] font-semibold text-white transition hover:bg-[#1096a8] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:hover:bg-slate-300"
+                disabled={!selectedFile || pending}
+                onClick={handleUpload}
+                className="rounded bg-[#14a7bb] px-8 py-3 text-[15px] font-semibold text-white transition hover:bg-[#1096a8] disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 {bulk.upload}
               </button>
@@ -64,6 +192,7 @@ export default function ItemsBulkPage() {
                   value: (
                     <button
                       type="button"
+                      onClick={() => downloadTemplate("utf-8")}
                       className="rounded border border-slate-300 bg-white px-4 py-2 text-[14px] text-slate-700 hover:bg-slate-50"
                     >
                       {bulk.templateUtf8Button}
@@ -75,6 +204,7 @@ export default function ItemsBulkPage() {
                   value: (
                     <button
                       type="button"
+                      onClick={() => downloadTemplate("shift-jis")}
                       className="rounded border border-slate-300 bg-white px-4 py-2 text-[14px] text-slate-700 hover:bg-slate-50"
                     >
                       {bulk.templateShiftJisButton}

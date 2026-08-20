@@ -74,3 +74,61 @@ export async function deleteItem(itemId: string): Promise<ActionResult> {
   revalidatePath("/[lang]/items", "page");
   return { ok: true, data: undefined };
 }
+
+export type BulkItemRow = {
+  row: number;
+  name: string;
+  unit: string;
+  unitPrice: string;
+  taxCategory: CreateItemInput["taxCategory"];
+};
+
+export async function bulkCreateItems(rows: BulkItemRow[]): Promise<
+  ActionResult<{ created: number }>
+> {
+  if (rows.length > 1000) {
+    return { ok: false, error: "一度に登録できるのは1000件までです" };
+  }
+
+  const fieldErrors: Record<string, string> = {};
+  const payload: CreateItemInput[] = [];
+
+  for (const r of rows) {
+    const parsed = createItemSchema.safeParse({
+      name: r.name,
+      unit: r.unit,
+      unitPrice: r.unitPrice,
+      taxCategory: r.taxCategory,
+    });
+    if (!parsed.success) {
+      for (const [field, msgs] of Object.entries(parsed.error.flatten().fieldErrors)) {
+        fieldErrors[`${r.row}.${field}`] = msgs?.[0] ?? "Invalid";
+      }
+    } else {
+      payload.push(parsed.data);
+    }
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return { ok: false, error: "CSVの内容を確認してください", fieldErrors };
+  }
+
+  const supabase = await getSupabaseServerClient();
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+
+  const insertRows = payload.map((p) => ({
+    organization_id: org.organization_id,
+    name: p.name,
+    unit: p.unit ?? null,
+    unit_price: p.unitPrice,
+    tax_category: p.taxCategory,
+    withholding_exempt: p.withholdingExempt ?? false,
+  }));
+
+  const { error } = await supabase.from("items").insert(insertRows);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/[lang]/items", "page");
+  return { ok: true, data: { created: insertRows.length } };
+}

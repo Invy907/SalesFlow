@@ -1,72 +1,56 @@
-"use client";
+import { requireActiveOrg } from "@/lib/guards";
+import { getEstimates } from "@/lib/db/estimates";
+import { EstimatesList, type EstimateListRow } from "./estimates-list";
 
-import Link from "next/link";
-import { useState } from "react";
-import { SalesFlowShell } from "@/components/salesflow-shell";
-import { useLanguage } from "@/contexts/language-context";
-import { ListPageTabs } from "../list-page-shared";
-import { getEstimateContent } from "./content";
+export const dynamic = "force-dynamic";
 
-export default function EstimatesPage() {
-  const { lang } = useLanguage();
-  const ui = getEstimateContent(lang);
-  const [activeTab, setActiveTab] = useState(0);
-  const isTrashTab = activeTab === 2;
+const TAB_FILTERS = [
+  { statusIn: ["draft", "issued", "sent", "overdue"] as const, trashed: false },
+  { statusIn: ["confirmed"] as const, trashed: false },
+  { statusIn: undefined, trashed: true },
+] as const;
+
+export default async function EstimatesPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ lang: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; page?: string }>;
+}) {
+  const { lang } = await params;
+  const scope = await requireActiveOrg(lang);
+  const sp = await searchParams;
+  const tab = Math.min(2, Math.max(0, Number(sp.tab ?? "0") || 0));
+  const page = Math.max(1, Number(sp.page ?? "1") || 1);
+  const query = sp.q?.trim() || undefined;
+  const filter = TAB_FILTERS[tab];
+
+  const { estimates, total } = await getEstimates(scope.orgId, {
+    statusIn: filter.statusIn ? [...filter.statusIn] : undefined,
+    trashed: filter.trashed,
+    query,
+    page,
+    pageSize: 30,
+  });
+
+  const rows: EstimateListRow[] = estimates.map((e) => ({
+    id: e.id as string,
+    documentNumber: (e.document_number as string) ?? "",
+    clientName: ((e.clients as { name?: string } | null)?.name as string) ?? "",
+    subject: (e.subject as string) ?? "",
+    issueDate: (e.issue_date as string) ?? "",
+    total: Number(e.total ?? 0),
+    status: (e.status as string) ?? "draft",
+  }));
 
   return (
-    <SalesFlowShell activeItem="estimates">
-      <div className="mx-auto min-h-[calc(100vh-72px)] w-full max-w-[1260px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <h1 className="text-[32px] font-bold tracking-tight text-slate-900">
-              {ui.tabTitles[activeTab]}
-            </h1>
-            {!isTrashTab ? (
-              <Link
-                href="/estimates/new"
-                className="inline-flex items-center justify-center rounded bg-[#f59b45] px-6 py-4 text-lg font-semibold text-white transition hover:bg-[#ef8d32]"
-              >
-                {ui.createEstimate}
-              </Link>
-            ) : null}
-          </div>
-
-          {isTrashTab ? (
-            <p className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-[14px] text-amber-900">
-              {ui.trashNote}
-            </p>
-          ) : null}
-
-          <div className="flex flex-col items-start gap-4 border-b border-slate-200 pb-4">
-            <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:justify-end">
-              <div className="flex w-full max-w-[720px] rounded border border-slate-300 bg-white">
-                <input
-                  className="min-w-0 flex-1 px-4 py-3 text-[15px] text-slate-700 outline-none placeholder:text-slate-300"
-                  placeholder={ui.searchPlaceholder}
-                />
-                <button className="border-l border-slate-300 px-4 text-sm text-slate-600">
-                  {ui.searchDetail}
-                </button>
-              </div>
-              <button className="rounded border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700">
-                {ui.searchButton}
-              </button>
-            </div>
-
-            <ListPageTabs
-              tabs={ui.tabs}
-              activeIndex={activeTab}
-              onTabChange={setActiveTab}
-              align="end"
-              size="lg"
-            />
-          </div>
-
-          <div className="flex min-h-[720px] items-center justify-center text-[22px] text-slate-300">
-            {ui.tabEmpty[activeTab]}
-          </div>
-        </div>
-      </div>
-    </SalesFlowShell>
+    <EstimatesList
+      rows={rows}
+      total={total}
+      page={page}
+      pageSize={30}
+      activeTab={tab}
+      query={query ?? ""}
+    />
   );
 }

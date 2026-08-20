@@ -35,6 +35,9 @@ import { useLanguage, type AppLocale } from "@/contexts/language-context";
 import { getOrdersContent, getOrdersHref } from "@/app/[lang]/orders/content";
 import { getInvoiceContent, getInvoiceHref } from "@/app/[lang]/invoices/content";
 import { getReportsContent, getReportsTabHref } from "@/app/[lang]/reports/content";
+import { getShellSessionAction } from "@/lib/actions/session";
+import { setActiveOrganization } from "@/lib/actions/organizations";
+import type { ShellOrganization, ShellProfile } from "@/lib/session";
 
 type ActiveItem =
   | "home"
@@ -54,12 +57,17 @@ type ActiveItem =
 type SalesFlowShellProps = {
   children: ReactNode;
   activeItem: ActiveItem;
+  initialSession?: {
+    profile: ShellProfile | null;
+    organizations: ShellOrganization[];
+    activeOrgId: string | null;
+  };
 };
 
-const profile = {
-  initials: "IL",
-  name: "Inhyuk Lee",
-  email: "bluebourne907@gmail.com",
+const fallbackProfile: ShellProfile = {
+  initials: "??",
+  name: "User",
+  email: "",
 };
 
 const copy = {
@@ -293,10 +301,18 @@ const profileMenuItemsAfterLanguage = [
   { key: "logout", icon: LogOut },
 ] as const;
 
-export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
+export function SalesFlowShell({ children, activeItem, initialSession }: SalesFlowShellProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { lang, setLang } = useLanguage();
+  const [session, setSession] = useState(
+    initialSession ?? {
+      profile: null as ShellProfile | null,
+      organizations: [] as ShellOrganization[],
+      activeOrgId: null as string | null,
+    },
+  );
+  const profile = session.profile ?? fallbackProfile;
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
@@ -305,7 +321,20 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
   const profileRef = useRef<HTMLDivElement>(null);
   const mobileProfileRef = useRef<HTMLDivElement>(null);
   const ui = copy[lang] ?? copy.ja;
-  const homeHref = "/";
+  const homeHref = `/${lang}`;
+
+  useEffect(() => {
+    if (initialSession?.profile) return;
+    getShellSessionAction().then(setSession).catch(() => undefined);
+  }, [initialSession?.profile]);
+
+  async function handleOrgChange(orgId: string) {
+    const res = await setActiveOrganization(orgId);
+    if (res.ok) {
+      setSession((prev) => ({ ...prev, activeOrgId: orgId }));
+      router.refresh();
+    }
+  }
 
   const closeMobileNav = () => setMobileNavOpen(false);
 
@@ -495,6 +524,24 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
           </div>
 
           <div className="shrink-0 border-t border-slate-200 bg-white px-3 py-3">
+            {session.organizations.length > 1 ? (
+              <div className="mb-2">
+                <label className="mb-1 block text-[11px] font-medium text-slate-400">
+                  Organization
+                </label>
+                <select
+                  className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700"
+                  value={session.activeOrgId ?? ""}
+                  onChange={(e) => void handleOrgChange(e.target.value)}
+                >
+                  {session.organizations.map((org) => (
+                    <option key={org.id} value={org.id}>
+                      {org.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
             <div ref={profileRef} className="relative">
               <button
                 type="button"
@@ -512,13 +559,14 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
                     : "text-slate-700 hover:bg-slate-50",
                 ].join(" ")}
               >
-                <AvatarBadge compact />
+                <AvatarBadge compact profile={profile} />
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">{profile.name}</span>
               </button>
 
               {profileOpen ? (
                 <ProfileDropdown
                   lang={lang}
+                  profile={profile}
                   ui={ui}
                   languageMenuOpen={languageMenuOpen}
                   onToggleLanguageMenu={() => setLanguageMenuOpen((open) => !open)}
@@ -566,12 +614,13 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
                 }}
                 className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-slate-100"
               >
-                <AvatarBadge compact />
+                <AvatarBadge compact profile={profile} />
               </button>
 
               {mobileProfileOpen ? (
                 <ProfileDropdown
                   lang={lang}
+                  profile={profile}
                   ui={ui}
                   languageMenuOpen={mobileLanguageMenuOpen}
                   onToggleLanguageMenu={() => setMobileLanguageMenuOpen((open) => !open)}
@@ -639,9 +688,9 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
             <div className="mx-auto flex max-w-[1440px] flex-col gap-2 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-3">
                 {ui.footer.map((item) => (
-                  <a key={item} href="#" className="transition hover:text-slate-600">
+                  <span key={item} className="text-slate-400">
                     {item}
-                  </a>
+                  </span>
                 ))}
               </div>
               <div>{ui.langLabel}</div>
@@ -656,6 +705,7 @@ export function SalesFlowShell({ children, activeItem }: SalesFlowShellProps) {
 type ShellUi = (typeof copy)[AppLocale];
 
 function ProfileDropdown({
+  profile,
   lang,
   ui,
   languageMenuOpen,
@@ -665,6 +715,7 @@ function ProfileDropdown({
   getProfileMenuLabelAfter,
   placement,
 }: {
+  profile: ShellProfile;
   lang: AppLocale;
   ui: ShellUi;
   languageMenuOpen: boolean;
@@ -687,7 +738,7 @@ function ProfileDropdown({
       ].join(" ")}
     >
       <div className="flex items-center gap-3 px-4 py-3">
-        <AvatarBadge compact />
+        <AvatarBadge compact profile={profile} />
         <p className="min-w-0 truncate text-sm font-semibold text-slate-900">{profile.name}</p>
       </div>
 
@@ -779,7 +830,7 @@ function ProfileDropdown({
   );
 }
 
-function AvatarBadge({ compact = false }: { compact?: boolean }) {
+function AvatarBadge({ profile, compact = false }: { profile: ShellProfile; compact?: boolean }) {
   return (
     <div
       className={[

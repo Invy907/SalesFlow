@@ -11,6 +11,9 @@ const labels = {
     searchPlaceholder: "品番・品名",
     search: "検索",
     csvDownload: "CSVダウンロード",
+    csvHeaders: ["品番・品名", "単位", "単価", "消費税率"],
+    deleteConfirm: "この品目を削除しますか？",
+    saveFailed: "保存に失敗しました",
     empty: "品目はありません",
     newItem: {
       title: "品目の新規登録",
@@ -42,6 +45,7 @@ const labels = {
       chooseFile: "ファイルを選択",
       noFile: "選択されたファイルはありません",
       upload: "アップロードする",
+      uploadResult: "{count}件の品目を登録しました",
       uploadNotes: [
         "Excelで作成したCSV形式、またはCSV形式で保存したファイルをアップロードしてください。",
         "1行目はヘッダー行としてください。",
@@ -110,6 +114,9 @@ const labels = {
     searchPlaceholder: "품번·품명",
     search: "검색",
     csvDownload: "CSV 다운로드",
+    csvHeaders: ["품번·품명", "단위", "단가", "소비세율"],
+    deleteConfirm: "이 품목을 삭제하시겠습니까?",
+    saveFailed: "저장에 실패했습니다",
     empty: "품목이 없습니다",
     newItem: {
       title: "품목 신규 등록",
@@ -141,6 +148,7 @@ const labels = {
       chooseFile: "파일 선택",
       noFile: "선택된 파일 없음",
       upload: "업로드",
+      uploadResult: "{count}개 품목을 등록했습니다",
       uploadNotes: [
         "Excel로 작성한 CSV 형식 또는 CSV 형식으로 저장한 파일을 업로드해 주세요.",
         "첫 번째 행은 헤더 행이어야 합니다.",
@@ -209,6 +217,9 @@ const labels = {
     searchPlaceholder: "Item No. / Name",
     search: "Search",
     csvDownload: "CSV Download",
+    csvHeaders: ["Item Name", "Unit", "Unit Price", "Tax Rate"],
+    deleteConfirm: "Delete this item?",
+    saveFailed: "Failed to save",
     empty: "No items",
     newItem: {
       title: "Register New Item",
@@ -240,6 +251,7 @@ const labels = {
       chooseFile: "Choose File",
       noFile: "No file selected",
       upload: "Upload",
+      uploadResult: "Registered {count} items",
       uploadNotes: [
         "Upload a file saved in CSV format, including files exported from Excel.",
         "The first row must be a header row.",

@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
+import { appHrefs } from "@/lib/app-hrefs";
 import {
   DocumentBottomBar,
   DocumentDateFieldRow,
@@ -236,7 +238,7 @@ export function NewEstimateClient() {
                 <SectionTitle title={ui.templateTitle} />
                 <p className="mt-2 text-sm text-slate-600">
                   {ui.templateNote}{" "}
-                  <a href="#" className="text-cyan-600 underline">→ {ui.templateSettingsLink}</a>
+                  <Link href={appHrefs.settingsDocumentDefaults} className="text-cyan-600 underline">→ {ui.templateSettingsLink}</Link>
                 </p>
 
                 <div className="mt-6 space-y-5">

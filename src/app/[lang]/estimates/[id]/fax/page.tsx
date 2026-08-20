@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { use } from "react";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
+import { appHrefs } from "@/lib/app-hrefs";
 import { getEstimateContent } from "../../content";
 
 type RouteParams = {
@@ -50,9 +52,9 @@ export default function EstimateFaxPage(props: {
               <tr className="align-top">
                 <td className="border-r border-slate-300 px-5 py-5">
                   <div className="space-y-2">
-                    <a href="#" className="text-[18px] font-semibold text-cyan-600">
+                    <Link href="/clients" className="text-[18px] font-semibold text-cyan-600">
                       {ui.clientValue} {ui.companyHonorific || ""}
-                    </a>
+                    </Link>
                     <p className="text-[16px] text-slate-500">{ui.estimateNumberValue}</p>
                   </div>
                   <div className="mt-6 space-y-3 border-t border-slate-200 pt-4 text-[16px] text-slate-700">

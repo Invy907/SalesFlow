@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
+import { appHrefs } from "@/lib/app-hrefs";
 import { getSupportContent, getSupportHref } from "./content";
 
 export default function SupportPage() {
@@ -75,20 +76,20 @@ export default function SupportPage() {
           <div className="px-5 py-5">
             <p className="max-w-[900px] text-[15px] leading-7 text-slate-600">{ui.contactIntro}</p>
             <div className="mt-5 flex flex-wrap gap-3">
-              <a
-                href="#"
+              <Link
+                href={appHrefs.support}
                 className="inline-flex items-center gap-2 rounded bg-[#14a7bb] px-5 py-3 text-[15px] font-semibold text-white transition hover:bg-[#1096a8]"
               >
                 {ui.contactButton}
                 <ExternalLinkIcon />
-              </a>
-              <a
-                href="#"
+              </Link>
+              <Link
+                href={appHrefs.supportInvoiceGuide}
                 className="inline-flex items-center gap-2 rounded border border-slate-200 px-5 py-3 text-[15px] font-semibold text-[#14a7bb] transition hover:bg-slate-50"
               >
                 {ui.helpCenterLink}
                 <ExternalLinkIcon />
-              </a>
+              </Link>
             </div>
           </div>
         </section>

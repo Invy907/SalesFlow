@@ -1,17 +1,5 @@
 import type { AppLocale } from "@/contexts/language-context";
 
-export type ClientRow = {
-  id: string;
-  name: string;
-  managementCode: string;
-  destination: string;
-};
-
-const sampleClients: ClientRow[] = [
-  { id: "1", name: "11111", managementCode: "", destination: "" },
-  { id: "2", name: "raon2", managementCode: "", destination: "" },
-];
-
 const labels = {
   ja: {
     tabs: ["取引先", "一括登録・更新"],
@@ -20,8 +8,14 @@ const labels = {
     searchPlaceholder: "取引先名、管理コード、送り先",
     search: "検索",
     csvDownload: "CSVダウンロード",
+    csvHeaders: ["取引先名", "ふりがな", "管理コード", "部署", "メール", "電話", "FAX"],
     tableHeaders: ["取引先", "管理コード", "送り先", "操作"],
     edit: "編集",
+    delete: "削除",
+    deleteConfirm: "この取引先を削除しますか？",
+    favoritesOnly: "お気に入りのみ表示",
+    favorite: "お気に入り",
+    empty: "取引先はありません",
     createDocument: "文書の作成",
     showDocument: "文書の表示",
     listToggle: "一覧 / 非表示",
@@ -69,7 +63,6 @@ const labels = {
       cancel: "キャンセル",
       register: "登録する",
     },
-    sampleClients,
   },
   ko: {
     tabs: ["거래처", "일괄 등록·업데이트"],
@@ -78,8 +71,14 @@ const labels = {
     searchPlaceholder: "거래처명, 관리 코드, 배송지",
     search: "검색",
     csvDownload: "CSV 다운로드",
+    csvHeaders: ["거래처명", "후리가나", "관리 코드", "부서", "이메일", "전화", "FAX"],
     tableHeaders: ["거래처", "관리 코드", "배송지", "작업"],
     edit: "편집",
+    delete: "삭제",
+    deleteConfirm: "이 거래처를 삭제하시겠습니까?",
+    favoritesOnly: "즐겨찾기만 표시",
+    favorite: "즐겨찾기",
+    empty: "거래처가 없습니다",
     createDocument: "문서 작성",
     showDocument: "문서 표시",
     listToggle: "목록 / 숨기기",
@@ -127,7 +126,6 @@ const labels = {
       cancel: "취소",
       register: "등록하기",
     },
-    sampleClients,
   },
   en: {
     tabs: ["Clients", "Bulk Registration / Update"],
@@ -136,8 +134,14 @@ const labels = {
     searchPlaceholder: "Client name, management code, destination",
     search: "Search",
     csvDownload: "CSV Download",
+    csvHeaders: ["Client Name", "Furigana", "Management Code", "Department", "Email", "Phone", "FAX"],
     tableHeaders: ["Client", "Management Code", "Destination", "Actions"],
     edit: "Edit",
+    delete: "Delete",
+    deleteConfirm: "Delete this client?",
+    favoritesOnly: "Favorites only",
+    favorite: "Favorite",
+    empty: "No clients",
     createDocument: "Create Document",
     showDocument: "Show Document",
     listToggle: "List / Hidden",
@@ -185,7 +189,6 @@ const labels = {
       cancel: "Cancel",
       register: "Register",
     },
-    sampleClients,
   },
 } as const;
 

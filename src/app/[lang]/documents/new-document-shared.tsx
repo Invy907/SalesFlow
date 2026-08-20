@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { pageContainerClass } from "@/components/page-container";
 import { LocalizedFileInput } from "@/components/localized-file-input";
+import { appHrefs } from "@/lib/app-hrefs";
 import { DateFieldInput } from "../estimates/date-field-input";
 import { toDateInputValue } from "../estimates/date-field-utils";
 
@@ -92,6 +94,8 @@ type LineItemsTableProps = {
   unitPlaceholder: string;
   topNotice?: ReactNode;
   onTotalsChange?: (totals: LineItemTotals) => void;
+  onRowsChange?: (rows: LineItemRow[]) => void;
+  initialRows?: LineItemRow[];
   storageKey?: string;
   compact?: boolean;
   initialRowCount?: number;
@@ -120,6 +124,8 @@ type LineItemRow = {
   price: string;
   tax: string;
 };
+
+export type { LineItemRow };
 
 export type LineItemTotals = {
   subtotal: number;
@@ -177,6 +183,9 @@ type DocumentBottomBarProps = {
   totalLabel: string;
   saveLabel: string;
   totals: LineItemTotals;
+  onSave?: () => void;
+  pending?: boolean;
+  error?: string | null;
 };
 
 export function DocumentBottomBar({
@@ -185,6 +194,9 @@ export function DocumentBottomBar({
   totalLabel,
   saveLabel,
   totals,
+  onSave,
+  pending,
+  error,
 }: DocumentBottomBarProps) {
   return (
     <div className="sticky bottom-0 border-t border-slate-300 bg-white/95 backdrop-blur">
@@ -215,12 +227,17 @@ export function DocumentBottomBar({
               {formatDocumentAmount(totals.total)} 円
             </strong>
           </span>
-          <button
-            type="button"
-            className="w-full rounded bg-[#14a7bb] px-8 py-3.5 text-base font-semibold text-white transition hover:bg-[#1096a8] sm:w-auto sm:px-12 sm:py-4 sm:text-[18px]"
-          >
-            {saveLabel}
-          </button>
+          <div className="flex flex-col items-end gap-2">
+            {error ? <p className="text-sm text-red-600">{error}</p> : null}
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={pending || !onSave}
+              className="w-full rounded bg-[#14a7bb] px-8 py-3.5 text-base font-semibold text-white transition hover:bg-[#1096a8] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-12 sm:py-4 sm:text-[18px]"
+            >
+              {pending ? "..." : saveLabel}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -529,9 +546,9 @@ export function SenderDetailFields({
           <FormField label="登録番号">
             <p className="mb-2 text-sm text-slate-500">
               適格請求書(インボイス)に記載が必要な番号です。{" "}
-              <a href="#" className="text-cyan-600 underline">
+              <Link href={appHrefs.supportInvoiceGuide} className="text-cyan-600 underline">
                 適格請求書について詳しく
-              </a>
+              </Link>
             </p>
             <input name={`${storagePrefix}InvoiceNumber`} className="field max-w-[320px]" />
           </FormField>
@@ -564,17 +581,27 @@ export function CommonLineItemsTable({
   unitPlaceholder,
   topNotice,
   onTotalsChange,
+  onRowsChange,
+  initialRows,
   storageKey,
   compact = false,
   initialRowCount,
   hideSummaryRows = false,
 }: LineItemsTableProps) {
   const defaultRowCount = initialRowCount ?? (compact ? 1 : 5);
-  const [rows, setRows] = useState<LineItemRow[]>(() => Array.from({ length: defaultRowCount }, createEmptyRow));
+  const [rows, setRows] = useState<LineItemRow[]>(
+    () => initialRows ?? Array.from({ length: defaultRowCount }, createEmptyRow),
+  );
   const [bulkTax, setBulkTax] = useState("10%");
   const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
+    if (initialRows?.length) {
+      setRows(initialRows);
+      setHasLoaded(true);
+      return;
+    }
+
     if (!storageKey || typeof window === "undefined") {
       setHasLoaded(true);
       return;
@@ -596,7 +623,7 @@ export function CommonLineItemsTable({
     }
 
     setHasLoaded(true);
-  }, [storageKey]);
+  }, [initialRows, storageKey]);
 
   useEffect(() => {
     if (!storageKey || !hasLoaded || typeof window === "undefined") {
@@ -654,6 +681,10 @@ export function CommonLineItemsTable({
   useEffect(() => {
     onTotalsChange?.({ subtotal, tax, total });
   }, [onTotalsChange, subtotal, tax, total]);
+
+  useEffect(() => {
+    onRowsChange?.(rows);
+  }, [onRowsChange, rows]);
 
   return (
     <div className={compact ? "mt-2 min-w-0" : "mt-12"}>
@@ -883,6 +914,8 @@ export function DocumentLineItemsTable({
   storageKey,
   topNotice,
   onTotalsChange,
+  onRowsChange,
+  initialRows,
   compact = false,
   initialRowCount,
   hideSummaryRows = false,
@@ -891,6 +924,8 @@ export function DocumentLineItemsTable({
   storageKey?: string;
   topNotice?: ReactNode;
   onTotalsChange?: (totals: LineItemTotals) => void;
+  onRowsChange?: (rows: LineItemRow[]) => void;
+  initialRows?: LineItemRow[];
   compact?: boolean;
   initialRowCount?: number;
   hideSummaryRows?: boolean;
@@ -909,6 +944,8 @@ export function DocumentLineItemsTable({
       storageKey={storageKey}
       topNotice={topNotice}
       onTotalsChange={onTotalsChange}
+      onRowsChange={onRowsChange}
+      initialRows={initialRows}
       compact={compact}
       initialRowCount={initialRowCount}
       hideSummaryRows={hideSummaryRows}

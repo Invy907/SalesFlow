@@ -1,30 +1,23 @@
 import type { AppLocale } from "@/contexts/language-context";
 import type { AnnouncementId } from "./support/announcements/content";
+import type { DocKind } from "@/lib/db/dashboard";
 
 export type TaskTone = "amber" | "cyan" | "slate";
 
-export type HomeTask = {
-  client: string;
-  doc: string;
-  amount: string;
-  due: string;
-  href: string;
-};
+export type TaskGroupKey = "duesoon" | "unsent" | "confirm";
 
-export type HomeTaskGroup = {
-  key: string;
+export type HomeTaskGroupLabel = {
+  key: TaskGroupKey;
   label: string;
   tone: TaskTone;
-  items: HomeTask[];
 };
 
 export type KpiTone = "neutral" | "warn" | "info";
 
-export type HomeKpi = {
-  key: "billed" | "unpaid" | "pending" | "duesoon";
+export type KpiKey = "billed" | "unpaid" | "pending" | "duesoon";
+
+export type HomeKpiLabel = {
   label: string;
-  value: string;
-  sub: string;
   tone: KpiTone;
   href: string;
 };
@@ -43,19 +36,32 @@ export type QuickCreateItem = {
   badge?: string;
 };
 
-export type HomeRecentItem = {
-  doc: string;
-  client: string;
-  amount: string;
-  status: string;
-  time: string;
-};
-
 export type HomeNotice = {
   id: AnnouncementId;
   title: string;
   date: string;
   category: string;
+};
+
+/** 숫자·일수는 서버에서 오고, 문구는 이 템플릿들로 조립한다. */
+export type HomeRelativeLabels = {
+  today: string;
+  tomorrow: string;
+  /** {days} */
+  inDays: string;
+  /** {days} */
+  overdueDays: string;
+  /** {days} */
+  draftForDays: string;
+  draftToday: string;
+  justNow: string;
+  /** {minutes} */
+  minutesAgo: string;
+  /** {hours} */
+  hoursAgo: string;
+  yesterday: string;
+  /** {days} */
+  daysAgo: string;
 };
 
 export type HomeContent = {
@@ -71,14 +77,26 @@ export type HomeContent = {
   newMenuTitle: string;
   newMenuItems: { label: string; href: string }[];
   searchPlaceholder: string;
-  kpis: HomeKpi[];
+  kpiLabels: Record<KpiKey, HomeKpiLabel>;
+  kpiSub: {
+    /** {delta} — 부호 포함 퍼센트 */
+    deltaVsLastMonth: string;
+    noBaseline: string;
+    /** {count} */
+    count: string;
+    /** {draft} / {awaiting} */
+    draftAwaiting: string;
+    /** {overdue} */
+    overdueIncluded: string;
+    noOverdue: string;
+  };
   tasks: {
     title: string;
     subtitle: string;
     seeAll: string;
     open: string;
     empty: string;
-    groups: HomeTaskGroup[];
+    groupLabels: HomeTaskGroupLabel[];
   };
   quickCreate: {
     title: string;
@@ -92,8 +110,11 @@ export type HomeContent = {
   recent: {
     title: string;
     seeAll: string;
-    items: HomeRecentItem[];
+    empty: string;
   };
+  docLabels: Record<DocKind, string>;
+  statusLabels: Record<string, string>;
+  relative: HomeRelativeLabels;
   notices: {
     title: string;
     seeAll: string;
@@ -108,7 +129,7 @@ const ja: HomeContent = {
     evening: "こんばんは",
     suffix: "さん",
   },
-  userName: "Inhyuk Lee",
+  userName: "",
   todayLabel: "今日",
   newButton: "新規作成",
   newMenuTitle: "作成する書類",
@@ -119,103 +140,30 @@ const ja: HomeContent = {
     { label: "領収書", href: "/receipts/new" },
   ],
   searchPlaceholder: "取引先・書類番号・件名で検索",
-  kpis: [
-    {
-      key: "billed",
-      label: "今月の請求額",
-      value: "¥1,280,000",
-      sub: "先月比 +12%",
-      tone: "neutral",
-      href: "/invoices",
-    },
-    {
-      key: "unpaid",
-      label: "未入金",
-      value: "¥824,000",
-      sub: "6件",
-      tone: "warn",
-      href: "/invoices",
-    },
-    {
-      key: "pending",
-      label: "未処理",
-      value: "9件",
-      sub: "下書き 3 / 確認待ち 6",
-      tone: "info",
-      href: "/invoices",
-    },
-    {
-      key: "duesoon",
-      label: "期限7日以内",
-      value: "4件",
-      sub: "うち期限超過 1件",
-      tone: "warn",
-      href: "/invoices",
-    },
-  ],
+  kpiLabels: {
+    billed: { label: "今月の請求額", tone: "neutral", href: "/invoices" },
+    unpaid: { label: "未入金", tone: "warn", href: "/invoices" },
+    pending: { label: "未処理", tone: "info", href: "/invoices" },
+    duesoon: { label: "期限7日以内", tone: "warn", href: "/invoices" },
+  },
+  kpiSub: {
+    deltaVsLastMonth: "先月比 {delta}",
+    noBaseline: "先月の実績なし",
+    count: "{count}件",
+    draftAwaiting: "下書き {draft} / 確認待ち {awaiting}",
+    overdueIncluded: "うち期限超過 {overdue}件",
+    noOverdue: "期限超過なし",
+  },
   tasks: {
     title: "今日のタスク",
     subtitle: "優先度の高い案件をまとめました",
     seeAll: "すべて見る",
     open: "開く",
     empty: "対応が必要なタスクはありません",
-    groups: [
-      {
-        key: "duesoon",
-        label: "支払い期限が近い",
-        tone: "amber",
-        items: [
-          {
-            client: "Northwind合同会社",
-            doc: "請求書 #20260512-003",
-            amount: "¥456,000",
-            due: "2日後",
-            href: "/invoices",
-          },
-          {
-            client: "Aster Studio",
-            doc: "請求書 #20260508-001",
-            amount: "¥148,000",
-            due: "明日",
-            href: "/invoices",
-          },
-        ],
-      },
-      {
-        key: "unsent",
-        label: "未送付の書類",
-        tone: "cyan",
-        items: [
-          {
-            client: "Kumo Design 株式会社",
-            doc: "納品書",
-            amount: "¥220,000",
-            due: "下書きのまま 3日",
-            href: "/delivery-notes",
-          },
-          {
-            client: "Bluebourne Inc.",
-            doc: "見積書",
-            amount: "¥98,000",
-            due: "下書きのまま 1日",
-            href: "/estimates",
-          },
-        ],
-      },
-      {
-        key: "confirm",
-        label: "入金確認待ち",
-        tone: "slate",
-        items: [
-          {
-            client: "Maple Works",
-            doc: "請求書 #20260420-002",
-            amount: "¥312,000",
-            due: "期限超過 2日",
-            href: "/invoices",
-          },
-        ],
-      },
+    groupLabels: [
+      { key: "duesoon", label: "支払い期限が近い", tone: "amber" },
+      { key: "unsent", label: "未送付の書類", tone: "cyan" },
+      { key: "confirm", label: "入金確認待ち", tone: "slate" },
     ],
   },
   quickCreate: {
@@ -257,29 +205,34 @@ const ja: HomeContent = {
   recent: {
     title: "最近の活動",
     seeAll: "履歴を見る",
-    items: [
-      {
-        doc: "請求書 #20260522-002",
-        client: "Raon 株式会社",
-        amount: "¥220,000",
-        status: "送付済み",
-        time: "10分前",
-      },
-      {
-        doc: "見積書 #20260521-001",
-        client: "Aster Studio",
-        amount: "¥148,000",
-        status: "下書き保存",
-        time: "1時間前",
-      },
-      {
-        doc: "領収書 #20260520-004",
-        client: "Maple Works",
-        amount: "¥312,000",
-        status: "発行",
-        time: "昨日",
-      },
-    ],
+    empty: "まだ活動履歴がありません",
+  },
+  docLabels: {
+    estimate: "見積書",
+    delivery_note: "納品書",
+    invoice: "請求書",
+    receipt: "領収書",
+  },
+  statusLabels: {
+    draft: "下書き",
+    issued: "発行",
+    sent: "送付済み",
+    confirmed: "入金確認済み",
+    overdue: "期限超過",
+    trashed: "ゴミ箱",
+  },
+  relative: {
+    today: "今日",
+    tomorrow: "明日",
+    inDays: "{days}日後",
+    overdueDays: "期限超過 {days}日",
+    draftForDays: "下書きのまま {days}日",
+    draftToday: "今日の下書き",
+    justNow: "たった今",
+    minutesAgo: "{minutes}分前",
+    hoursAgo: "{hours}時間前",
+    yesterday: "昨日",
+    daysAgo: "{days}日前",
   },
   notices: {
     title: "お知らせ",
@@ -314,7 +267,7 @@ const ko: HomeContent = {
     evening: "수고하셨습니다",
     suffix: "님",
   },
-  userName: "Inhyuk Lee",
+  userName: "",
   todayLabel: "오늘",
   newButton: "새로 만들기",
   newMenuTitle: "문서 종류",
@@ -325,103 +278,30 @@ const ko: HomeContent = {
     { label: "영수증", href: "/receipts/new" },
   ],
   searchPlaceholder: "거래처·문서번호·건명으로 검색",
-  kpis: [
-    {
-      key: "billed",
-      label: "이번 달 청구액",
-      value: "¥1,280,000",
-      sub: "전월 대비 +12%",
-      tone: "neutral",
-      href: "/invoices",
-    },
-    {
-      key: "unpaid",
-      label: "미입금",
-      value: "¥824,000",
-      sub: "6건",
-      tone: "warn",
-      href: "/invoices",
-    },
-    {
-      key: "pending",
-      label: "미처리",
-      value: "9건",
-      sub: "초안 3 / 확인 대기 6",
-      tone: "info",
-      href: "/invoices",
-    },
-    {
-      key: "duesoon",
-      label: "기한 7일 이내",
-      value: "4건",
-      sub: "기한 초과 1건 포함",
-      tone: "warn",
-      href: "/invoices",
-    },
-  ],
+  kpiLabels: {
+    billed: { label: "이번 달 청구액", tone: "neutral", href: "/invoices" },
+    unpaid: { label: "미입금", tone: "warn", href: "/invoices" },
+    pending: { label: "미처리", tone: "info", href: "/invoices" },
+    duesoon: { label: "기한 7일 이내", tone: "warn", href: "/invoices" },
+  },
+  kpiSub: {
+    deltaVsLastMonth: "전월 대비 {delta}",
+    noBaseline: "전월 실적 없음",
+    count: "{count}건",
+    draftAwaiting: "초안 {draft} / 확인 대기 {awaiting}",
+    overdueIncluded: "기한 초과 {overdue}건 포함",
+    noOverdue: "기한 초과 없음",
+  },
   tasks: {
     title: "오늘의 작업",
     subtitle: "우선순위 높은 건을 모았어요",
     seeAll: "전체 보기",
     open: "열기",
     empty: "처리할 작업이 없습니다",
-    groups: [
-      {
-        key: "duesoon",
-        label: "결제 기한 임박",
-        tone: "amber",
-        items: [
-          {
-            client: "Northwind",
-            doc: "청구서 #20260512-003",
-            amount: "¥456,000",
-            due: "2일 후",
-            href: "/invoices",
-          },
-          {
-            client: "Aster Studio",
-            doc: "청구서 #20260508-001",
-            amount: "¥148,000",
-            due: "내일",
-            href: "/invoices",
-          },
-        ],
-      },
-      {
-        key: "unsent",
-        label: "미발송 문서",
-        tone: "cyan",
-        items: [
-          {
-            client: "Kumo Design",
-            doc: "납품서",
-            amount: "¥220,000",
-            due: "초안 3일째",
-            href: "/delivery-notes",
-          },
-          {
-            client: "Bluebourne Inc.",
-            doc: "견적서",
-            amount: "¥98,000",
-            due: "초안 1일째",
-            href: "/estimates",
-          },
-        ],
-      },
-      {
-        key: "confirm",
-        label: "입금 확인 대기",
-        tone: "slate",
-        items: [
-          {
-            client: "Maple Works",
-            doc: "청구서 #20260420-002",
-            amount: "¥312,000",
-            due: "기한 초과 2일",
-            href: "/invoices",
-          },
-        ],
-      },
+    groupLabels: [
+      { key: "duesoon", label: "결제 기한 임박", tone: "amber" },
+      { key: "unsent", label: "미발송 문서", tone: "cyan" },
+      { key: "confirm", label: "입금 확인 대기", tone: "slate" },
     ],
   },
   quickCreate: {
@@ -463,29 +343,34 @@ const ko: HomeContent = {
   recent: {
     title: "최근 활동",
     seeAll: "이력 보기",
-    items: [
-      {
-        doc: "청구서 #20260522-002",
-        client: "Raon 주식회사",
-        amount: "¥220,000",
-        status: "발송 완료",
-        time: "10분 전",
-      },
-      {
-        doc: "견적서 #20260521-001",
-        client: "Aster Studio",
-        amount: "¥148,000",
-        status: "초안 저장",
-        time: "1시간 전",
-      },
-      {
-        doc: "영수증 #20260520-004",
-        client: "Maple Works",
-        amount: "¥312,000",
-        status: "발행",
-        time: "어제",
-      },
-    ],
+    empty: "아직 활동 이력이 없습니다",
+  },
+  docLabels: {
+    estimate: "견적서",
+    delivery_note: "납품서",
+    invoice: "청구서",
+    receipt: "영수증",
+  },
+  statusLabels: {
+    draft: "초안",
+    issued: "발행",
+    sent: "발송 완료",
+    confirmed: "입금 확인",
+    overdue: "기한 초과",
+    trashed: "휴지통",
+  },
+  relative: {
+    today: "오늘",
+    tomorrow: "내일",
+    inDays: "{days}일 후",
+    overdueDays: "기한 초과 {days}일",
+    draftForDays: "초안 {days}일째",
+    draftToday: "오늘 만든 초안",
+    justNow: "방금",
+    minutesAgo: "{minutes}분 전",
+    hoursAgo: "{hours}시간 전",
+    yesterday: "어제",
+    daysAgo: "{days}일 전",
   },
   notices: {
     title: "공지사항",
@@ -520,7 +405,7 @@ const en: HomeContent = {
     evening: "Good evening",
     suffix: "",
   },
-  userName: "Inhyuk Lee",
+  userName: "",
   todayLabel: "Today",
   newButton: "New",
   newMenuTitle: "Create document",
@@ -531,103 +416,30 @@ const en: HomeContent = {
     { label: "Receipt", href: "/receipts/new" },
   ],
   searchPlaceholder: "Search by client, document number, or subject",
-  kpis: [
-    {
-      key: "billed",
-      label: "Billed this month",
-      value: "¥1,280,000",
-      sub: "+12% vs last month",
-      tone: "neutral",
-      href: "/invoices",
-    },
-    {
-      key: "unpaid",
-      label: "Awaiting payment",
-      value: "¥824,000",
-      sub: "6 invoices",
-      tone: "warn",
-      href: "/invoices",
-    },
-    {
-      key: "pending",
-      label: "Pending",
-      value: "9",
-      sub: "3 drafts / 6 to confirm",
-      tone: "info",
-      href: "/invoices",
-    },
-    {
-      key: "duesoon",
-      label: "Due within 7 days",
-      value: "4",
-      sub: "1 overdue",
-      tone: "warn",
-      href: "/invoices",
-    },
-  ],
+  kpiLabels: {
+    billed: { label: "Billed this month", tone: "neutral", href: "/invoices" },
+    unpaid: { label: "Awaiting payment", tone: "warn", href: "/invoices" },
+    pending: { label: "Pending", tone: "info", href: "/invoices" },
+    duesoon: { label: "Due within 7 days", tone: "warn", href: "/invoices" },
+  },
+  kpiSub: {
+    deltaVsLastMonth: "{delta} vs last month",
+    noBaseline: "No billing last month",
+    count: "{count} invoices",
+    draftAwaiting: "{draft} drafts / {awaiting} to confirm",
+    overdueIncluded: "{overdue} overdue",
+    noOverdue: "None overdue",
+  },
   tasks: {
     title: "Today's tasks",
     subtitle: "Prioritized items that need your attention",
     seeAll: "View all",
     open: "Open",
     empty: "Nothing waiting for you",
-    groups: [
-      {
-        key: "duesoon",
-        label: "Payment due soon",
-        tone: "amber",
-        items: [
-          {
-            client: "Northwind LLC",
-            doc: "Invoice #20260512-003",
-            amount: "¥456,000",
-            due: "in 2 days",
-            href: "/invoices",
-          },
-          {
-            client: "Aster Studio",
-            doc: "Invoice #20260508-001",
-            amount: "¥148,000",
-            due: "tomorrow",
-            href: "/invoices",
-          },
-        ],
-      },
-      {
-        key: "unsent",
-        label: "Unsent documents",
-        tone: "cyan",
-        items: [
-          {
-            client: "Kumo Design",
-            doc: "Delivery note",
-            amount: "¥220,000",
-            due: "draft for 3 days",
-            href: "/delivery-notes",
-          },
-          {
-            client: "Bluebourne Inc.",
-            doc: "Estimate",
-            amount: "¥98,000",
-            due: "draft for 1 day",
-            href: "/estimates",
-          },
-        ],
-      },
-      {
-        key: "confirm",
-        label: "Awaiting payment confirmation",
-        tone: "slate",
-        items: [
-          {
-            client: "Maple Works",
-            doc: "Invoice #20260420-002",
-            amount: "¥312,000",
-            due: "2 days overdue",
-            href: "/invoices",
-          },
-        ],
-      },
+    groupLabels: [
+      { key: "duesoon", label: "Payment due soon", tone: "amber" },
+      { key: "unsent", label: "Unsent documents", tone: "cyan" },
+      { key: "confirm", label: "Awaiting payment confirmation", tone: "slate" },
     ],
   },
   quickCreate: {
@@ -669,29 +481,34 @@ const en: HomeContent = {
   recent: {
     title: "Recent activity",
     seeAll: "View history",
-    items: [
-      {
-        doc: "Invoice #20260522-002",
-        client: "Raon Co., Ltd.",
-        amount: "¥220,000",
-        status: "Sent",
-        time: "10 min ago",
-      },
-      {
-        doc: "Estimate #20260521-001",
-        client: "Aster Studio",
-        amount: "¥148,000",
-        status: "Draft saved",
-        time: "1 hour ago",
-      },
-      {
-        doc: "Receipt #20260520-004",
-        client: "Maple Works",
-        amount: "¥312,000",
-        status: "Issued",
-        time: "Yesterday",
-      },
-    ],
+    empty: "No activity yet",
+  },
+  docLabels: {
+    estimate: "Estimate",
+    delivery_note: "Delivery note",
+    invoice: "Invoice",
+    receipt: "Receipt",
+  },
+  statusLabels: {
+    draft: "Draft",
+    issued: "Issued",
+    sent: "Sent",
+    confirmed: "Paid",
+    overdue: "Overdue",
+    trashed: "Trashed",
+  },
+  relative: {
+    today: "today",
+    tomorrow: "tomorrow",
+    inDays: "in {days} days",
+    overdueDays: "{days} days overdue",
+    draftForDays: "draft for {days} days",
+    draftToday: "drafted today",
+    justNow: "just now",
+    minutesAgo: "{minutes} min ago",
+    hoursAgo: "{hours} hours ago",
+    yesterday: "Yesterday",
+    daysAgo: "{days} days ago",
   },
   notices: {
     title: "Announcements",
@@ -745,4 +562,36 @@ export function pickGreeting(content: HomeContent, hour: number): string {
   if (hour < 11) return content.greeting.morning;
   if (hour < 18) return content.greeting.afternoon;
   return content.greeting.evening;
+}
+
+/** "{days}日後" 같은 템플릿에 값을 채운다. */
+export function fillTemplate(template: string, values: Record<string, string | number>) {
+  return template.replace(/\{(\w+)\}/g, (_, key: string) =>
+    key in values ? String(values[key]) : `{${key}}`,
+  );
+}
+
+/** 기한까지 남은 일수 → 배지 문구 */
+export function formatDueLabel(relative: HomeRelativeLabels, dayDiff: number) {
+  if (dayDiff < 0) return fillTemplate(relative.overdueDays, { days: Math.abs(dayDiff) });
+  if (dayDiff === 0) return relative.today;
+  if (dayDiff === 1) return relative.tomorrow;
+  return fillTemplate(relative.inDays, { days: dayDiff });
+}
+
+/** 초안으로 머문 일수 → 배지 문구 */
+export function formatDraftAgeLabel(relative: HomeRelativeLabels, days: number) {
+  if (days <= 0) return relative.draftToday;
+  return fillTemplate(relative.draftForDays, { days });
+}
+
+/** 경과 분 → "10分前" 같은 문구 */
+export function formatMinutesAgo(relative: HomeRelativeLabels, minutesAgo: number) {
+  if (minutesAgo < 1) return relative.justNow;
+  if (minutesAgo < 60) return fillTemplate(relative.minutesAgo, { minutes: minutesAgo });
+  const hours = Math.floor(minutesAgo / 60);
+  if (hours < 24) return fillTemplate(relative.hoursAgo, { hours });
+  const days = Math.floor(hours / 24);
+  if (days === 1) return relative.yesterday;
+  return fillTemplate(relative.daysAgo, { days });
 }

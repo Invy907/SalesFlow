@@ -1,4 +1,8 @@
-import type { ReactNode } from "react";
+"use client";
+
+import Link from "next/link";
+import { useState, type ReactNode } from "react";
+import { appHrefs } from "@/lib/app-hrefs";
 
 export function ListPageTabs({
   tabs,
@@ -69,31 +73,53 @@ export function ListPrimaryButton({
 export function ListSearchBar({
   placeholder,
   searchLabel,
+  defaultValue,
+  onSearch,
 }: {
   placeholder: string;
   searchLabel: string;
+  defaultValue?: string;
+  onSearch?: (query: string) => void;
 }) {
+  const [value, setValue] = useState(defaultValue ?? "");
+
   return (
-    <div className="flex w-full max-w-full rounded border border-slate-300 bg-white sm:max-w-[520px]">
+    <form
+      className="flex w-full max-w-full rounded border border-slate-300 bg-white sm:max-w-[520px]"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSearch?.(value.trim());
+      }}
+    >
       <input
         className="min-w-0 flex-1 px-4 py-3 text-[15px] text-slate-700 outline-none placeholder:text-slate-300"
         placeholder={placeholder}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
       />
       <button
-        type="button"
+        type="submit"
         className="border-l border-slate-300 px-5 text-[15px] font-medium text-slate-700"
       >
         {searchLabel}
       </button>
-    </div>
+    </form>
   );
 }
 
-export function CsvDownloadLink({ label }: { label: string }) {
+export function CsvDownloadLink({
+  label,
+  onDownload,
+}: {
+  label: string;
+  onDownload?: () => void;
+}) {
   return (
     <button
       type="button"
-      className="inline-flex items-center gap-1 text-[14px] text-[#14a7bb] hover:underline"
+      onClick={onDownload}
+      disabled={!onDownload}
+      className="inline-flex items-center gap-1 text-[14px] text-[#14a7bb] hover:underline disabled:cursor-default disabled:text-slate-400 disabled:no-underline"
     >
       <DownloadIcon />
       {label}
@@ -102,12 +128,12 @@ export function CsvDownloadLink({ label }: { label: string }) {
   );
 }
 
-export function LearnMoreLink({ label }: { label: string }) {
+export function LearnMoreLink({ label, href = appHrefs.supportInvoiceGuide }: { label: string; href?: string }) {
   return (
-    <a href="#" className="inline-flex items-center gap-1 text-[#14a7bb] hover:underline">
+    <Link href={href} className="inline-flex items-center gap-1 text-[#14a7bb] hover:underline">
       ({label})
       <ExternalLinkIcon />
-    </a>
+    </Link>
   );
 }
 

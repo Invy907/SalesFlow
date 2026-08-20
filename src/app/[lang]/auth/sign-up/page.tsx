@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
 import Link from "next/link";
+import { useActionState } from "react";
 import { useParams } from "next/navigation";
 import { signUp } from "@/lib/actions/auth";
+import { appHrefs } from "@/lib/app-hrefs";
 import { formatSalesAuthError } from "@/lib/format-action-error";
 import type { AppLocale } from "@/contexts/language-context";
 import {
@@ -105,8 +106,8 @@ export default function SignUpPage() {
         {/* 利用規約 */}
         <p className="text-xs text-slate-400 leading-relaxed">
           登録することで、
-          <a href="#" className="text-cyan-600 hover:underline">利用規約</a>および
-          <a href="#" className="text-cyan-600 hover:underline">プライバシーポリシー</a>に同意したものとみなされます。
+          <Link href={appHrefs.support} className="text-cyan-600 hover:underline">利用規約</Link>および
+          <Link href={appHrefs.support} className="text-cyan-600 hover:underline">プライバシーポリシー</Link>に同意したものとみなされます。
         </p>
 
         <AuthSubmitButton pending={pending}>

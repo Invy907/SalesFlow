@@ -7,9 +7,10 @@ import { useLanguage } from "@/contexts/language-context";
 type LocalizedFileInputProps = {
   name: string;
   accept?: string;
+  onChange?: (file: File | null) => void;
 };
 
-export function LocalizedFileInput({ name, accept }: LocalizedFileInputProps) {
+export function LocalizedFileInput({ name, accept, onChange }: LocalizedFileInputProps) {
   const inputId = useId();
   const { lang } = useLanguage();
   const ui = getDocumentSharedContent(lang);
@@ -18,6 +19,7 @@ export function LocalizedFileInput({ name, accept }: LocalizedFileInputProps) {
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     setFileName(file?.name ?? null);
+    onChange?.(file ?? null);
   }
 
   return (

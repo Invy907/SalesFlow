@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
+import { appHrefs } from "@/lib/app-hrefs";
 import {
   DocumentBottomBar,
   DocumentDateFieldRow,
@@ -97,7 +99,7 @@ export function NewReceiptClient() {
                   <FormField label={ui.receiptNumber} required={ui.required}>
                     <p className="mb-2 text-sm text-cyan-600">
                       {ui.receiptHint}{" "}
-                      <a href="#" className="underline">↗</a>
+                      <Link href={appHrefs.supportInvoiceGuide} className="underline">↗</Link>
                     </p>
                     <input className="field" defaultValue={ui.receiptNumberValue} />
                   </FormField>
@@ -196,7 +198,7 @@ export function NewReceiptClient() {
               <section>
                 <SectionTitle title={ui.withholdingTitle} />
                 <p className="mt-2">
-                  <a href="#" className="text-sm text-cyan-600 underline">{ui.withholdingLink} ↗</a>
+                  <Link href={appHrefs.supportInvoiceGuide} className="text-sm text-cyan-600 underline">{ui.withholdingLink} ↗</Link>
                 </p>
                 <div className="mt-4 space-y-3">
                   {[ui.withholdingNone, ui.withholdingWith, ui.withholdingWithout].map((label, index) => (
@@ -256,7 +258,7 @@ export function NewReceiptClient() {
                 <SectionTitle title={ui.templateTitle} />
                 <p className="mt-2 text-sm text-slate-600">
                   {ui.templateNote}{" "}
-                  <a href="#" className="text-cyan-600 underline">→ {ui.templateSettingsLink}</a>
+                  <Link href={appHrefs.settingsDocumentDefaults} className="text-cyan-600 underline">→ {ui.templateSettingsLink}</Link>
                 </p>
 
                 <div className="mt-6 space-y-5">

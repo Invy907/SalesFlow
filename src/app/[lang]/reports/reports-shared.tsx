@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useLanguage } from "@/contexts/language-context";
+import { appHrefs } from "@/lib/app-hrefs";
 import { getReportsContent, getReportsTabHref, type ReportsTabKey } from "./content";
 
 export function ReportsSubNav({ active }: { active: ReportsTabKey }) {
@@ -34,10 +35,10 @@ export function ReportsSubNav({ active }: { active: ReportsTabKey }) {
 
 export function ReportsLearnMoreLink({ label }: { label: string }) {
   return (
-    <a href="#" className="inline-flex items-center gap-1 text-[#14a7bb] hover:underline">
+    <Link href={appHrefs.support} className="inline-flex items-center gap-1 text-[#14a7bb] hover:underline">
       ({label})
       <ExternalLinkIcon />
-    </a>
+    </Link>
   );
 }
 

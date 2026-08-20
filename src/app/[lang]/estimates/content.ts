@@ -4,6 +4,7 @@ const labels = {
   ja: {
     listTitle: "見積書",
     createEstimate: "見積書を新しく作る",
+    deleteConfirm: "この見積書を削除しますか？",
     searchPlaceholder: "取引先名, 見積書番号, 件名, 社内メモ",
     searchDetail: "詳細検索",
     searchButton: "検索",
@@ -60,8 +61,8 @@ const labels = {
     estimateNumberValue: "20260522-001",
     companyValue: "Raon",
     clientValue: "11111",
-    phone: "TEL: 070-9116-9716",
-    email: "bluebourne907@gmail.com",
+    phone: "TEL:",
+    email: "",
     backToList: "見積書へ戻る",
     issueMenu: {
       email: "メール送信手続",
@@ -178,6 +179,7 @@ const labels = {
   ko: {
     listTitle: "견적서",
     createEstimate: "새 견적서 만들기",
+    deleteConfirm: "이 견적서를 삭제하시겠습니까?",
     searchPlaceholder: "거래처명, 견적서 번호, 제목, 사내 메모",
     searchDetail: "상세 검색",
     searchButton: "검색",
@@ -234,8 +236,8 @@ const labels = {
     estimateNumberValue: "20260522-001",
     companyValue: "Raon",
     clientValue: "11111",
-    phone: "TEL: 070-9116-9716",
-    email: "bluebourne907@gmail.com",
+    phone: "TEL:",
+    email: "",
     backToList: "견적서로 돌아가기",
     issueMenu: {
       email: "메일 발송 절차",
@@ -348,6 +350,7 @@ const labels = {
   en: {
     listTitle: "Estimates",
     createEstimate: "Create a new estimate",
+    deleteConfirm: "Delete this estimate?",
     searchPlaceholder: "Client, estimate number, subject, internal memo",
     searchDetail: "Advanced search",
     searchButton: "Search",
@@ -404,8 +407,8 @@ const labels = {
     estimateNumberValue: "20260522-001",
     companyValue: "Raon",
     clientValue: "11111",
-    phone: "TEL: 070-9116-9716",
-    email: "bluebourne907@gmail.com",
+    phone: "TEL:",
+    email: "",
     backToList: "Back to estimates",
     issueMenu: {
       email: "Email delivery",

@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
+import { appHrefs } from "@/lib/app-hrefs";
 import { getInvoiceContent } from "../content";
 import { InvoiceSubNav } from "../invoice-sub-nav";
 
@@ -21,9 +23,9 @@ export default function InvoicesPeriodicPage() {
 
           <p className="text-[15px] text-slate-600">
             {ui.periodicDesc}（
-            <a href="#" className="text-cyan-600 underline">
+            <Link href={appHrefs.support} className="text-cyan-600 underline">
               {ui.periodicDescLink} ↗
-            </a>
+            </Link>
             ）
           </p>
 

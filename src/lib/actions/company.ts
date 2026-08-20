@@ -75,6 +75,103 @@ export async function uploadCompanyLogo(
   return { ok: true, data: publicUrl };
 }
 
+export async function uploadCompanySeal(
+  orgId: string,
+  file: File,
+): Promise<ActionResult<string>> {
+  const supabase = await getSupabaseServerClient();
+  const ext = file.name.split(".").pop();
+  const path = `${orgId}/seal-${Date.now()}.${ext}`;
+
+  const { error: uploadErr } = await supabase.storage
+    .from("org-seals")
+    .upload(path, file, { upsert: true });
+
+  if (uploadErr) return { ok: false, error: uploadErr.message };
+
+  const { data: { publicUrl } } = supabase.storage.from("org-seals").getPublicUrl(path);
+
+  await supabase
+    .from("company_profiles")
+    .update({ seal_path: path })
+    .eq("organization_id", orgId);
+
+  revalidatePath("/[lang]/settings/company", "page");
+  return { ok: true, data: publicUrl };
+}
+
+export async function saveDocumentDefaults(data: {
+  numberingRule?: string;
+  lineItemLabelName?: string;
+  lineItemLabelQty?: string;
+  lineItemLabelPrice?: string;
+  lineItemLabelAmount?: string;
+  estimateHeading?: string;
+  estimateMessage?: string;
+  estimateRemarks?: string;
+  deliveryNoteMessage?: string;
+  deliveryNoteRemarks?: string;
+  invoiceMessage?: string;
+  invoiceRemarks?: string;
+  receiptMessage?: string;
+  receiptRemarks?: string;
+  estimateTemplateKey?: string;
+  deliveryNoteTemplateKey?: string;
+  invoiceTemplateKey?: string;
+  receiptTemplateKey?: string;
+  taxDisplayDefault?: string;
+  taxRoundingDefault?: string;
+  withholdingDefault?: string;
+}): Promise<ActionResult> {
+  const supabase = await getSupabaseServerClient();
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+
+  const { error } = await supabase
+    .from("document_defaults")
+    .update({
+      numbering_rule: data.numberingRule ?? null,
+      line_item_label_name: data.lineItemLabelName ?? null,
+      line_item_label_qty: data.lineItemLabelQty ?? null,
+      line_item_label_price: data.lineItemLabelPrice ?? null,
+      line_item_label_amount: data.lineItemLabelAmount ?? null,
+      estimate_heading: data.estimateHeading ?? null,
+      estimate_message: data.estimateMessage ?? null,
+      estimate_remarks: data.estimateRemarks ?? null,
+      delivery_note_message: data.deliveryNoteMessage ?? null,
+      delivery_note_remarks: data.deliveryNoteRemarks ?? null,
+      invoice_message: data.invoiceMessage ?? null,
+      invoice_remarks: data.invoiceRemarks ?? null,
+      receipt_message: data.receiptMessage ?? null,
+      receipt_remarks: data.receiptRemarks ?? null,
+      estimate_template_key: data.estimateTemplateKey ?? null,
+      delivery_note_template_key: data.deliveryNoteTemplateKey ?? null,
+      invoice_template_key: data.invoiceTemplateKey ?? null,
+      receipt_template_key: data.receiptTemplateKey ?? null,
+      tax_display_default: data.taxDisplayDefault as
+        | "separate"
+        | "separate_on_invoice"
+        | "included"
+        | "exempt"
+        | undefined,
+      tax_rounding_default: data.taxRoundingDefault as
+        | "round_down"
+        | "round_up"
+        | "round_half"
+        | undefined,
+      withholding_default: data.withholdingDefault as
+        | "none"
+        | "with_recovery"
+        | "without_recovery"
+        | undefined,
+    })
+    .eq("organization_id", org.organization_id);
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[lang]/settings/document-defaults", "page");
+  return { ok: true, data: undefined };
+}
+
 export async function updateDisplaySettings(
   orgId: string,
   data: { listPageSize?: number; homePageAfterLogin?: string },
@@ -122,4 +219,42 @@ export async function createBankAccount(
   if (error || !row) return { ok: false, error: error?.message ?? "Insert failed" };
   revalidatePath("/[lang]/settings/payment", "page");
   return { ok: true, data: row.id };
+}
+
+export async function updateBankAccount(
+  accountId: string,
+  data: {
+    bankName?: string;
+    branchName?: string;
+    accountType?: "futsu" | "touza" | "chochiku";
+    accountNumber?: string;
+    accountHolder?: string;
+    displayOrder?: number;
+  },
+): Promise<ActionResult> {
+  const supabase = await getSupabaseServerClient();
+  const { error } = await supabase
+    .from("bank_accounts")
+    .update({
+      bank_name: data.bankName,
+      branch_name: data.branchName,
+      account_type: data.accountType,
+      account_number: data.accountNumber,
+      account_holder: data.accountHolder,
+      display_order: data.displayOrder,
+    })
+    .eq("id", accountId);
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[lang]/settings/payment", "page");
+  return { ok: true, data: undefined };
+}
+
+export async function deleteBankAccount(accountId: string): Promise<ActionResult> {
+  const supabase = await getSupabaseServerClient();
+  const { error } = await supabase.from("bank_accounts").delete().eq("id", accountId);
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[lang]/settings/payment", "page");
+  return { ok: true, data: undefined };
 }

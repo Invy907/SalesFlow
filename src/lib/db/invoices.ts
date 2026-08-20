@@ -3,17 +3,23 @@ import type { DocumentFilter } from "./estimates";
 
 export async function getInvoices(orgId: string, filter: DocumentFilter = {}) {
   const supabase = await getSupabaseServerClient();
-  const { clientId, status, from, to, query, page = 1, pageSize = 30 } = filter;
+  const { clientId, status, statusIn, trashed, from, to, query, page = 1, pageSize = 30 } = filter;
 
   let q = supabase
     .from("invoices")
     .select("*, clients(id, name)", { count: "exact" })
     .eq("organization_id", orgId)
-    .is("deleted_at", null)
     .order("issue_date", { ascending: false });
+
+  if (trashed) {
+    q = q.not("deleted_at", "is", null);
+  } else {
+    q = q.is("deleted_at", null);
+  }
 
   if (clientId) q = q.eq("client_id", clientId);
   if (status) q = q.eq("status", status);
+  if (statusIn?.length) q = q.in("status", statusIn);
   if (from) q = q.gte("issue_date", from);
   if (to) q = q.lte("issue_date", to);
   if (query) q = q.or(`document_number.ilike.%${query}%,subject.ilike.%${query}%`);

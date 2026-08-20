@@ -18,6 +18,21 @@ const labels = {
     listUnprocessed: "未処理",
     emptyList: "受注情報はありません。",
     emptyDetail: "受注情報を選択して詳細を確認できます。",
+    noClient: "取引先未設定",
+    detail: {
+      orderNumber: "注文番号",
+      orderDate: "注文日",
+      deliveryDate: "納期",
+      subject: "件名",
+      client: "取引先",
+      status: "ステータス",
+      comment: "コメント",
+      total: "合計",
+      items: "品目",
+      itemHeaders: ["品名", "数量", "単価", "金額"] as const,
+      noItems: "品目が登録されていません。",
+      noValue: "—",
+    },
     modal: {
       title: "受注情報の作成",
       client: "取引先",
@@ -38,7 +53,7 @@ const labels = {
     form: {
       emailAlert: {
         title: "受注フォーム機能を使うためにはメールアドレスの確認が必要です。",
-        body: "下のボタンをクリックすると、ご登録のメールアドレス（bluebourne907@gmail.com）に確認メールを送信します。メール内のリンクをクリックして、メールアドレスの確認を完了してください。",
+        body: "下のボタンをクリックすると、ご登録のメールアドレスに確認メールを送信します。メール内のリンクをクリックして、メールアドレスの確認を完了してください。",
         button: "確認メールを送信",
       },
       landing: {
@@ -105,6 +120,21 @@ const labels = {
     listUnprocessed: "미처리",
     emptyList: "수주 정보가 없습니다.",
     emptyDetail: "수주 정보를 선택하면 상세를 확인할 수 있습니다.",
+    noClient: "거래처 미지정",
+    detail: {
+      orderNumber: "주문번호",
+      orderDate: "주문일",
+      deliveryDate: "납기",
+      subject: "건명",
+      client: "거래처",
+      status: "상태",
+      comment: "코멘트",
+      total: "합계",
+      items: "품목",
+      itemHeaders: ["품명", "수량", "단가", "금액"] as const,
+      noItems: "등록된 품목이 없습니다.",
+      noValue: "—",
+    },
     modal: {
       title: "수주 정보 작성",
       client: "거래처",
@@ -125,7 +155,7 @@ const labels = {
     form: {
       emailAlert: {
         title: "수주 폼 기능을 사용하려면 이메일 주소 확인이 필요합니다.",
-        body: "아래 버튼을 클릭하면 등록된 이메일 주소(bluebourne907@gmail.com)로 확인 메일을 보냅니다. 메일 내 링크를 클릭하여 이메일 확인을 완료해 주세요.",
+        body: "아래 버튼을 클릭하면 등록된 이메일 주소로 확인 메일을 보냅니다. 메일 내 링크를 클릭하여 이메일 확인을 완료해 주세요.",
         button: "확인 메일 보내기",
       },
       landing: {
@@ -192,6 +222,21 @@ const labels = {
     listUnprocessed: "Unprocessed",
     emptyList: "No order information.",
     emptyDetail: "Select order information to view details.",
+    noClient: "No client",
+    detail: {
+      orderNumber: "Order number",
+      orderDate: "Order date",
+      deliveryDate: "Delivery date",
+      subject: "Subject",
+      client: "Client",
+      status: "Status",
+      comment: "Comment",
+      total: "Total",
+      items: "Line items",
+      itemHeaders: ["Item", "Qty", "Unit price", "Amount"] as const,
+      noItems: "No line items registered.",
+      noValue: "—",
+    },
     modal: {
       title: "Create Order Information",
       client: "Client",
@@ -212,7 +257,7 @@ const labels = {
     form: {
       emailAlert: {
         title: "Email verification is required to use the order form feature.",
-        body: "Click the button below to send a verification email to your registered address (bluebourne907@gmail.com). Click the link in the email to complete verification.",
+        body: "Click the button below to send a verification email to your registered address. Click the link in the email to complete verification.",
         button: "Send verification email",
       },
       landing: {

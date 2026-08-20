@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
+import { appHrefs } from "@/lib/app-hrefs";
 import { getInvoiceContent } from "../content";
 import { InvoiceSubNav } from "../invoice-sub-nav";
 
@@ -31,9 +33,9 @@ export default function InvoicesCsvUploadPage() {
               {ui.csvUploadDesc}
             </p>
             <p className="text-[15px] text-slate-600">
-              <a href="#" className="text-cyan-600 underline">
+              <Link href={appHrefs.support} className="text-cyan-600 underline">
                 {ui.csvUploadTemplateLink}
-              </a>
+              </Link>
               {ui.csvUploadTemplateDesc}
             </p>
           </div>
@@ -63,9 +65,9 @@ export default function InvoicesCsvUploadPage() {
               <p className="font-semibold text-slate-700">{ui.csvUploadTaxNote}</p>
               <p>
                 {ui.csvUploadTaxDesc}{" "}
-                <a href="#" className="text-cyan-600 underline">
+                <Link href={appHrefs.supportInvoiceGuide} className="text-cyan-600 underline">
                   {ui.csvUploadTaxDescLink} ↗
-                </a>
+                </Link>
               </p>
             </div>
 
@@ -90,9 +92,9 @@ export default function InvoicesCsvUploadPage() {
                   <td className="border border-slate-300 px-4 py-4 text-slate-700">
                     <p className="font-medium">{ui.csvTemplateUtf8Label}</p>
                     <p className="mt-1">
-                      <a href="#" className="text-cyan-600 underline">
+                      <span className="text-cyan-600 underline">
                         {ui.csvTemplateUtf8Link}
-                      </a>
+                      </span>
                     </p>
                   </td>
                 </tr>
@@ -103,9 +105,9 @@ export default function InvoicesCsvUploadPage() {
                   <td className="border border-slate-300 px-4 py-4 text-slate-700">
                     <p className="font-medium">{ui.csvTemplateShiftJisLabel}</p>
                     <p className="mt-1">
-                      <a href="#" className="text-cyan-600 underline">
+                      <span className="text-cyan-600 underline">
                         {ui.csvTemplateShiftJisLink}
-                      </a>
+                      </span>
                     </p>
                   </td>
                 </tr>

@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
+import { appHrefs } from "@/lib/app-hrefs";
 import { getUsageContent } from "./content";
 
 export default function UsagePage() {
@@ -13,25 +15,25 @@ export default function UsagePage() {
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
         <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
         <p className="mt-4 max-w-[900px] text-[15px] leading-7 text-slate-600">{ui.intro}</p>
-        <a
-          href="#"
+        <Link
+          href={appHrefs.support}
           className="mt-5 inline-flex items-center gap-2 rounded bg-[#14a7bb] px-5 py-3 text-[15px] font-semibold text-white transition hover:bg-[#1096a8]"
         >
           {ui.inquireBilling}
           <ExternalLinkIcon />
-        </a>
+        </Link>
 
         <div className="mt-10 space-y-8">
           <section className="overflow-hidden rounded border border-slate-200 bg-white">
             <div className="flex items-center justify-between bg-[#dbe8f3] px-5 py-3.5">
               <h2 className="text-[18px] font-semibold text-slate-800">{ui.currentMonth}</h2>
-              <a
-                href="#"
+              <Link
+                href={appHrefs.support}
                 className="inline-flex items-center gap-1 text-[15px] font-medium text-[#14a7bb] hover:underline"
               >
                 {ui.planUpgrade}
                 <ExternalLinkIcon />
-              </a>
+              </Link>
             </div>
 
             <div className="px-5 py-5">
@@ -82,13 +84,13 @@ export default function UsagePage() {
               <MonthNavLink label={ui.previousMonth} />
             </div>
 
-            <a
-              href="#"
+            <Link
+              href={appHrefs.support}
               className="flex items-center justify-center gap-2 bg-[#14a7bb] px-6 py-4 text-[16px] font-semibold text-white transition hover:bg-[#1096a8]"
             >
               {ui.planUpgrade}
               <ExternalLinkIcon />
-            </a>
+            </Link>
           </section>
         </div>
       </div>
@@ -120,9 +122,9 @@ function UsageStatCard({
 
 function MonthNavLink({ label }: { label: string }) {
   return (
-    <a href="#" className="text-[14px] text-[#14a7bb] hover:underline">
+    <span className="text-[14px] text-slate-400" aria-disabled="true">
       &lt; {label}
-    </a>
+    </span>
   );
 }
 

@@ -1,22 +1,16 @@
-"use client";
+import { notFound } from "next/navigation";
+import { buildEditEstimateInitial } from "../../estimate-form-data";
+import { EstimateFormClient } from "../../estimate-form-client";
 
-import { use } from "react";
-import { SalesFlowShell } from "@/components/salesflow-shell";
-import { EstimateEditClient } from "./estimate-edit-client";
+export const dynamic = "force-dynamic";
 
-type RouteParams = {
-  lang: string;
-  id: string;
-};
-
-export default function EstimateEditPage(props: {
-  params: Promise<RouteParams>;
+export default async function EstimateEditPage({
+  params,
+}: {
+  params: Promise<{ lang: string; id: string }>;
 }) {
-  const { id } = use(props.params);
-
-  return (
-    <SalesFlowShell activeItem="estimates">
-      <EstimateEditClient id={id} />
-    </SalesFlowShell>
-  );
+  const { lang, id } = await params;
+  const data = await buildEditEstimateInitial(lang, id);
+  if (!data) notFound();
+  return <EstimateFormClient initial={data.initial} clients={data.clients} />;
 }

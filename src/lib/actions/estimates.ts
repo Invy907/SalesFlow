@@ -85,6 +85,68 @@ export async function createEstimate(
   return { ok: true, data: estimate.id };
 }
 
+export async function updateEstimate(
+  estimateId: string,
+  formData: CreateEstimateInput,
+): Promise<ActionResult> {
+  const parsed = createEstimateSchema.safeParse(formData);
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const [field, msgs] of Object.entries(parsed.error.flatten().fieldErrors)) {
+      fieldErrors[field] = msgs?.[0] ?? "Invalid";
+    }
+    return { ok: false, error: "Validation failed", fieldErrors };
+  }
+
+  const supabase = await getSupabaseServerClient();
+
+  const { error } = await supabase
+    .from("estimates")
+    .update({
+      client_id: parsed.data.clientId ?? null,
+      client_destination_id: parsed.data.clientDestinationId ?? null,
+      subject: parsed.data.subject ?? null,
+      issue_date: parsed.data.issueDate.toISOString().slice(0, 10),
+      expiry_date: parsed.data.expiryDate?.toISOString().slice(0, 10) ?? null,
+      tax_display: parsed.data.taxDisplay,
+      tax_rounding: parsed.data.taxRounding,
+      withholding_type: parsed.data.withholdingType,
+      template_key: parsed.data.templateKey ?? null,
+      template_message: parsed.data.templateMessage ?? null,
+      remarks: parsed.data.remarks ?? null,
+      internal_memo: parsed.data.internalMemo ?? null,
+      recipient_snapshot: parsed.data.recipientSnapshot ?? null,
+      sender_snapshot: parsed.data.senderSnapshot ?? null,
+    })
+    .eq("id", estimateId);
+
+  if (error) return { ok: false, error: error.message };
+
+  await supabase.from("estimate_line_items").delete().eq("document_id", estimateId);
+
+  if (parsed.data.lineItems.length > 0) {
+    const lines = parsed.data.lineItems.map((li, idx) => ({
+      document_id: estimateId,
+      line_no: idx + 1,
+      item_id: li.itemId ?? null,
+      name_snapshot: li.name,
+      qty: li.qty,
+      unit_snapshot: li.unit ?? null,
+      unit_price_snapshot: li.unitPrice,
+      tax_category: li.taxCategory,
+      tax_rate_snapshot: li.taxRateSnapshot,
+      withholding_exempt_snapshot: li.withholdingExempt ?? null,
+    }));
+
+    const { error: lineErr } = await supabase.from("estimate_line_items").insert(lines);
+    if (lineErr) return { ok: false, error: lineErr.message };
+  }
+
+  revalidatePath("/[lang]/estimates", "page");
+  revalidatePath(`/[lang]/estimates/${estimateId}`, "page");
+  return { ok: true, data: undefined };
+}
+
 export async function issueEstimate(estimateId: string): Promise<ActionResult> {
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -126,6 +188,45 @@ export async function shareEstimate(estimateId: string): Promise<ActionResult<st
 
   revalidatePath("/[lang]/estimates", "page");
   return { ok: true, data: token };
+}
+
+export async function revokeShareEstimate(estimateId: string): Promise<ActionResult> {
+  const supabase = await getSupabaseServerClient();
+
+  const { data: estimate } = await supabase
+    .from("estimates")
+    .select("share_token")
+    .eq("id", estimateId)
+    .single();
+
+  if (estimate?.share_token) {
+    await supabase
+      .from("share_tokens")
+      .update({ revoked_at: new Date().toISOString() })
+      .eq("token", estimate.share_token);
+  }
+
+  const { error } = await supabase
+    .from("estimates")
+    .update({ share_token: null })
+    .eq("id", estimateId);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/[lang]/estimates/${estimateId}`, "page");
+  return { ok: true, data: undefined };
+}
+
+export async function saveEstimateMemo(estimateId: string, memo: string): Promise<ActionResult> {
+  const supabase = await getSupabaseServerClient();
+  const { error } = await supabase
+    .from("estimates")
+    .update({ internal_memo: memo })
+    .eq("id", estimateId);
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/[lang]/estimates/${estimateId}`, "page");
+  return { ok: true, data: undefined };
 }
 
 export async function deleteEstimate(estimateId: string): Promise<ActionResult> {

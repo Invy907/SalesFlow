@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useLanguage } from "@/contexts/language-context";
+import { appHrefs } from "@/lib/app-hrefs";
 import {
   DocumentBottomBar,
   DocumentLineItemsTable,
@@ -85,9 +87,9 @@ export function EstimateEditClient({ id }: Props) {
               <button className="rounded border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
                 文書初期設定の備考を使う
               </button>
-              <a href="#" className="text-cyan-600 hover:text-cyan-700">
+              <Link href={appHrefs.settingsDocumentDefaults} className="text-cyan-600 hover:text-cyan-700">
                 文書初期設定
-              </a>
+              </Link>
             </div>
           ) : null}
         </div>
@@ -258,9 +260,9 @@ function TemplateTab() {
         <h2 className="text-[24px] font-bold text-slate-900">カスタマイズオプション</h2>
         <p className="mt-4 text-[18px] leading-8 text-slate-700">
           テンプレートの内容を変更できます。初期値は文書初期設定で変更可能です
-          <a href="#" className="ml-2 text-cyan-600 hover:text-cyan-700">
+          <Link href={appHrefs.settingsDocumentDefaults} className="ml-2 text-cyan-600 hover:text-cyan-700">
             → 設定画面へ
-          </a>
+          </Link>
         </p>
 
         <div className="mt-8 space-y-5">

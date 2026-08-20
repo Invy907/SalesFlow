@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useState } from "react";
 import { SalesFlowShell } from "@/components/salesflow-shell";
+import { appHrefs } from "@/lib/app-hrefs";
 import { getSupportHref } from "@/app/[lang]/support/content";
 import { useLanguage } from "@/contexts/language-context";
 import {
@@ -119,7 +120,7 @@ export function NewInvoiceClient() {
                   <FormField label={ui.invoiceNumber} required={ui.required}>
                     <p className="mb-2 text-sm text-cyan-600">
                       {ui.invoiceHint}{" "}
-                      <a href="#" className="underline">↗</a>
+                      <Link href={appHrefs.supportInvoiceGuide} className="underline">↗</Link>
                     </p>
                     <input className="field" defaultValue={ui.invoiceNumberValue} />
                   </FormField>
@@ -130,9 +131,9 @@ export function NewInvoiceClient() {
                   </FormField>
 
                   <div>
-                    <a href="#" className="text-sm text-cyan-600 underline">
+                    <Link href={appHrefs.support} className="text-sm text-cyan-600 underline">
                       {ui.deliveryDateLink} ↗
-                    </a>
+                    </Link>
                   </div>
                 </div>
               </section>
@@ -192,9 +193,9 @@ export function NewInvoiceClient() {
                 </FormField>
 
                 <div>
-                  <a href="#" className="text-sm text-cyan-600 underline">
+                  <Link href={appHrefs.support} className="text-sm text-cyan-600 underline">
                     {ui.billingMonthLink} ↗
-                  </a>
+                  </Link>
                 </div>
               </section>
 
@@ -244,9 +245,9 @@ export function NewInvoiceClient() {
                       <span>{ui.paymentCard}</span>
                       <p className="mt-1 text-sm text-slate-500">
                         {ui.paymentCardDesc}{" "}
-                        <a href="#" className="text-cyan-600 underline">
+                        <Link href={appHrefs.settingsPayment} className="text-cyan-600 underline">
                           → {ui.settingsLink}
-                        </a>
+                        </Link>
                       </p>
                     </div>
                   </label>
@@ -261,9 +262,9 @@ export function NewInvoiceClient() {
                       <span>{ui.paymentPay}</span>
                       <p className="mt-1 text-sm text-slate-500">
                         {ui.paymentPayDesc}{" "}
-                        <a href="#" className="text-cyan-600 underline">
+                        <Link href={appHrefs.settingsPayment} className="text-cyan-600 underline">
                           → {ui.settingsLink}
-                        </a>
+                        </Link>
                       </p>
                     </div>
                   </label>
@@ -272,9 +273,9 @@ export function NewInvoiceClient() {
             </div>
 
             <div className="mt-6">
-              <a href="#" className="text-sm text-cyan-600 underline">
+              <Link href={appHrefs.support} className="text-sm text-cyan-600 underline">
                 {ui.deliveryDateLink} ↗
-              </a>
+              </Link>
             </div>
 
             <DocumentLineItemsTable ui={ui} storageKey="invoice-new-line-items" onTotalsChange={setLineItemTotals} />
@@ -315,9 +316,9 @@ export function NewInvoiceClient() {
             <div className="mt-6">
               <p className="text-sm text-slate-600">
                 {ui.taxSettingsNote}{" "}
-                <a href="#" className="text-cyan-600 underline">
+                <Link href={appHrefs.settingsDocumentDefaults} className="text-cyan-600 underline">
                   → {ui.taxSettingsLink}
-                </a>
+                </Link>
               </p>
             </div>
 
@@ -368,9 +369,9 @@ export function NewInvoiceClient() {
               <section>
                 <SectionTitle title={ui.withholdingTitle} />
                 <p className="mt-2">
-                  <a href="#" className="text-sm text-cyan-600 underline">
+                  <Link href={appHrefs.supportInvoiceGuide} className="text-sm text-cyan-600 underline">
                     {ui.withholdingLink} ↗
-                  </a>
+                  </Link>
                 </p>
                 <div className="mt-4 space-y-3">
                   {[
@@ -396,9 +397,9 @@ export function NewInvoiceClient() {
             </div>
 
             <div className="mt-6">
-              <a href="#" className="text-sm text-cyan-600 underline">
+              <Link href={appHrefs.support} className="text-sm text-cyan-600 underline">
                 {ui.deliveryDateLink} ↗
-              </a>
+              </Link>
             </div>
 
             <DocumentLineItemsTable ui={ui} storageKey="invoice-new-line-items" onTotalsChange={setLineItemTotals} />
@@ -459,7 +460,7 @@ export function NewInvoiceClient() {
                 <SectionTitle title={ui.templateTitle} />
                 <p className="mt-2 text-sm text-slate-600">
                   {ui.templateNote}{" "}
-                  <a href="#" className="text-cyan-600 underline">→ {ui.templateSettingsLink}</a>
+                  <Link href={appHrefs.settingsDocumentDefaults} className="text-cyan-600 underline">→ {ui.templateSettingsLink}</Link>
                 </p>
 
                 <div className="mt-6 space-y-5">

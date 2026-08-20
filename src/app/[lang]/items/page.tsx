@@ -1,48 +1,34 @@
-"use client";
+import { requireActiveOrg } from "@/lib/guards";
+import { getItems } from "@/lib/db/items";
+import { ItemsTable, type ItemRow } from "./items-table";
 
-import Link from "next/link";
-import { SalesFlowShell } from "@/components/salesflow-shell";
-import { useLanguage } from "@/contexts/language-context";
-import {
-  CsvDownloadLink,
-  LearnMoreLink,
-  ListSearchBar,
-} from "../list-page-shared";
-import { getItemsContent, getItemsHref } from "./content";
-import { ItemsNavTabs } from "./items-shared";
+export const dynamic = "force-dynamic";
 
-export default function ItemsPage() {
-  const { lang } = useLanguage();
-  const ui = getItemsContent(lang);
+export default async function ItemsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ lang: string }>;
+  searchParams: Promise<{ q?: string; page?: string }>;
+}) {
+  const { lang } = await params;
+  const scope = await requireActiveOrg(lang);
+  const sp = await searchParams;
+  const page = Math.max(1, Number(sp.page ?? "1") || 1);
+  const query = sp.q?.trim() || undefined;
+
+  const { items, total } = await getItems(scope.orgId, { query, page, pageSize: 30 });
+
+  const rows: ItemRow[] = items.map((i) => ({
+    id: i.id as string,
+    name: (i.name as string) ?? "",
+    unit: (i.unit as string) ?? "",
+    unitPrice: Number(i.unit_price ?? 0),
+    taxCategory: (i.tax_category as string) ?? "follow_company",
+    withholdingExempt: Boolean(i.withholding_exempt),
+  }));
 
   return (
-    <SalesFlowShell activeItem="items">
-      <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <ItemsNavTabs active="list" />
-          <Link
-            href={getItemsHref(lang, "new")}
-            className="inline-flex shrink-0 items-center justify-center rounded bg-[#f59b45] px-6 py-3.5 text-[16px] font-semibold text-white transition hover:bg-[#ef8d32]"
-          >
-            {ui.createItem}
-          </Link>
-        </div>
-
-        <h1 className="mt-8 text-[30px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
-        <p className="mt-3 max-w-[900px] text-[15px] leading-7 text-slate-600">
-          {ui.intro}
-          <LearnMoreLink label={ui.learnMore} />
-        </p>
-
-        <div className="mt-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <ListSearchBar placeholder={ui.searchPlaceholder} searchLabel={ui.search} />
-          <CsvDownloadLink label={ui.csvDownload} />
-        </div>
-
-        <div className="mt-16 flex min-h-[480px] items-center justify-center text-[20px] text-slate-300">
-          {ui.empty}
-        </div>
-      </div>
-    </SalesFlowShell>
+    <ItemsTable rows={rows} total={total} page={page} pageSize={30} query={query ?? ""} />
   );
 }

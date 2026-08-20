@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/language-context";
+import { appHrefs } from "@/lib/app-hrefs";
 import { getSettingsContent, getSettingsTabHref, type SettingsTabKey } from "./content";
 
 export function SettingsSubNav({ active }: { active: SettingsTabKey }) {
@@ -198,9 +199,9 @@ export function SettingsTemplateBlock({
         <h3 className="text-[20px] font-bold text-slate-900">{customizeTitle}</h3>
         <p className="mt-3 text-[15px] leading-7 text-slate-600">
           {customizeDesc}{" "}
-          <a href="#" className="text-[#14a7bb] hover:underline">
+          <Link href={appHrefs.settingsDocumentDefaults} className="text-[#14a7bb] hover:underline">
             {customizeLink}
-          </a>
+          </Link>
         </p>
         <div className="mt-6 max-w-[640px] space-y-1">{children}</div>
       </div>
@@ -208,17 +209,31 @@ export function SettingsTemplateBlock({
   );
 }
 
-export function SettingsSaveBar({ label, onSave }: { label: string; onSave?: () => void }) {
+export function SettingsSaveBar({
+  label,
+  onSave,
+  pending,
+  error,
+}: {
+  label: string;
+  onSave?: () => void;
+  pending?: boolean;
+  error?: string | null;
+}) {
   return (
     <div className="sticky bottom-0 border-t border-slate-300 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex max-w-[1260px] justify-center px-4 py-5 sm:px-6 lg:px-8">
-        <button
-          type="button"
-          onClick={onSave}
-          className="w-full max-w-[280px] rounded bg-[#14a7bb] px-10 py-4 text-[17px] font-semibold text-white transition hover:bg-[#1096a8] sm:w-auto sm:min-w-[280px]"
-        >
-          {label}
-        </button>
+      <div className="mx-auto max-w-[1260px] px-4 py-5 sm:px-6 lg:px-8">
+        {error ? <p className="mb-3 text-center text-sm text-red-600">{error}</p> : null}
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={!onSave || pending}
+            className="w-full max-w-[280px] rounded bg-[#14a7bb] px-10 py-4 text-[17px] font-semibold text-white transition hover:bg-[#1096a8] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[280px]"
+          >
+            {pending ? "..." : label}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -273,8 +288,10 @@ export function SettingsIntegrationRow({
   note,
   helpText,
   helpLink,
+  helpHref = appHrefs.support,
   helpSuffix,
   linkText,
+  linkHref = appHrefs.support,
   products,
   buttonLabel,
   disabled = false,
@@ -285,8 +302,10 @@ export function SettingsIntegrationRow({
   note?: string;
   helpText?: string;
   helpLink?: string;
+  helpHref?: string;
   helpSuffix?: string;
   linkText?: string;
+  linkHref?: string;
   products?: readonly string[];
   buttonLabel: string;
   disabled?: boolean;
@@ -303,9 +322,9 @@ export function SettingsIntegrationRow({
             {linkText ? (
               <>
                 {" "}
-                <a href="#" className="text-[#14a7bb] hover:underline">
+                <Link href={linkHref} className="text-[#14a7bb] hover:underline">
                   ({linkText})
-                </a>
+                </Link>
               </>
             ) : null}
           </p>
@@ -313,9 +332,9 @@ export function SettingsIntegrationRow({
           {helpText && helpLink ? (
             <p className="mt-2 text-[13px] text-slate-500">
               {helpText}
-              <a href="#" className="text-[#14a7bb] hover:underline">
+              <Link href={helpHref} className="text-[#14a7bb] hover:underline">
                 {helpLink}
-              </a>
+              </Link>
               {helpSuffix}
             </p>
           ) : null}
@@ -343,6 +362,7 @@ export function SettingsFeatureRow({
   title,
   description,
   linkText,
+  linkHref = appHrefs.support,
   enabled,
   enabledLabel,
   enableLabel,
@@ -351,6 +371,7 @@ export function SettingsFeatureRow({
   title: string;
   description: string;
   linkText?: string;
+  linkHref?: string;
   enabled?: boolean;
   enabledLabel: string;
   enableLabel: string;
@@ -370,10 +391,10 @@ export function SettingsFeatureRow({
           {linkText ? (
             <>
               {" "}
-              <a href="#" className="inline-flex items-center gap-1 text-[#14a7bb] hover:underline">
+              <Link href={linkHref} className="inline-flex items-center gap-1 text-[#14a7bb] hover:underline">
                 {linkText}
                 <ExternalLinkIcon />
-              </a>
+              </Link>
             </>
           ) : null}
         </p>

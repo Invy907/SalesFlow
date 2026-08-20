@@ -224,7 +224,7 @@ const labels = {
       intro: "会計サービスとの連携設定を行います。",
       emailAlert: {
         title: "証憑管理・会計連携機能を使うためにはメールアドレスの確認が必要です。",
-        body: "下のボタンをクリックすると、ご登録のメールアドレス（bluebourne907@gmail.com）に確認メールを送信します。メール内のリンクをクリックして、メールアドレスの確認を完了してください。",
+        body: "下のボタンをクリックすると、ご登録のメールアドレスに確認メールを送信します。メール内のリンクをクリックして、メールアドレスの確認を完了してください。",
         button: "確認メールを送信",
       },
       evidenceSection: "証憑管理連携",
@@ -268,7 +268,7 @@ const labels = {
       title: "チーム設定",
       emailAlert: {
         title: "チーム設定機能を使うためにはメールアドレスの確認が必要です。",
-        body: "下のボタンをクリックすると、ご登録のメールアドレス（bluebourne907@gmail.com）に確認メールを送信します。メール内のリンクをクリックして、メールアドレスの確認を完了してください。",
+        body: "下のボタンをクリックすると、ご登録のメールアドレスに確認メールを送信します。メール内のリンクをクリックして、メールアドレスの確認を完了してください。",
         button: "確認メールを送信",
       },
       inviteSection: "メンバーの招待",
@@ -549,7 +549,7 @@ const labels = {
       intro: "회계 서비스와의 연동 설정을 합니다.",
       emailAlert: {
         title: "증빙·회계 연동 기능을 사용하려면 이메일 주소 확인이 필요합니다.",
-        body: "아래 버튼을 클릭하면 등록된 이메일 주소(bluebourne907@gmail.com)로 확인 메일을 보냅니다. 메일 내 링크를 클릭하여 이메일 확인을 완료해 주세요.",
+        body: "아래 버튼을 클릭하면 등록된 이메일 주소로 확인 메일을 보냅니다. 메일 내 링크를 클릭하여 이메일 확인을 완료해 주세요.",
         button: "확인 메일 보내기",
       },
       evidenceSection: "증빙 관리 연동",
@@ -593,7 +593,7 @@ const labels = {
       title: "팀 설정",
       emailAlert: {
         title: "팀 설정 기능을 사용하려면 이메일 주소 확인이 필요합니다.",
-        body: "아래 버튼을 클릭하면 등록된 이메일 주소(bluebourne907@gmail.com)로 확인 메일을 보냅니다. 메일 내 링크를 클릭하여 이메일 확인을 완료해 주세요.",
+        body: "아래 버튼을 클릭하면 등록된 이메일 주소로 확인 메일을 보냅니다. 메일 내 링크를 클릭하여 이메일 확인을 완료해 주세요.",
         button: "확인 메일 보내기",
       },
       inviteSection: "멤버 초대",
@@ -874,7 +874,7 @@ const labels = {
       intro: "Configure integration with accounting services.",
       emailAlert: {
         title: "Email verification is required to use evidence and accounting integration.",
-        body: "Click the button below to send a verification email to your registered address (bluebourne907@gmail.com). Click the link in the email to complete verification.",
+        body: "Click the button below to send a verification email to your registered address. Click the link in the email to complete verification.",
         button: "Send verification email",
       },
       evidenceSection: "Evidence Management Integration",
@@ -918,7 +918,7 @@ const labels = {
       title: "Team Settings",
       emailAlert: {
         title: "Email verification is required to use team settings.",
-        body: "Click the button below to send a verification email to your registered address (bluebourne907@gmail.com). Click the link in the email to complete verification.",
+        body: "Click the button below to send a verification email to your registered address. Click the link in the email to complete verification.",
         button: "Send verification email",
       },
       inviteSection: "Invite Members",
