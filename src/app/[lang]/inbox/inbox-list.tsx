@@ -2,10 +2,18 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
 import type { AppLocale } from "@/contexts/language-context";
 import { appHrefs } from "@/lib/app-hrefs";
+import {
+  disconnectGmail,
+  markAllInboxRead,
+  syncGmailNow,
+} from "@/lib/actions/inbox";
+import { getGmailConnectUrl } from "@/lib/gmail/connect-url";
+import type { GmailConnectionSummary } from "@/lib/db/gmail-connections";
 import { SettingsEmailAlert } from "../settings/settings-shared";
 import { getInboxContent } from "./content";
 
@@ -46,17 +54,39 @@ export function InboxList({
   page,
   pageSize,
   unreadOnly,
+  gmailConnection,
+  initialToast,
 }: {
   rows: InboxMessageRow[];
   total: number;
   page: number;
   pageSize: number;
   unreadOnly: boolean;
+  gmailConnection: GmailConnectionSummary | null;
+  initialToast: string | null;
 }) {
   const { lang } = useLanguage();
   const ui = getInboxContent(lang);
   const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [toast, setToast] = useState("");
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  useEffect(() => {
+    if (!initialToast) return;
+    if (initialToast === "connected") {
+      setToast(ui.gmail.connectedToast);
+    } else {
+      setToast(initialToast);
+    }
+    router.replace(`/${lang}/inbox${unreadOnly ? "?unread=1" : ""}`, { scroll: false });
+  }, [initialToast, lang, router, ui.gmail.connectedToast, unreadOnly]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(""), 3000);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
 
   function navigate(next: { page?: number; unread?: boolean }) {
     const params = new URLSearchParams();
@@ -68,14 +98,86 @@ export function InboxList({
     router.push(`/${lang}/inbox${qs ? `?${qs}` : ""}`);
   }
 
+  function handleConnect() {
+    window.location.href = getGmailConnectUrl(lang);
+  }
+
+  function handleSync() {
+    startTransition(async () => {
+      const result = await syncGmailNow();
+      setToast(result.ok ? ui.gmail.syncedToast : result.error);
+      if (result.ok) router.refresh();
+    });
+  }
+
+  function handleDisconnect() {
+    startTransition(async () => {
+      const result = await disconnectGmail();
+      setToast(result.ok ? ui.gmail.disconnectedToast : result.error);
+      if (result.ok) router.refresh();
+    });
+  }
+
+  function handleMarkAllRead() {
+    startTransition(async () => {
+      const result = await markAllInboxRead();
+      if (!result.ok) {
+        setToast(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
   return (
     <SalesFlowShell activeItem="inbox">
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
-        <SettingsEmailAlert
-          title={ui.emailAlert.title}
-          body={ui.emailAlert.body}
-          buttonLabel={ui.emailAlert.button}
-        />
+        {!gmailConnection ? (
+          <SettingsEmailAlert
+            title={ui.emailAlert.title}
+            body={ui.emailAlert.body}
+            buttonLabel={ui.emailAlert.button}
+            onButtonClick={handleConnect}
+          />
+        ) : (
+          <div className="mb-6 rounded border border-slate-200 bg-slate-50 px-5 py-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-[14px] font-semibold text-slate-800">
+                  {ui.gmail.connected}: {gmailConnection.googleEmail}
+                </p>
+                {gmailConnection.lastSyncAt ? (
+                  <p className="mt-1 text-[13px] text-slate-500">
+                    {ui.gmail.lastSync}: {formatReceivedAt(lang, gmailConnection.lastSyncAt)}
+                  </p>
+                ) : null}
+                {gmailConnection.lastSyncError ? (
+                  <p className="mt-1 text-[13px] text-red-600">
+                    {ui.gmail.syncError}: {gmailConnection.lastSyncError}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleSync}
+                  disabled={pending}
+                  className="rounded border border-slate-300 bg-white px-4 py-2 text-[14px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                >
+                  {pending ? ui.gmail.syncing : ui.gmail.syncNow}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDisconnect}
+                  disabled={pending}
+                  className="rounded border border-red-200 bg-white px-4 py-2 text-[14px] font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
+                >
+                  {ui.gmail.disconnect}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
@@ -89,7 +191,7 @@ export function InboxList({
           </Link>
         </div>
 
-        <div className="mt-6 flex gap-2">
+        <div className="mt-6 flex flex-wrap items-center gap-2">
           {[
             { label: ui.all, active: !unreadOnly, unread: false },
             { label: ui.unreadOnly, active: unreadOnly, unread: true },
@@ -108,6 +210,16 @@ export function InboxList({
               {filter.label}
             </button>
           ))}
+          {rows.some((r) => !r.isRead) ? (
+            <button
+              type="button"
+              onClick={handleMarkAllRead}
+              disabled={pending}
+              className="ml-auto rounded border border-slate-300 px-4 py-2 text-[14px] font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+            >
+              {ui.markAllRead}
+            </button>
+          ) : null}
         </div>
 
         {rows.length === 0 ? (
@@ -128,7 +240,11 @@ export function InboxList({
               </thead>
               <tbody>
                 {rows.map((row) => (
-                  <tr key={row.id} className="border-b border-slate-100 last:border-b-0">
+                  <tr
+                    key={row.id}
+                    onClick={() => router.push(`/${lang}/inbox/${row.id}`)}
+                    className="cursor-pointer border-b border-slate-100 last:border-b-0 hover:bg-slate-50"
+                  >
                     <td className="px-4 py-4">
                       <span
                         className={[
@@ -191,6 +307,15 @@ export function InboxList({
           </div>
         ) : null}
       </div>
+
+      {toast ? (
+        <div
+          role="status"
+          className="fixed bottom-8 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900/90 px-6 py-3 text-[15px] text-white shadow-lg"
+        >
+          {toast}
+        </div>
+      ) : null}
     </SalesFlowShell>
   );
 }

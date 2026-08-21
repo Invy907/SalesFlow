@@ -895,6 +895,62 @@ export type Database = {
           },
         ]
       }
+      gmail_connections: {
+        Row: {
+          access_token_enc: string | null
+          connected_by: string
+          created_at: string
+          google_email: string
+          history_id: string | null
+          id: string
+          last_sync_at: string | null
+          last_sync_error: string | null
+          organization_id: string
+          refresh_token_enc: string
+          revoked_at: string | null
+          token_expires_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token_enc?: string | null
+          connected_by: string
+          created_at?: string
+          google_email: string
+          history_id?: string | null
+          id?: string
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          organization_id: string
+          refresh_token_enc: string
+          revoked_at?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token_enc?: string | null
+          connected_by?: string
+          created_at?: string
+          google_email?: string
+          history_id?: string | null
+          id?: string
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          organization_id?: string
+          refresh_token_enc?: string
+          revoked_at?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gmail_connections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inbox_messages: {
         Row: {
           body: string | null

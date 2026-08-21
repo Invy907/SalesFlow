@@ -22,3 +22,28 @@ export async function getInboxMessages(
   if (error) throw new Error(error.message);
   return { messages: data ?? [], total: count ?? 0 };
 }
+
+export async function getInboxMessageById(orgId: string, messageId: string) {
+  const supabase = await getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("inbox_messages")
+    .select("*")
+    .eq("organization_id", orgId)
+    .eq("id", messageId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function getInboxUnreadCount(orgId: string) {
+  const supabase = await getSupabaseServerClient();
+  const { count, error } = await supabase
+    .from("inbox_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", orgId)
+    .is("read_at", null);
+
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}

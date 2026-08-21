@@ -256,10 +256,12 @@ export function SettingsEmailAlert({
   title,
   body,
   buttonLabel,
+  onButtonClick,
 }: {
   title: string;
   body: string;
   buttonLabel: string;
+  onButtonClick?: () => void;
 }) {
   return (
     <div className="mb-8 rounded border border-[#f5c2c7] bg-[#fdf2f2] px-6 py-5">
@@ -272,6 +274,7 @@ export function SettingsEmailAlert({
           <p className="mt-2 text-[14px] leading-7 text-slate-600">{body}</p>
           <button
             type="button"
+            onClick={onButtonClick}
             className="mt-4 rounded border border-slate-300 bg-white px-5 py-2.5 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             {buttonLabel}
