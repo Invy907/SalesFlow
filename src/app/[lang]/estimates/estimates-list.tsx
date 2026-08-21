@@ -77,12 +77,20 @@ export function EstimatesList({
               {ui.tabTitles[activeTab]}
             </h1>
             {!isTrashTab ? (
-              <Link
-                href={`/${lang}/estimates/new`}
-                className="inline-flex items-center justify-center rounded bg-[#f59b45] px-6 py-4 text-lg font-semibold text-white transition hover:bg-[#ef8d32]"
-              >
-                {ui.createEstimate}
-              </Link>
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href={`/${lang}/estimates/ai-library`}
+                  className="inline-flex items-center justify-center rounded border border-violet-200 bg-violet-50 px-5 py-4 text-base font-semibold text-violet-700 transition hover:bg-violet-100"
+                >
+                  {lang === "ko" ? "AI 견적 자료함" : lang === "en" ? "AI estimate library" : "AI見積資料"}
+                </Link>
+                <Link
+                  href={`/${lang}/estimates/new`}
+                  className="inline-flex items-center justify-center rounded bg-[#f59b45] px-6 py-4 text-lg font-semibold text-white transition hover:bg-[#ef8d32]"
+                >
+                  {ui.createEstimate}
+                </Link>
+              </div>
             ) : null}
           </div>
 

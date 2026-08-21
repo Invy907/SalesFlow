@@ -11,7 +11,9 @@ import {
   saveEstimateMemo,
   shareEstimate,
 } from "@/lib/actions/estimates";
+import { importEstimateAsAiSource } from "@/lib/actions/ai-estimates";
 import { getEstimateContent } from "../content";
+import { EstimateDocumentPreview } from "../estimate-document-preview";
 
 export type EstimateDetail = {
   id: string;
@@ -29,38 +31,56 @@ export type EstimateDetail = {
   tax: number;
   total: number;
   shareToken: string | null;
-  lines: Array<{
-    lineNo: number;
-    name: string;
-    qty: number;
-    unit: string;
-    unitPrice: number;
-  }>;
-  sender: {
-    companyName: string;
-    tel: string;
-    email: string;
-  };
+  shareExpiresAt: string | null;
+  lines: Array<{ lineNo: number; name: string; qty: number; unit: string; unitPrice: number }>;
+  sender: { companyName: string; tel: string; email: string };
 };
 
-function yen(value: number) {
-  return `${value.toLocaleString("ja-JP")}円`;
-}
+type IssueAction = "email" | "fax" | "download" | "print" | "share";
+type ModalType = "email" | "share" | null;
+
+const yen = (value: number) => `¥ ${value.toLocaleString("ja-JP")}`;
 
 export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
   const { lang } = useLanguage();
   const ui = getEstimateContent(lang);
   const router = useRouter();
+
+  const [isIssueMenuOpen, setIsIssueMenuOpen] = useState(false);
+  const [modal, setModal] = useState<ModalType>(null);
+  const [email, setEmail] = useState("");
   const [memo, setMemo] = useState(detail.internalMemo);
-  const [shareToken, setShareToken] = useState(detail.shareToken);
   const [toast, setToast] = useState("");
-  const [modal, setModal] = useState<"share" | null>(null);
+  const [shareToken, setShareToken] = useState(detail.shareToken);
+  const [shareExpiresAt, setShareExpiresAt] = useState(detail.shareExpiresAt);
   const [pending, startTransition] = useTransition();
+  const issueMenuRef = useRef<HTMLDivElement>(null);
 
   const shareUrl = useMemo(() => {
-    if (!shareToken || typeof window === "undefined") return "";
-    return `${window.location.origin}/${lang}/estimates/shared/${shareToken}`;
+    if (!shareToken) return "";
+    const base = typeof window === "undefined" ? "" : window.location.origin;
+    return `${base}/${lang}/estimates/shared/${shareToken}`;
   }, [shareToken, lang]);
+
+  useEffect(() => {
+    function handleOutsideClick(event: MouseEvent) {
+      if (issueMenuRef.current && !issueMenuRef.current.contains(event.target as Node)) {
+        setIsIssueMenuOpen(false);
+      }
+    }
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsIssueMenuOpen(false);
+        setModal(null);
+      }
+    }
+    window.addEventListener("mousedown", handleOutsideClick);
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      window.removeEventListener("mousedown", handleOutsideClick);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
 
   useEffect(() => {
     if (!toast) return;
@@ -72,7 +92,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
     try {
       await navigator.clipboard.writeText(value);
     } catch {
-      // ignore
+      // 클립보드 권한이 없어도 링크는 화면에 남아 있으므로 안내만 한다.
     }
     setToast(message);
   }
@@ -80,7 +100,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
   function handleIssue() {
     startTransition(async () => {
       const result = await issueEstimate(detail.id);
-      setToast(result.ok ? ui.issueAction : result.error);
+      setToast(result.ok ? ui.issued : result.error);
       if (result.ok) router.refresh();
     });
   }
@@ -88,7 +108,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
   function handleSaveMemo() {
     startTransition(async () => {
       const result = await saveEstimateMemo(detail.id, memo);
-      setToast(result.ok ? ui.saveMini : result.error);
+      setToast(result.ok ? ui.memoSaved : result.error);
       if (result.ok) router.refresh();
     });
   }
@@ -100,10 +120,13 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
         setToast(result.error);
         return;
       }
-      setShareToken(result.data);
-      const url = `${window.location.origin}/${lang}/estimates/shared/${result.data}`;
-      await copyToClipboard(url, ui.shareModal.copied);
-      setModal("share");
+      setShareToken(result.data.token);
+      setShareExpiresAt(result.data.expiresAt);
+      const base = typeof window === "undefined" ? "" : window.location.origin;
+      await copyToClipboard(
+        `${base}/${lang}/estimates/shared/${result.data.token}`,
+        ui.shareModal.copied,
+      );
     });
   }
 
@@ -115,8 +138,44 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
         return;
       }
       setShareToken(null);
-      setToast("共有を取り消しました");
+      setShareExpiresAt(null);
+      setToast(ui.shareRevoked);
     });
+  }
+
+  function handleRegisterAiSource() {
+    startTransition(async () => {
+      const result = await importEstimateAsAiSource(detail.id);
+      if (!result.ok) {
+        setToast(result.error);
+        return;
+      }
+      router.push(`/${lang}/estimates/ai-library/${result.data}`);
+      router.refresh();
+    });
+  }
+
+  function handleIssueAction(action: IssueAction) {
+    setIsIssueMenuOpen(false);
+    switch (action) {
+      case "email":
+        setModal("email");
+        return;
+      case "fax":
+        router.push(`/${lang}/estimates/${detail.id}/fax`);
+        return;
+      case "download":
+        setToast(ui.actions.downloaded);
+        window.print();
+        return;
+      case "print":
+        setToast(ui.actions.printing);
+        window.print();
+        return;
+      case "share":
+        setModal("share");
+        return;
+    }
   }
 
   const statusLabel =
@@ -126,19 +185,30 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
         ? ui.statusDraft
         : detail.status;
 
+  const aiButtonLabel =
+    lang === "ko" ? "AI 자료로 등록" : lang === "en" ? "Add to AI library" : "AI資料に登録";
+
   return (
     <SalesFlowShell activeItem="estimates">
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
         <div className="mt-2 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <h1 className="text-[34px] font-bold tracking-tight text-slate-900">{ui.detailTitle}</h1>
-          <div className="flex flex-wrap items-center gap-3">
+
+          <div className="relative flex flex-wrap items-center gap-3" ref={issueMenuRef}>
             <button
               type="button"
-              onClick={handleShare}
+              onClick={handleRegisterAiSource}
               disabled={pending}
-              className="rounded bg-[#14a7bb] px-6 py-3 text-[18px] font-semibold text-white transition hover:bg-[#1096a8] disabled:opacity-60"
+              className="rounded border border-violet-200 bg-violet-50 px-5 py-3 text-[16px] font-semibold text-violet-700 transition hover:bg-violet-100 disabled:opacity-60"
             >
-              {ui.issueMenu.share}
+              {aiButtonLabel}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsIssueMenuOpen((prev) => !prev)}
+              className="rounded bg-[#14a7bb] px-6 py-3 text-[18px] font-semibold text-white shadow-sm transition hover:bg-[#1096a8]"
+            >
+              {ui.issueAction} ▼
             </button>
             <Link
               href={`/${lang}/estimates/${detail.id}/edit`}
@@ -156,6 +226,23 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
                 {ui.issueAction}
               </button>
             ) : null}
+
+            {isIssueMenuOpen ? (
+              <div className="absolute right-0 top-[72px] z-30 w-[420px] rounded-lg border border-slate-200 bg-white p-4 shadow-[0_12px_35px_rgba(15,23,42,0.18)]">
+                <IssueMenuItem
+                  label={ui.issueMenu.email}
+                  badge={ui.issueMenu.emailRecommended}
+                  onClick={() => handleIssueAction("email")}
+                />
+                <IssueMenuItem label={ui.issueMenu.fax} onClick={() => handleIssueAction("fax")} />
+                <IssueMenuItem
+                  label={ui.issueMenu.download}
+                  onClick={() => handleIssueAction("download")}
+                />
+                <IssueMenuItem label={ui.issueMenu.print} onClick={() => handleIssueAction("print")} />
+                <IssueMenuItem label={ui.issueMenu.share} onClick={() => handleIssueAction("share")} />
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -166,7 +253,9 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
             <div className="text-slate-700">{ui.client}</div>
             <div>
               {detail.clientName ? (
-                <span>{detail.clientName} {ui.companyHonorific || ""}</span>
+                <span>
+                  {detail.clientName} {ui.companyHonorific || ""}
+                </span>
               ) : (
                 "—"
               )}
@@ -180,7 +269,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
             <div className="text-slate-700">{ui.expiryDate}</div>
             <div>{detail.expiryDate || ui.noDate}</div>
             <div className="text-slate-700">{ui.status}</div>
-            <div>
+            <div className="flex gap-3">
               <span className="rounded border border-slate-300 bg-white px-4 py-1 text-sm text-slate-600">
                 {statusLabel}
               </span>
@@ -190,106 +279,163 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
           <div>
             <h2 className="mb-3 text-[18px] font-semibold text-slate-800">{ui.internalMemo}</h2>
             <textarea
-              className="min-h-[180px] w-full rounded border border-slate-300 px-5 py-4 text-[16px] outline-none"
+              className="min-h-[180px] w-full rounded border border-slate-300 px-5 py-4 text-[16px] outline-none placeholder:text-slate-300"
               placeholder={ui.memoPlaceholder}
               value={memo}
-              onChange={(e) => setMemo(e.target.value)}
+              onChange={(event) => setMemo(event.target.value)}
             />
             <button
               type="button"
               onClick={handleSaveMemo}
               disabled={pending}
-              className="mt-3 rounded border border-slate-300 bg-white px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              className="mt-3 rounded border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
             >
               {ui.saveMini}
             </button>
+
+            {shareToken ? (
+              <div className="mt-6 rounded border border-slate-200 bg-slate-50 px-4 py-3 text-[14px]">
+                <p className="break-all text-slate-700">{shareUrl}</p>
+                {shareExpiresAt ? (
+                  <p className="mt-1 text-slate-500">
+                    {ui.shareExpires}: {shareExpiresAt.slice(0, 10)}
+                  </p>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={handleRevokeShare}
+                  disabled={pending}
+                  className="mt-2 text-red-600 hover:underline disabled:opacity-60"
+                >
+                  {ui.shareRevoke}
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
 
-        {shareToken ? (
-          <div className="mt-8 rounded border border-slate-200 bg-slate-50 px-5 py-4">
-            <p className="text-sm font-semibold text-slate-800">{ui.shareModal.title}</p>
-            <p className="mt-2 break-all text-sm text-cyan-700">{shareUrl}</p>
-            <div className="mt-3 flex gap-3">
-              <button
-                type="button"
-                onClick={() => copyToClipboard(shareUrl, ui.shareModal.copied)}
-                className="rounded border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700"
-              >
-                コピー
-              </button>
-              <button
-                type="button"
-                onClick={handleRevokeShare}
-                disabled={pending}
-                className="rounded border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 disabled:opacity-60"
-              >
-                共有を取り消す
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        <div className="mt-10 overflow-x-auto rounded border border-slate-200 bg-white">
-          <table className="w-full min-w-[640px] border-collapse text-[15px]">
-            <thead>
-              <tr className="border-b border-slate-200 bg-[#f8fafc] text-left">
-                {ui.itemHeaders.map((h) => (
-                  <th key={h} className="px-4 py-3 font-semibold text-slate-700">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {detail.lines.map((line) => (
-                <tr key={line.lineNo} className="border-b border-slate-100">
-                  <td className="px-4 py-3">{line.name}</td>
-                  <td className="px-4 py-3 tabular-nums">{line.qty}</td>
-                  <td className="px-4 py-3">{line.unit}</td>
-                  <td className="px-4 py-3 tabular-nums">{yen(line.unitPrice)}</td>
-                  <td className="px-4 py-3 tabular-nums">
-                    {yen(Math.floor(line.qty * line.unitPrice))}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="flex justify-end gap-8 border-t border-slate-200 px-6 py-4 text-[15px]">
-            <span>{ui.subtotal}: {yen(detail.subtotal)}</span>
-            <span>{ui.tax}: {yen(detail.tax)}</span>
-            <span className="font-semibold">{ui.total}: {yen(detail.total)}</span>
-          </div>
+        <div className="mt-12">
+          <EstimateDocumentPreview detail={detail} ui={ui} />
         </div>
 
-        <div className="mt-8 text-sm text-slate-600">
-          <p>{detail.sender.companyName}</p>
-          {detail.sender.tel ? <p>TEL: {detail.sender.tel}</p> : null}
-          {detail.sender.email ? <p>{detail.sender.email}</p> : null}
+        <div className="mt-8">
+          <Link
+            href={`/${lang}/estimates`}
+            className="text-[16px] font-semibold text-cyan-600 hover:text-cyan-700"
+          >
+            ← {ui.backToList}
+          </Link>
         </div>
       </div>
 
-      {toast ? (
-        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded bg-slate-800 px-6 py-3 text-sm text-white shadow-lg">
-          {toast}
-        </div>
-      ) : null}
-
-      {modal === "share" && shareUrl ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-semibold">{ui.shareModal.title}</h3>
-            <p className="mt-3 break-all text-sm text-slate-600">{shareUrl}</p>
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setModal(null)}
-                className="rounded border border-slate-300 px-4 py-2 text-sm"
+      {modal ? (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 p-6">
+          <div className="w-full max-w-[720px] overflow-hidden rounded-2xl bg-white shadow-[0_24px_60px_rgba(15,23,42,0.28)]">
+            {modal === "email" ? (
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  setModal(null);
+                  setToast(ui.emailModal.success);
+                }}
               >
-                閉じる
-              </button>
-            </div>
+                <ModalHeader title={ui.emailModal.title} onClose={() => setModal(null)} />
+                <div className="px-9 py-10">
+                  <p className="text-[18px] text-slate-800">{ui.emailModal.description}</p>
+                  <label className="mt-6 block text-[15px] font-semibold text-slate-700">
+                    {ui.emailModal.fieldLabel}
+                  </label>
+                  <input
+                    className="field mt-2"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div className="flex justify-end gap-3 border-t border-slate-200 px-9 py-5">
+                  <button
+                    type="submit"
+                    className="rounded bg-[#14a7bb] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#1096a8]"
+                  >
+                    {ui.emailModal.submit}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div>
+                <ModalHeader title={ui.shareModal.title} onClose={() => setModal(null)} />
+                <div className="px-9 py-10">
+                  <p className="text-[18px] text-slate-800">{ui.shareModal.description}</p>
+                  <p className="mt-3 text-[14px] text-slate-500">{ui.shareModal.caution}</p>
+                  {shareToken ? (
+                    <p className="mt-6 break-all rounded border border-slate-200 bg-slate-50 px-4 py-3 text-[14px] text-slate-700">
+                      {shareUrl}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="flex justify-end gap-3 border-t border-slate-200 px-9 py-5">
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    disabled={pending}
+                    className="rounded bg-[#14a7bb] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#1096a8] disabled:opacity-60"
+                  >
+                    {ui.shareModal.submit}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       ) : null}
+
+      {toast ? (
+        <div
+          role="status"
+          className="fixed bottom-8 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900/90 px-6 py-3 text-[15px] text-white shadow-lg"
+        >
+          {toast}
+        </div>
+      ) : null}
     </SalesFlowShell>
+  );
+}
+
+function IssueMenuItem({
+  label,
+  badge,
+  onClick,
+}: {
+  label: string;
+  badge?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-3 rounded px-3 py-3 text-left text-[16px] text-slate-800 transition hover:bg-slate-50"
+    >
+      <span className="flex-1">{label}</span>
+      {badge ? (
+        <span className="rounded bg-[#f59b45] px-2 py-0.5 text-xs font-bold text-white">{badge}</span>
+      ) : null}
+    </button>
+  );
+}
+
+function ModalHeader({ title, onClose }: { title: string; onClose: () => void }) {
+  return (
+    <div className="flex items-center justify-between border-b border-slate-200 px-9 py-5">
+      <h2 className="text-[20px] font-semibold text-slate-900">{title}</h2>
+      <button
+        type="button"
+        onClick={onClose}
+        className="text-2xl leading-none text-slate-400 hover:text-slate-600"
+      >
+        ×
+      </button>
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SalesFlowShell } from "@/components/salesflow-shell";
@@ -13,17 +14,21 @@ import {
   type LineItemRow,
   type LineItemTotals,
 } from "../documents/new-document-shared";
+import { EstimatePreview, EstimateThumbnail } from "../documents/document-previews";
 import { createEstimate, updateEstimate } from "@/lib/actions/estimates";
 import {
   taxCategoryFromLabel,
   taxRateSnapshotFor,
-  type TaxCategory,
 } from "@/lib/tax";
 import { toIsoDate } from "./date-field-utils";
 import { getEstimateContent } from "./content";
 import type { ClientOption } from "./estimate-form-data";
+import { AiEstimatePanel } from "@/components/ai-estimates/ai-estimate-panel";
+import { taxLabelFromCategory } from "@/lib/ai/estimates/normalize";
+import type { AiEstimateDraft } from "@/lib/ai/estimates/schemas";
 
 type TabKey = "basic" | "recipient" | "tax" | "template";
+type TemplateType = "standard" | "envelope" | null;
 
 const TAB_KEYS: TabKey[] = ["basic", "recipient", "tax", "template"];
 
@@ -66,8 +71,13 @@ export function EstimateFormClient({
 
   const isEdit = Boolean(initial.id);
   const [activeTab, setActiveTab] = useState<TabKey>("basic");
+  const [selectedTemplate, setSelectedTemplate] = useState<"standard" | "envelope">(
+    initial.templateKey === "envelope" ? "envelope" : "standard",
+  );
+  const [previewModal, setPreviewModal] = useState<TemplateType>(null);
   const [totals, setTotals] = useState<LineItemTotals>(EMPTY_LINE_ITEM_TOTALS);
   const [rows, setRows] = useState<LineItemRow[]>(initial.lines);
+  const [rowReplacement, setRowReplacement] = useState<{ version: number; rows: LineItemRow[] } | undefined>();
   const [form, setForm] = useState(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +97,13 @@ export function EstimateFormClient({
 
   const set = <K extends keyof EstimateFormInitial>(key: K, value: EstimateFormInitial[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
-    if (errors[key as string]) setErrors(({ [key as string]: _d, ...rest }) => rest);
+    if (errors[key as string]) {
+      setErrors((current) => {
+        const next = { ...current };
+        delete next[key as string];
+        return next;
+      });
+    }
   };
   const setRecipient = (key: keyof EstimateFormInitial["recipient"], value: string) =>
     setForm((f) => ({ ...f, recipient: { ...f.recipient, [key]: value } }));
@@ -120,7 +136,7 @@ export function EstimateFormClient({
         taxDisplay: form.taxDisplay as "separate" | "separate_on_invoice" | "included" | "exempt",
         taxRounding: form.taxRounding as "round_down" | "round_up" | "round_half",
         withholdingType: "none" as const,
-        templateKey: form.templateKey,
+        templateKey: selectedTemplate,
         templateMessage: form.templateMessage,
         remarks: form.remarks,
         recipientSnapshot: { ...form.recipient, clientName: form.clientName },
@@ -152,13 +168,33 @@ export function EstimateFormClient({
 
   const lineItemsTable = (
     <DocumentLineItemsTable
+      key={`estimate-lines-${rowReplacement?.version ?? 0}`}
       ui={ui}
       storageKey={isEdit ? undefined : "estimate-new-line-items"}
-      initialRows={isEdit ? initial.lines : undefined}
+      initialRows={rowReplacement?.rows ?? (isEdit ? initial.lines : undefined)}
       onTotalsChange={handleTotalsChange}
       onRowsChange={handleRowsChange}
     />
   );
+
+  function applyAiDraft(draft: AiEstimateDraft) {
+    const nextRows = draft.lines.map((line) => ({
+      name: line.name,
+      qty: String(line.qty),
+      unit: line.unit,
+      price: String(line.unitPrice),
+      tax: taxLabelFromCategory(line.taxCategory),
+    }));
+    setForm((current) => ({
+      ...current,
+      subject: draft.subject || current.subject,
+      templateMessage: draft.templateMessage || current.templateMessage,
+      remarks: draft.remarks || current.remarks,
+    }));
+    setRows(nextRows);
+    setRowReplacement((current) => ({ version: (current?.version ?? 0) + 1, rows: nextRows }));
+    setActiveTab("basic");
+  }
 
   return (
     <SalesFlowShell activeItem="estimates">
@@ -166,6 +202,13 @@ export function EstimateFormClient({
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[30px]">
           {isEdit ? ui.editAction : ui.newTitle}
         </h1>
+
+        <AiEstimatePanel
+          clientId={form.clientId}
+          clientName={form.clientName}
+          subject={form.subject}
+          onApply={applyAiDraft}
+        />
 
         <div className="-mx-4 mt-8 overflow-x-auto px-4 sm:mx-0 sm:mt-10 sm:px-0">
           <div className="flex min-w-max gap-6 border-b border-slate-200 text-base text-slate-500 sm:gap-10 sm:text-[18px]">
@@ -362,17 +405,57 @@ export function EstimateFormClient({
         )}
 
         {activeTab === "template" && (
-          <div className="mt-10 max-w-[640px]">
-            <label className="block">
-              <span className="mb-2 block font-semibold">{ui.templateMessageLabel}</span>
-              <textarea
-                className="field min-h-[120px]"
-                value={form.templateMessage}
-                onChange={(e) => set("templateMessage", e.target.value)}
-              />
-            </label>
+          <>
+            <div className="mt-10 grid gap-8 xl:grid-cols-[280px_1fr]">
+              <div className="flex flex-col items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPreviewModal(selectedTemplate)}
+                  className="w-full overflow-hidden rounded border border-slate-300 bg-white shadow-sm transition hover:shadow-md"
+                >
+                  <EstimateThumbnail ui={ui} />
+                </button>
+                <div className="rounded bg-[#14a7bb] px-6 py-2 text-[14px] font-semibold text-white">
+                  {selectedTemplate === "standard" ? ui.templateStandard : ui.templateEnvelope}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPreviewModal(selectedTemplate)}
+                  className="text-[14px] text-cyan-600 underline"
+                >
+                  {ui.templateChangeButton}
+                </button>
+              </div>
+
+              <div>
+                <SectionTitle title={ui.templateTitle} />
+                <p className="mt-2 text-sm text-slate-600">
+                  {ui.templateNote}{" "}
+                  <Link
+                    href={`/${lang}/settings/document-defaults`}
+                    className="text-cyan-600 underline"
+                  >
+                    ↗ {ui.templateSettingsLink}
+                  </Link>
+                </p>
+
+                <div className="mt-6 space-y-5">
+                  <FormField label={ui.templateMessageLabel}>
+                    <input
+                      className="field"
+                      placeholder={ui.templateMessagePlaceholder}
+                      value={form.templateMessage}
+                      onChange={(e) => set("templateMessage", e.target.value)}
+                    />
+                  </FormField>
+
+                  <p className="text-sm text-slate-500">{ui.templateFieldsMovedNote}</p>
+                </div>
+              </div>
+            </div>
+
             {lineItemsTable}
-          </div>
+          </>
         )}
       </div>
 
@@ -386,6 +469,77 @@ export function EstimateFormClient({
         pending={pending}
         error={error}
       />
+
+      {previewModal !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="relative mx-4 flex max-h-[90vh] w-full max-w-[680px] flex-col rounded-lg bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+              <h2 className="text-[20px] font-semibold text-slate-900">
+                {previewModal === "standard" ? ui.templateStandard : ui.templateEnvelope}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setPreviewModal(null)}
+                className="text-2xl leading-none text-slate-400 hover:text-slate-600"
+              >
+                ×
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              <EstimatePreview ui={ui} />
+            </div>
+            <div className="flex items-center justify-end gap-4 border-t border-slate-200 px-6 py-4">
+              <button
+                type="button"
+                onClick={() => setPreviewModal(null)}
+                className="rounded border border-slate-300 px-8 py-3 text-[15px] font-medium text-slate-700 hover:bg-slate-50"
+              >
+                {ui.templateModalCancel}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedTemplate(previewModal);
+                  setPreviewModal(null);
+                }}
+                className="rounded bg-[#14a7bb] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#1096a8]"
+              >
+                {ui.templateModalSelect}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </SalesFlowShell>
+  );
+}
+
+function SectionTitle({ title }: { title: string }) {
+  return (
+    <div className="border-b border-slate-200 pb-3">
+      <h2 className="text-[24px] font-semibold text-slate-900">{title}</h2>
+    </div>
+  );
+}
+
+function FormField({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="block">
+      <div className="mb-2 flex items-center gap-2 text-[16px] font-semibold text-slate-800">
+        <span>{label}</span>
+        {required ? (
+          <span className="rounded bg-[#f59b45] px-2 py-0.5 text-xs font-bold text-white">{required}</span>
+        ) : null}
+      </div>
+      {children}
+    </div>
   );
 }

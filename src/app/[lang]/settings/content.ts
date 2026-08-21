@@ -9,6 +9,7 @@ export type SettingsTabKey =
   | "payment"
   | "evidence"
   | "team"
+  | "ai-estimates"
   | "other";
 
 const labels = {
@@ -23,6 +24,7 @@ const labels = {
       "決済連携",
       "証憑管理・会計連携",
       "チーム設定",
+      "AI見積",
       "その他設定",
     ] as const,
     tabKeys: [
@@ -34,6 +36,7 @@ const labels = {
       "payment",
       "evidence",
       "team",
+      "ai-estimates",
       "other",
     ] as const satisfies readonly SettingsTabKey[],
     cards: [
@@ -73,6 +76,11 @@ const labels = {
         key: "team",
         title: "チーム設定",
         description: "チームメンバーの確認・追加・削除ができます。",
+      },
+      {
+        key: "ai-estimates",
+        title: "AI見積",
+        description: "過去見積の資料、価格根拠、自動入力ポリシーを管理します。",
       },
       {
         key: "other",
@@ -354,6 +362,7 @@ const labels = {
       "결제 연동",
       "증빙·회계 연동",
       "팀 설정",
+      "AI 견적",
       "기타 설정",
     ] as const,
     tabKeys: [
@@ -365,6 +374,7 @@ const labels = {
       "payment",
       "evidence",
       "team",
+      "ai-estimates",
       "other",
     ] as const satisfies readonly SettingsTabKey[],
     cards: [
@@ -403,6 +413,11 @@ const labels = {
         key: "team",
         title: "팀 설정",
         description: "팀 멤버 확인·추가·삭제가 가능합니다.",
+      },
+      {
+        key: "ai-estimates",
+        title: "AI 견적",
+        description: "과거 견적 자료, 가격 근거와 자동입력 정책을 관리합니다.",
       },
       {
         key: "other",
@@ -682,6 +697,7 @@ const labels = {
       "Payment",
       "Evidence / Accounting",
       "Team",
+      "AI Estimates",
       "Other",
     ] as const,
     tabKeys: [
@@ -693,6 +709,7 @@ const labels = {
       "payment",
       "evidence",
       "team",
+      "ai-estimates",
       "other",
     ] as const satisfies readonly SettingsTabKey[],
     cards: [
@@ -731,6 +748,11 @@ const labels = {
         key: "team",
         title: "Team Settings",
         description: "View, add, or remove team members.",
+      },
+      {
+        key: "ai-estimates",
+        title: "AI Estimates",
+        description: "Manage approved sources, price evidence, and autofill policy.",
       },
       {
         key: "other",

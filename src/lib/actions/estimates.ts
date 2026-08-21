@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getActiveOrganization } from "@/lib/db/organizations";
 import { createEstimateSchema, type CreateEstimateInput } from "@/lib/validators/document";
-import { randomBytes } from "crypto";
+import { maybeImportIssuedEstimateAsAiSource } from "@/lib/actions/ai-estimates";
+import { newShareToken, shareExpiryFromNow } from "@/lib/share-tokens";
 
 type ActionResult<T = void> =
   | { ok: true; data: T }
@@ -158,11 +159,15 @@ export async function issueEstimate(estimateId: string): Promise<ActionResult> {
     .eq("id", estimateId);
 
   if (error) return { ok: false, error: error.message };
+  await maybeImportIssuedEstimateAsAiSource(estimateId);
   revalidatePath("/[lang]/estimates", "page");
   return { ok: true, data: undefined };
 }
 
-export async function shareEstimate(estimateId: string): Promise<ActionResult<string>> {
+export async function shareEstimate(
+  estimateId: string,
+  days?: number,
+): Promise<ActionResult<{ token: string; expiresAt: string }>> {
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Unauthorized" };
@@ -170,7 +175,21 @@ export async function shareEstimate(estimateId: string): Promise<ActionResult<st
   const org = await getActiveOrganization();
   if (!org) return { ok: false, error: "No active organization" };
 
-  const token = randomBytes(32).toString("hex");
+  const { data: existing } = await supabase
+    .from("estimates")
+    .select("share_token")
+    .eq("id", estimateId)
+    .maybeSingle();
+
+  if (existing?.share_token) {
+    await supabase
+      .from("share_tokens")
+      .update({ revoked_at: new Date().toISOString() })
+      .eq("token", existing.share_token);
+  }
+
+  const token = newShareToken();
+  const expiresAt = shareExpiryFromNow(days);
 
   const { error } = await supabase.from("share_tokens").insert({
     token,
@@ -178,7 +197,7 @@ export async function shareEstimate(estimateId: string): Promise<ActionResult<st
     target_table: "estimates",
     target_id: estimateId,
     created_by: user.id,
-    expires_at: null,
+    expires_at: expiresAt,
     revoked_at: null,
   });
 
@@ -187,7 +206,8 @@ export async function shareEstimate(estimateId: string): Promise<ActionResult<st
   await supabase.from("estimates").update({ share_token: token }).eq("id", estimateId);
 
   revalidatePath("/[lang]/estimates", "page");
-  return { ok: true, data: token };
+  revalidatePath(`/[lang]/estimates/${estimateId}`, "page");
+  return { ok: true, data: { token, expiresAt } };
 }
 
 export async function revokeShareEstimate(estimateId: string): Promise<ActionResult> {
