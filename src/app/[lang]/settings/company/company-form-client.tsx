@@ -10,6 +10,12 @@ import {
   uploadCompanyLogo,
   uploadCompanySeal,
 } from "@/lib/actions/company";
+import {
+  extractPostalDigits,
+  formatPostalCode,
+  lookupJapanAddress,
+  type PostalLookupError,
+} from "@/lib/japan-postal-code";
 import { getSettingsContent } from "../content";
 import {
   SettingsFormField,
@@ -40,6 +46,15 @@ function validateInvoiceReg(value: string): boolean {
   return /^T\d{13}$/.test(value.trim());
 }
 
+function postalLookupErrorMessage(
+  error: PostalLookupError,
+  company: ReturnType<typeof getSettingsContent>["company"],
+) {
+  if (error === "invalid") return company.postalCodeInvalid;
+  if (error === "not_found") return company.postalCodeLookupFailed;
+  return company.postalCodeLookupNetworkError;
+}
+
 export function CompanyFormClient({ initial }: { initial: CompanyProfileForm }) {
   const { lang } = useLanguage();
   const ui = getSettingsContent(lang);
@@ -50,6 +65,8 @@ export function CompanyFormClient({ initial }: { initial: CompanyProfileForm }) 
   const [profile, setProfile] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [invoiceRegError, setInvoiceRegError] = useState<string | null>(null);
+  const [postalLookupError, setPostalLookupError] = useState<string | null>(null);
+  const [postalLookupPending, setPostalLookupPending] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function updateField<K extends keyof CompanyProfileForm>(key: K, value: CompanyProfileForm[K]) {
@@ -60,6 +77,31 @@ export function CompanyFormClient({ initial }: { initial: CompanyProfileForm }) 
   function handleInvoiceRegChange(value: string) {
     const digits = value.replace(/^T/, "").replace(/\D/g, "").slice(0, 13);
     updateField("invoiceRegistrationNumber", digits ? `T${digits}` : "");
+  }
+
+  async function runPostalLookup(postalCode: string) {
+    setPostalLookupError(null);
+    setPostalLookupPending(true);
+    try {
+      const result = await lookupJapanAddress(postalCode);
+      if (!result.ok) {
+        setPostalLookupError(postalLookupErrorMessage(result.error, company));
+        return;
+      }
+      setProfile((current) => ({
+        ...current,
+        postalCode: result.formattedPostalCode,
+        addressLine1: result.addressLine1,
+      }));
+    } finally {
+      setPostalLookupPending(false);
+    }
+  }
+
+  function handlePostalCodeBlur() {
+    if (extractPostalDigits(profile.postalCode).length === 7) {
+      void runPostalLookup(profile.postalCode);
+    }
   }
 
   function handleSave() {
@@ -118,12 +160,29 @@ export function CompanyFormClient({ initial }: { initial: CompanyProfileForm }) 
               required={company.required}
               hint={company.postalCodeHint}
             >
-              <input
-                className="field w-full max-w-[180px]"
-                placeholder="000-0000"
-                value={profile.postalCode}
-                onChange={(e) => updateField("postalCode", e.target.value)}
-              />
+              <div className="flex flex-wrap gap-3">
+                <input
+                  className="field w-full max-w-[180px]"
+                  placeholder="000-0000"
+                  value={profile.postalCode}
+                  onChange={(e) => {
+                    setPostalLookupError(null);
+                    updateField("postalCode", e.target.value);
+                  }}
+                  onBlur={handlePostalCodeBlur}
+                />
+                <button
+                  type="button"
+                  disabled={postalLookupPending}
+                  onClick={() => void runPostalLookup(profile.postalCode)}
+                  className="rounded border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {postalLookupPending ? "…" : company.postalCodeLookup}
+                </button>
+              </div>
+              {postalLookupError ? (
+                <p className="mt-1 text-sm text-red-600">{postalLookupError}</p>
+              ) : null}
             </SettingsFormField>
 
             <SettingsFormField label={company.address} required={company.addressRequired}>
