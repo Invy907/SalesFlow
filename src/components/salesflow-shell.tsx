@@ -39,7 +39,7 @@ import { getShellSessionAction } from "@/lib/actions/session";
 import { setActiveOrganization } from "@/lib/actions/organizations";
 import type { ShellOrganization, ShellProfile } from "@/lib/session";
 
-type ActiveItem =
+export type ActiveItem =
   | "home"
   | "estimates"
   | "delivery-notes"

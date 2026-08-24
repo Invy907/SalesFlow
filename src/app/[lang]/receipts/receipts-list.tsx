@@ -133,7 +133,14 @@ export function ReceiptsList({
                 <tbody>
                   {rows.map((row) => (
                     <tr key={row.id} className="border-b border-slate-100 last:border-b-0">
-                      <td className="px-4 py-4 font-medium text-slate-800">{row.documentNumber}</td>
+                      <td className="px-4 py-4 font-medium">
+                        <Link
+                          href={`/${lang}/receipts/${row.id}`}
+                          className="text-[#14a7bb] hover:underline"
+                        >
+                          {row.documentNumber}
+                        </Link>
+                      </td>
                       <td className="px-4 py-4 text-slate-700">{row.clientName || ui.noClient}</td>
                       <td className="px-4 py-4 text-slate-700">{row.subject || "—"}</td>
                       <td className="px-4 py-4 tabular-nums text-slate-600">{row.issueDate}</td>

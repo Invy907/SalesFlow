@@ -80,6 +80,7 @@ const labels = {
       emailRecommended: "オススメ",
       fax: "FAX送信",
       download: "PDFダウンロード",
+      excel: "Excelダウンロード",
       print: "印刷",
       share: "共有リンク（チャット/SNS）"
     },
@@ -100,6 +101,7 @@ const labels = {
     actions: {
       copied: "コピーしました。",
       downloaded: "PDFをダウンロードしました。",
+      excelDownloaded: "Excelファイルをダウンロードしました。",
       printing: "印刷ダイアログを開きました。"
     },
     faxPage: {
@@ -266,6 +268,7 @@ const labels = {
       emailRecommended: "추천",
       fax: "FAX 발송",
       download: "PDF 다운로드",
+      excel: "Excel 다운로드",
       print: "인쇄",
       share: "공유 링크(채팅/SNS)"
     },
@@ -286,6 +289,7 @@ const labels = {
     actions: {
       copied: "복사했습니다.",
       downloaded: "PDF를 다운로드했습니다.",
+      excelDownloaded: "Excel 파일을 다운로드했습니다.",
       printing: "인쇄 창을 열었습니다."
     },
     faxPage: {
@@ -448,6 +452,7 @@ const labels = {
       emailRecommended: "Recommended",
       fax: "FAX delivery",
       download: "Download PDF",
+      excel: "Download Excel",
       print: "Print",
       share: "Share link (chat/SNS)"
     },
@@ -468,6 +473,7 @@ const labels = {
     actions: {
       copied: "Copied.",
       downloaded: "PDF downloaded.",
+      excelDownloaded: "Excel file downloaded.",
       printing: "Opened the print dialog."
     },
     faxPage: {

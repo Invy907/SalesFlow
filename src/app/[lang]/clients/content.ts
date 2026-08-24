@@ -87,7 +87,7 @@ const labels = {
       title: "거래처/배송지 신규 등록",
       clientName: "거래처명",
       required: "필수",
-      nameSuffix: " 귀중",
+      nameSuffix: "",
       charCount: "0/40",
       corpLookup: "국세청 법인번호 공표 사이트에서 검색하여 자동 입력",
       furigana: "후리가나",

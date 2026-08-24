@@ -14,6 +14,7 @@ import {
 import { importEstimateAsAiSource } from "@/lib/actions/ai-estimates";
 import { getEstimateContent } from "../content";
 import { EstimateDocumentPreview } from "../estimate-document-preview";
+import { downloadSalesDocumentXlsx } from "@/lib/documents/export-spreadsheet";
 
 export type EstimateDetail = {
   id: string;
@@ -36,7 +37,7 @@ export type EstimateDetail = {
   sender: { companyName: string; tel: string; email: string };
 };
 
-type IssueAction = "email" | "fax" | "download" | "print" | "share";
+type IssueAction = "email" | "fax" | "download" | "excel" | "print" | "share";
 type ModalType = "email" | "share" | null;
 
 const yen = (value: number) => `¥ ${value.toLocaleString("ja-JP")}`;
@@ -155,6 +156,37 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
     });
   }
 
+  function downloadEstimateExcel() {
+    downloadSalesDocumentXlsx({
+      title: ui.listTitle,
+      filenameBase: detail.documentNumber || detail.id,
+      fields: [
+        [ui.estimateNumber, detail.documentNumber],
+        [ui.client, detail.clientName],
+        [ui.subject, detail.subject || "—"],
+        [ui.issueDate, detail.issueDate],
+        [ui.expiryDate, detail.expiryDate || ui.noDate],
+        [ui.companyName, detail.sender.companyName],
+      ],
+      lineHeaders: [
+        ui.itemHeaders[0],
+        ui.itemHeaders[1],
+        ui.itemHeaders[2],
+        ui.itemHeaders[3],
+        ui.itemHeaders[5],
+      ],
+      lines: detail.lines,
+      summaryRows: [
+        [ui.subtotal, detail.subtotal],
+        [ui.tax, detail.tax],
+        [ui.total, detail.total],
+      ],
+      remarks: detail.remarks,
+      remarksLabel: ui.remarks,
+    });
+    setToast(ui.actions.excelDownloaded);
+  }
+
   function handleIssueAction(action: IssueAction) {
     setIsIssueMenuOpen(false);
     switch (action) {
@@ -167,6 +199,9 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
       case "download":
         setToast(ui.actions.downloaded);
         window.print();
+        return;
+      case "excel":
+        downloadEstimateExcel();
         return;
       case "print":
         setToast(ui.actions.printing);
@@ -238,6 +273,10 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
                 <IssueMenuItem
                   label={ui.issueMenu.download}
                   onClick={() => handleIssueAction("download")}
+                />
+                <IssueMenuItem
+                  label={ui.issueMenu.excel}
+                  onClick={() => handleIssueAction("excel")}
                 />
                 <IssueMenuItem label={ui.issueMenu.print} onClick={() => handleIssueAction("print")} />
                 <IssueMenuItem label={ui.issueMenu.share} onClick={() => handleIssueAction("share")} />

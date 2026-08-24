@@ -103,3 +103,18 @@ select.field-select {
   padding-bottom: 0.7rem;
   line-height: 1.35;
 }
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .sales-document-print {
+    padding: 0 !important;
+    background: #fff !important;
+  }
+}

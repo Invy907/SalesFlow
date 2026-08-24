@@ -167,7 +167,11 @@ export function InvoicesList({
                 <tbody>
                   {rows.map((row) => (
                     <tr key={row.id} className="border-b border-slate-100">
-                      <td className="px-4 py-4 font-medium text-[#14a7bb]">{row.documentNumber}</td>
+                      <td className="px-4 py-4 font-medium">
+                        <Link href={`/${lang}/invoices/${row.id}`} className="text-[#14a7bb] hover:underline">
+                          {row.documentNumber}
+                        </Link>
+                      </td>
                       <td className="px-4 py-4">{row.clientName || "—"}</td>
                       <td className="px-4 py-4">{row.subject || "—"}</td>
                       <td className="px-4 py-4">{row.issueDate}</td>
