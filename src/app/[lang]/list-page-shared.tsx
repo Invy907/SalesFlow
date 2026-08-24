@@ -137,6 +137,37 @@ export function LearnMoreLink({ label, href = appHrefs.supportInvoiceGuide }: { 
   );
 }
 
+/** CSV 일괄 등록 화면(품목·거래처)의 섹션 카드. */
+export function BulkSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="overflow-hidden rounded border border-slate-200 bg-white">
+      <div className="bg-[#dbe8f3] px-5 py-3">
+        <h2 className="text-[18px] font-semibold text-slate-800">{title}</h2>
+      </div>
+      <div className="px-5 py-5">{children}</div>
+    </section>
+  );
+}
+
+export function BulkInfoTable({ rows }: { rows: Array<{ label: string; value: ReactNode }> }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[480px] border-collapse text-[14px]">
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.label} className="border-b border-slate-200 last:border-b-0">
+              <td className="w-[240px] whitespace-pre-line bg-[#f8fafc] px-4 py-4 align-top font-medium text-slate-700">
+                {row.label}
+              </td>
+              <td className="px-4 py-4 text-slate-700">{row.value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function RequiredBadge({ label }: { label: string }) {
   return (
     <span className="rounded bg-[#f59b45] px-2 py-0.5 text-xs font-bold text-white">{label}</span>

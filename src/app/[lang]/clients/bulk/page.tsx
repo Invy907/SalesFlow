@@ -4,49 +4,26 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
-import { bulkCreateItems, type BulkItemRow } from "@/lib/actions/items";
-import { downloadCsv, parseCsvRows } from "@/lib/csv";
-import { taxCategoryFromLabel } from "@/lib/tax";
-import { getItemsContent } from "../content";
-import { ItemsInfoTable, ItemsNavTabs, ItemsSection } from "../items-shared";
+import { bulkUpsertClients } from "@/lib/actions/clients";
+import { CLIENTS_TEMPLATE_COLUMNS, parseClientsCsv } from "@/lib/clients-bulk";
+import { downloadCsv } from "@/lib/csv";
+import { BulkInfoTable, BulkSection, ListPageTabs } from "../../list-page-shared";
+import { getClientsContent, getClientsHref } from "../content";
 
-function parseItemsCsv(text: string): BulkItemRow[] {
-  return parseCsvRows(text).map(({ row, cols }) => {
-    const rate = cols[3] ?? "";
-    const taxLabel =
-      rate === "R8"
-        ? "軽減8%"
-        : rate === "8"
-          ? "8%"
-          : rate === "5"
-            ? "5%"
-            : rate === "10"
-              ? "10%"
-              : "";
-    return {
-      row,
-      name: cols[0] ?? "",
-      unit: cols[1] ?? "",
-      unitPrice: cols[2] ?? "",
-      taxCategory: taxLabel ? taxCategoryFromLabel(taxLabel) : "follow_company",
-    };
-  });
-}
-
-const TEMPLATE_HEADER = "品番・品名,単位,単価,消費税率,非課税フラグ,源泉徴収税対象外フラグ";
-
-export default function ItemsBulkPage() {
+export default function ClientsBulkPage() {
   const { lang } = useLanguage();
-  const ui = getItemsContent(lang);
+  const ui = getClientsContent(lang);
   const bulk = ui.bulk;
   const router = useRouter();
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
   const [pending, startTransition] = useTransition();
 
   function downloadTemplate(encoding: "utf-8" | "shift-jis") {
-    downloadCsv(`items-template-${encoding}.csv`, `${TEMPLATE_HEADER}\r\n`, {
+    // Shift-JIS 인코더는 브라우저에 없으므로, Excel 이 열 수 있도록 BOM 붙인 UTF-8 로 내려준다.
+    downloadCsv(`clients-template-${encoding}.csv`, `${CLIENTS_TEMPLATE_COLUMNS.join(",")}\r\n`, {
       bom: encoding !== "utf-8",
     });
   }
@@ -58,17 +35,19 @@ export default function ItemsBulkPage() {
 
     startTransition(async () => {
       const text = await selectedFile.text();
-      const rows = parseItemsCsv(text);
+      const rows = parseClientsCsv(text);
       if (rows.length === 0) {
-        setMessage({ kind: "error", text: ui.saveFailed });
+        setMessage({ kind: "error", text: bulk.emptyFile });
         return;
       }
 
-      const result = await bulkCreateItems(rows);
+      const result = await bulkUpsertClients(rows);
       if (result.ok) {
         setMessage({
           kind: "ok",
-          text: bulk.uploadResult.replace("{count}", String(result.data.created)),
+          text: bulk.uploadResult
+            .replace("{created}", String(result.data.created))
+            .replace("{updated}", String(result.data.updated)),
         });
         setSelectedFile(null);
         router.refresh();
@@ -80,36 +59,21 @@ export default function ItemsBulkPage() {
   }
 
   return (
-    <SalesFlowShell activeItem="items">
+    <SalesFlowShell activeItem="clients">
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
-        <ItemsNavTabs active="bulk" />
+        <ListPageTabs
+          tabs={ui.tabs}
+          activeIndex={1}
+          onTabChange={(index) => {
+            if (index === 0) router.push(getClientsHref(lang, "list"));
+          }}
+        />
 
         <h1 className="mt-8 text-[30px] font-bold tracking-tight text-slate-900">{bulk.title}</h1>
         <p className="mt-3 max-w-[900px] text-[15px] leading-7 text-slate-600">{bulk.intro}</p>
 
-        {message ? (
-          <p
-            className={[
-              "mt-4 rounded px-4 py-3 text-[14px]",
-              message.kind === "ok"
-                ? "border border-green-200 bg-green-50 text-green-800"
-                : "border border-red-200 bg-red-50 text-red-700",
-            ].join(" ")}
-          >
-            {message.text}
-          </p>
-        ) : null}
-
-        {Object.keys(rowErrors).length > 0 ? (
-          <ul className="mt-3 list-disc space-y-1 pl-5 text-[13px] text-red-600">
-            {Object.entries(rowErrors).map(([k, v]) => (
-              <li key={k}>{k}: {v}</li>
-            ))}
-          </ul>
-        ) : null}
-
         <div className="mt-8 space-y-6">
-          <ItemsSection title={bulk.uploadSection}>
+          <BulkSection title={bulk.uploadSection}>
             <div className="rounded border border-slate-300 bg-[#f8fafc] px-4 py-4">
               <div className="flex flex-wrap items-center gap-3">
                 <label className="cursor-pointer rounded border border-slate-300 bg-white px-4 py-2 text-[14px] font-medium text-slate-700 hover:bg-slate-50">
@@ -127,26 +91,50 @@ export default function ItemsBulkPage() {
               </div>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-4 flex flex-wrap items-center gap-4">
               <button
                 type="button"
                 disabled={!selectedFile || pending}
                 onClick={handleUpload}
-                className="rounded bg-[#14a7bb] px-8 py-3 text-[15px] font-semibold text-white transition hover:bg-[#1096a8] disabled:cursor-not-allowed disabled:bg-slate-300"
+                className="rounded bg-[#14a7bb] px-8 py-3 text-[15px] font-semibold text-white transition hover:bg-[#1096a8] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:hover:bg-slate-300"
               >
                 {bulk.upload}
               </button>
+              {message ? (
+                <span
+                  role="status"
+                  className={
+                    message.kind === "ok"
+                      ? "text-[14px] text-emerald-700"
+                      : "text-[14px] text-red-600"
+                  }
+                >
+                  {message.text}
+                </span>
+              ) : null}
             </div>
+
+            {Object.keys(rowErrors).length > 0 ? (
+              <ul className="mt-3 list-disc space-y-1 pl-5 text-[13px] text-red-600">
+                {Object.entries(rowErrors)
+                  .slice(0, 20)
+                  .map(([key, value]) => (
+                    <li key={key}>
+                      {key}: {value}
+                    </li>
+                  ))}
+              </ul>
+            ) : null}
 
             <ul className="mt-5 list-disc space-y-1 pl-5 text-[14px] leading-7 text-slate-600">
               {bulk.uploadNotes.map((note) => (
                 <li key={note}>{note}</li>
               ))}
             </ul>
-          </ItemsSection>
+          </BulkSection>
 
-          <ItemsSection title={bulk.templateSection}>
-            <ItemsInfoTable
+          <BulkSection title={bulk.templateSection}>
+            <BulkInfoTable
               rows={[
                 {
                   label: bulk.templateUtf8,
@@ -174,9 +162,9 @@ export default function ItemsBulkPage() {
                 },
               ]}
             />
-          </ItemsSection>
+          </BulkSection>
 
-          <ItemsSection title={bulk.formatSection}>
+          <BulkSection title={bulk.formatSection}>
             <table className="w-full border-collapse text-[14px]">
               <tbody>
                 {bulk.formatRows.map(([label, value]) => (
@@ -190,9 +178,9 @@ export default function ItemsBulkPage() {
               </tbody>
             </table>
             <p className="mt-4 text-[14px] text-slate-600">{bulk.formatNote}</p>
-          </ItemsSection>
+          </BulkSection>
 
-          <ItemsSection title={bulk.fieldsSection}>
+          <BulkSection title={bulk.fieldsSection}>
             <p className="text-[14px] text-slate-600">{bulk.fieldsIntro}</p>
             <div className="mt-4 overflow-x-auto">
               <table className="w-full min-w-[720px] border-collapse text-[14px]">
@@ -211,16 +199,16 @@ export default function ItemsBulkPage() {
                 <tbody>
                   {bulk.fields.map((field) => (
                     <tr key={field.name}>
-                      <td className="border border-slate-200 px-4 py-3 font-medium text-slate-700 align-top">
+                      <td className="border border-slate-200 px-4 py-3 align-top font-medium text-slate-700">
                         {field.name}
                       </td>
-                      <td className="border border-slate-200 px-4 py-3 text-center text-slate-700 align-top">
+                      <td className="border border-slate-200 px-4 py-3 text-center align-top text-slate-700">
                         {field.required}
                       </td>
-                      <td className="border border-slate-200 px-4 py-3 text-slate-700 align-top">
+                      <td className="border border-slate-200 px-4 py-3 align-top text-slate-700">
                         {field.limit}
                       </td>
-                      <td className="border border-slate-200 px-4 py-3 text-slate-600 align-top">
+                      <td className="border border-slate-200 px-4 py-3 align-top text-slate-600">
                         {field.desc}
                       </td>
                     </tr>
@@ -228,7 +216,7 @@ export default function ItemsBulkPage() {
                 </tbody>
               </table>
             </div>
-          </ItemsSection>
+          </BulkSection>
         </div>
       </div>
     </SalesFlowShell>

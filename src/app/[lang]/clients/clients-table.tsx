@@ -12,7 +12,7 @@ import {
 } from "../list-page-shared";
 import { deleteClient, toggleFavorite } from "@/lib/actions/clients";
 import { ClientRegistrationModal } from "./client-registration-modal";
-import { getClientsContent } from "./content";
+import { getClientsContent, getClientsHref } from "./content";
 
 export type ClientDestination = {
   postalCode: string;
@@ -123,7 +123,13 @@ export function ClientsTable({
     <SalesFlowShell activeItem="clients">
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <ListPageTabs tabs={ui.tabs} activeIndex={0} />
+          <ListPageTabs
+            tabs={ui.tabs}
+            activeIndex={0}
+            onTabChange={(index) => {
+              if (index === 1) router.push(getClientsHref(lang, "bulk"));
+            }}
+          />
           <ListPrimaryButton label={ui.createClient} onClick={() => setEditing("new")} />
         </div>
 
