@@ -33,6 +33,12 @@ const labels = {
     pagination: "件中",
     // 신규 작성 폼
     newTitle: "請求書の新規作成",
+    draftBadge: "下書き",
+    autoNumber: "保存時に自動採番されます",
+    billingMonthLabel: "請求月",
+    noBankAccount: "振込先口座が登録されていません。",
+    templateFieldsMovedNote:
+      "明細項目の表示名は会社共通のため、文書初期設定で変更してください。",
     guideLink: "請求書の作り方がわからない方はこちらをクリック",
     newTabs: ["基本情報", "送付先", "決済設定", "課税設定", "テンプレート"],
     invoiceInfo: "請求情報",
@@ -272,6 +278,12 @@ const labels = {
     tableHeaders: ["상태", "문서", "청구일", "결제 기한", "금액"],
     pagination: "건 중",
     newTitle: "청구서 신규 작성",
+    draftBadge: "임시저장",
+    autoNumber: "저장할 때 자동으로 채번됩니다",
+    billingMonthLabel: "청구 월",
+    noBankAccount: "등록된 입금 계좌가 없습니다.",
+    templateFieldsMovedNote:
+      "명세 항목의 표시명은 회사 공통이므로 문서 초기 설정에서 변경해 주세요.",
     guideLink: "청구서 작성 방법을 모르시는 분은 클릭",
     newTabs: ["기본 정보", "수신처", "결제 설정", "과세 설정", "템플릿"],
     invoiceInfo: "청구 정보",
@@ -502,6 +514,12 @@ const labels = {
     tableHeaders: ["Status", "Document", "Invoice date", "Payment due", "Amount"],
     pagination: "of",
     newTitle: "Create invoice",
+    draftBadge: "Draft",
+    autoNumber: "Numbered automatically on save",
+    billingMonthLabel: "Billing month",
+    noBankAccount: "No bank account registered.",
+    templateFieldsMovedNote:
+      "Line-item labels are shared company-wide — change them in Document Defaults.",
     guideLink: "Click here if you need help creating an invoice",
     newTabs: ["Basic info", "Recipient", "Payment settings", "Tax settings", "Template"],
     invoiceInfo: "Invoice information",

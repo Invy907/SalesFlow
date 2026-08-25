@@ -6,9 +6,19 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "tsx --test src/lib/ai/estimates/*.test.ts src/lib/ai/estimates/batch/*.test.ts",
+    "ai-estimate:dry-run": "tsx --env-file=.env.local scripts/ai-estimate/cli.ts dry-run",
+    "ai-estimate:smoke": "tsx --env-file=.env.local scripts/ai-estimate/cli.ts smoke",
+    "ai-estimate:pilot": "tsx --env-file=.env.local scripts/ai-estimate/cli.ts pilot",
+    "ai-estimate:ingest": "tsx --env-file=.env.local scripts/ai-estimate/cli.ts ingest",
+    "ai-estimate:retry": "tsx --env-file=.env.local scripts/ai-estimate/cli.ts retry",
+    "ai-estimate:verify": "tsx --env-file=.env.local scripts/ai-estimate/cli.ts verify",
+    "ai-estimate:reindex": "tsx --env-file=.env.local scripts/ai-estimate/cli.ts reindex",
+    "ai-estimate:report": "tsx --env-file=.env.local scripts/ai-estimate/cli.ts report"
   },
   "dependencies": {
+    "@google/genai": "^2.18.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",
     "googleapis": "^176.0.0",
@@ -28,6 +38,7 @@
     "eslint-config-next": "16.2.6",
     "supabase": "^2.101.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.12",
     "typescript": "^5"
   }
 }
