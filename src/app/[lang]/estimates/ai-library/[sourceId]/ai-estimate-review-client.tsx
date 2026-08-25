@@ -10,6 +10,7 @@ import { AiSourceStatusBadge } from "@/components/ai-estimates/ai-source-status-
 import { useLanguage } from "@/contexts/language-context";
 import type { AiEstimateSourceDetail } from "@/lib/db/ai-estimates";
 import type { AiEstimateExtraction } from "@/lib/ai/estimates/schemas";
+import { batchReviewHints, extractionConfidenceLabel } from "@/lib/ai/estimates/review-batch-hints";
 import { approveAiEstimateSource, deleteAiEstimateSource, saveAiEstimateExtraction } from "@/lib/actions/ai-estimates";
 
 const copy = {
@@ -20,7 +21,7 @@ const copy = {
 
 const emptyLine: AiEstimateExtraction["lines"][number] = { name: "", qty: 1, unit: "", unitPrice: 0, taxCategory: "standard_10", confidence: 1, reason: "" };
 
-export function AiEstimateReviewClient({ source, initialExtraction, originalUrl, canEdit, canApprove }: { source: AiEstimateSourceDetail; initialExtraction: AiEstimateExtraction | null; originalUrl: string | null; canEdit: boolean; canApprove: boolean }) {
+export function AiEstimateReviewClient({ source, initialExtraction, originalUrl, canEdit, canApprove, batchReviewReasons = [], extractionConfidence = null }: { source: AiEstimateSourceDetail; initialExtraction: AiEstimateExtraction | null; originalUrl: string | null; canEdit: boolean; canApprove: boolean; batchReviewReasons?: string[]; extractionConfidence?: number | null }) {
   const { lang } = useLanguage();
   const ui = copy[lang];
   const router = useRouter();
@@ -29,6 +30,9 @@ export function AiEstimateReviewClient({ source, initialExtraction, originalUrl,
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const isPending = source.status === "uploaded" || source.status === "processing";
+
+  const batchHints = batchReviewHints(batchReviewReasons, lang);
+  const confidenceLabel = extractionConfidenceLabel(extractionConfidence, lang);
 
   useEffect(() => {
     if (!isPending) return;
@@ -67,6 +71,8 @@ export function AiEstimateReviewClient({ source, initialExtraction, originalUrl,
         <div className="mt-8 grid gap-6 xl:grid-cols-2">
           <section className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50"><h2 className="border-b border-slate-200 bg-white px-5 py-4 text-lg font-bold">{ui.original}</h2><div className="h-[720px] p-3">{originalUrl ? source.mime_type === "application/pdf" ? <iframe title={ui.original} src={originalUrl} className="h-full w-full rounded-lg bg-white" /> : <div className="flex h-full items-start justify-center overflow-auto rounded-lg bg-white p-3"><Image src={originalUrl} alt={source.title} width={1200} height={1600} unoptimized className="h-auto max-w-full object-contain" /></div> : <div className="flex h-full items-center justify-center text-slate-500">{ui.noOriginal}</div>}</div></section>
           <section className="rounded-xl border border-slate-200 bg-white"><h2 className="border-b border-slate-200 px-5 py-4 text-lg font-bold">{ui.extracted}</h2><div className="space-y-5 p-5">
+            {confidenceLabel ? <p className="text-sm font-semibold text-slate-600">{confidenceLabel}</p> : null}
+            {batchHints.length ? <div className="rounded-lg bg-orange-50 p-3 text-sm text-orange-900">{batchHints.map((hint) => <p key={hint}>• {hint}</p>)}</div> : null}
             {data.warnings.length ? <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{data.warnings.map((warning) => <p key={warning}>• {warning}</p>)}</div> : null}
             <div className="grid gap-4 sm:grid-cols-2"><label><span className="mb-1 block text-sm font-semibold">{ui.client}</span><input disabled={!canEdit} className="field" value={data.clientName} onChange={(event) => setData({ ...data, clientName: event.target.value })} /></label><label><span className="mb-1 block text-sm font-semibold">{ui.date}</span><input disabled={!canEdit} type="date" className="field" value={data.issueDate ?? ""} onChange={(event) => setData({ ...data, issueDate: event.target.value || null })} /></label></div>
             <label className="block"><span className="mb-1 block text-sm font-semibold">{ui.subject}</span><input disabled={!canEdit} className="field" value={data.subject} onChange={(event) => setData({ ...data, subject: event.target.value })} /></label>

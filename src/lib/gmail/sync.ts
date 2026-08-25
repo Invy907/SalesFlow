@@ -208,12 +208,8 @@ export async function syncGmailConnection(
     }
 
     for (const messageId of messageIds) {
-      const before = imported;
       await fetchAndStoreMessage(gmail, connection.organization_id, messageId, admin);
       imported += 1;
-      if (imported === before) {
-        // duplicate skipped — still count as processed
-      }
     }
 
     await admin

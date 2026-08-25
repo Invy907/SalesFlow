@@ -10,6 +10,7 @@ import { updateSession } from "@/lib/supabase/middleware";
 
 // Matches /ja, /ja/anything — but NOT /ja/auth/...
 const PROTECTED_PREFIX_RE = /^\/(?:ja|en|ko)(\/(?!auth).*)?$/;
+const PUBLIC_SHARED_ESTIMATE_RE = /^\/(?:ja|en|ko)\/estimates\/shared\//;
 
 function getPreferredLocale(request: NextRequest) {
   const header = request.headers.get("accept-language");
@@ -101,7 +102,7 @@ export async function proxy(request: NextRequest) {
   const { response, user } = await updateSession(request, rewriteResponse);
 
   // Redirect unauthenticated users from protected routes to sign-in
-  if (PROTECTED_PREFIX_RE.test(localizedPath) && !user) {
+  if (PROTECTED_PREFIX_RE.test(localizedPath) && !user && !PUBLIC_SHARED_ESTIMATE_RE.test(localizedPath)) {
     const signInUrl = request.nextUrl.clone();
     // Use locale-less path so the proxy doesn't double-redirect
     signInUrl.pathname = "/auth/sign-in";

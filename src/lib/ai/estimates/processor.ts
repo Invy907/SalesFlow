@@ -47,6 +47,7 @@ export async function prepareUploadedEstimateForReview(sourceId: string) {
       confidence: 0,
       provider: "manual-review",
       model: null,
+      source_of_truth: "legacy",
     },
     { onConflict: "source_id" },
   );

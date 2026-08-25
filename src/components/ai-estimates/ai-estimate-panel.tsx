@@ -52,10 +52,10 @@ export function AiEstimatePanel({
 
   useEffect(() => {
     let cancelled = false;
-    getAiEstimateRecommendations(clientId).then((result) => {
+    void getAiEstimateRecommendations(clientId).then((result) => {
       if (!cancelled && result.ok) setRecommendations(result.data);
     });
-    getAiEstimateCapabilities().then((result) => {
+    void getAiEstimateCapabilities().then((result) => {
       if (!cancelled && result.ok) setCapabilities(result.data);
     });
     return () => { cancelled = true; };

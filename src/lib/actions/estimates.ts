@@ -6,6 +6,7 @@ import { getActiveOrganization } from "@/lib/db/organizations";
 import { createEstimateSchema, type CreateEstimateInput } from "@/lib/validators/document";
 import { maybeImportIssuedEstimateAsAiSource } from "@/lib/actions/ai-estimates";
 import { newShareToken, shareExpiryFromNow } from "@/lib/share-tokens";
+import { computeDocumentTotals } from "@/lib/tax";
 
 type ActionResult<T = void> =
   | { ok: true; data: T }
@@ -37,6 +38,8 @@ export async function createEstimate(
   });
   if (seqErr) return { ok: false, error: seqErr.message };
 
+  const totals = computeDocumentTotals(parsed.data.lineItems, parsed.data.taxRounding);
+
   const { data: estimate, error: insertErr } = await supabase
     .from("estimates")
     .insert({
@@ -57,6 +60,8 @@ export async function createEstimate(
       internal_memo: parsed.data.internalMemo ?? null,
       recipient_snapshot: parsed.data.recipientSnapshot ?? null,
       sender_snapshot: parsed.data.senderSnapshot ?? null,
+      subtotal: totals.subtotal,
+      tax_amount: totals.tax,
       created_by: user.id,
     })
     .select("id")
@@ -101,6 +106,8 @@ export async function updateEstimate(
 
   const supabase = await getSupabaseServerClient();
 
+  const totals = computeDocumentTotals(parsed.data.lineItems, parsed.data.taxRounding);
+
   const { error } = await supabase
     .from("estimates")
     .update({
@@ -118,6 +125,8 @@ export async function updateEstimate(
       internal_memo: parsed.data.internalMemo ?? null,
       recipient_snapshot: parsed.data.recipientSnapshot ?? null,
       sender_snapshot: parsed.data.senderSnapshot ?? null,
+      subtotal: totals.subtotal,
+      tax_amount: totals.tax,
     })
     .eq("id", estimateId);
 

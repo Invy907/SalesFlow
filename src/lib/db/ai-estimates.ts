@@ -30,6 +30,10 @@ export type AiEstimateSourceDetail = AiEstimateSourceListItem & {
     provider: string | null;
     model: string | null;
   }>;
+  ai_estimate_jobs: Array<{
+    status: string;
+    review_reasons: string[] | null;
+  }>;
 };
 
 export type AiPriceStat = {
@@ -59,22 +63,28 @@ export async function getAiEstimateSource(orgId: string, sourceId: string) {
   const supabase = asUntyped(await getSupabaseServerClient());
   const { data, error } = await supabase
     .from("ai_estimate_sources")
-    .select("*, ai_estimate_extractions(id, extracted_data, confidence, provider, model)")
+    .select("*, ai_estimate_extractions(id, extracted_data, confidence, provider, model), ai_estimate_jobs(status, review_reasons)")
     .eq("organization_id", orgId)
     .eq("id", sourceId)
     .single();
 
   if (error) throw new Error(error.message);
-  const raw = data as Omit<AiEstimateSourceDetail, "ai_estimate_extractions"> & {
+  const raw = data as Omit<AiEstimateSourceDetail, "ai_estimate_extractions" | "ai_estimate_jobs"> & {
     ai_estimate_extractions:
       | AiEstimateSourceDetail["ai_estimate_extractions"]
       | AiEstimateSourceDetail["ai_estimate_extractions"][number]
       | null;
+    ai_estimate_jobs:
+      | AiEstimateSourceDetail["ai_estimate_jobs"]
+      | AiEstimateSourceDetail["ai_estimate_jobs"][number]
+      | null;
   };
   const extraction = raw.ai_estimate_extractions;
+  const jobs = raw.ai_estimate_jobs;
   return {
     ...raw,
     ai_estimate_extractions: Array.isArray(extraction) ? extraction : extraction ? [extraction] : [],
+    ai_estimate_jobs: Array.isArray(jobs) ? jobs : jobs ? [jobs] : [],
   } as AiEstimateSourceDetail;
 }
 

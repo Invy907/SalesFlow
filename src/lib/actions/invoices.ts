@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getActiveOrganization } from "@/lib/db/organizations";
 import { createInvoiceSchema, type CreateInvoiceInput } from "@/lib/validators/document";
+import { computeDocumentTotals } from "@/lib/tax";
 
 type ActionResult<T = void> =
   | { ok: true; data: T }
@@ -35,6 +36,8 @@ export async function createInvoice(
   });
   if (seqErr) return { ok: false, error: seqErr.message };
 
+  const totals = computeDocumentTotals(parsed.data.lineItems, parsed.data.taxRounding);
+
   const { data: invoice, error: insertErr } = await supabase
     .from("invoices")
     .insert({
@@ -58,6 +61,8 @@ export async function createInvoice(
       recipient_snapshot: parsed.data.recipientSnapshot ?? null,
       sender_snapshot: parsed.data.senderSnapshot ?? null,
       bank_account_ids: parsed.data.bankAccountIds ?? null,
+      subtotal: totals.subtotal,
+      tax_amount: totals.tax,
       created_by: user.id,
     })
     .select("id")

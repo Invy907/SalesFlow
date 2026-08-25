@@ -18,6 +18,8 @@ export default async function AiEstimateReviewPage({ params }: { params: Promise
   }
 
   const parsed = aiEstimateExtractionSchema.safeParse(source.ai_estimate_extractions[0]?.extracted_data);
+  const extractionMeta = source.ai_estimate_extractions[0];
+  const batchReviewReasons = source.ai_estimate_jobs[0]?.review_reasons ?? [];
   let originalUrl: string | null = null;
   if (source.storage_path) {
     const supabase = await getSupabaseServerClient();
@@ -32,6 +34,8 @@ export default async function AiEstimateReviewPage({ params }: { params: Promise
       originalUrl={originalUrl}
       canEdit={source.uploaded_by === scope.userId || scope.role === "owner" || scope.role === "admin"}
       canApprove={scope.role === "owner" || scope.role === "admin"}
+      batchReviewReasons={batchReviewReasons}
+      extractionConfidence={extractionMeta?.confidence ?? null}
     />
   );
 }
