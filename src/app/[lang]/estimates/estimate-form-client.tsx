@@ -15,7 +15,12 @@ import {
   type LineItemTotals,
 } from "../documents/new-document-shared";
 import { EstimatePreview, EstimateThumbnail } from "../documents/document-previews";
+import { OutputLanguageSelector } from "../documents/output-language-selector";
 import { createEstimate, updateEstimate } from "@/lib/actions/estimates";
+import {
+  normalizeDocumentOutputLocale,
+  type DocumentOutputLocale,
+} from "@/lib/documents/output-locale";
 import {
   taxCategoryFromLabel,
   taxRateSnapshotFor,
@@ -53,6 +58,7 @@ export type EstimateFormInitial = {
   taxDisplay: string;
   taxRounding: string;
   templateKey: string;
+  outputLocale?: DocumentOutputLocale;
   templateMessage: string;
   remarks: string;
   lines: LineItemRow[];
@@ -75,6 +81,9 @@ export function EstimateFormClient({
     initial.templateKey === "envelope" ? "envelope" : "standard",
   );
   const [previewModal, setPreviewModal] = useState<TemplateType>(null);
+  const [outputLocale, setOutputLocale] = useState<DocumentOutputLocale>(() =>
+    normalizeDocumentOutputLocale(initial.outputLocale, lang),
+  );
   const [totals, setTotals] = useState<LineItemTotals>(EMPTY_LINE_ITEM_TOTALS);
   const [rows, setRows] = useState<LineItemRow[]>(initial.lines);
   const [rowReplacement, setRowReplacement] = useState<{ version: number; rows: LineItemRow[] } | undefined>();
@@ -137,6 +146,7 @@ export function EstimateFormClient({
         taxRounding: form.taxRounding as "round_down" | "round_up" | "round_half",
         withholdingType: "none" as const,
         templateKey: selectedTemplate,
+        outputLocale,
         templateMessage: form.templateMessage,
         remarks: form.remarks,
         recipientSnapshot: { ...form.recipient, clientName: form.clientName },
@@ -413,7 +423,7 @@ export function EstimateFormClient({
                   onClick={() => setPreviewModal(selectedTemplate)}
                   className="w-full overflow-hidden rounded border border-slate-300 bg-white shadow-sm transition hover:shadow-md"
                 >
-                  <EstimateThumbnail ui={ui} />
+                  <EstimateThumbnail ui={ui} outputLocale={outputLocale} />
                 </button>
                 <div className="rounded bg-[#14a7bb] px-6 py-2 text-[14px] font-semibold text-white">
                   {selectedTemplate === "standard" ? ui.templateStandard : ui.templateEnvelope}
@@ -440,6 +450,12 @@ export function EstimateFormClient({
                 </p>
 
                 <div className="mt-6 space-y-5">
+                  <OutputLanguageSelector
+                    uiLocale={lang}
+                    value={outputLocale}
+                    onChange={setOutputLocale}
+                  />
+
                   <FormField label={ui.templateMessageLabel}>
                     <input
                       className="field"
@@ -486,7 +502,7 @@ export function EstimateFormClient({
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-6">
-              <EstimatePreview ui={ui} />
+              <EstimatePreview ui={ui} outputLocale={outputLocale} />
             </div>
             <div className="flex items-center justify-end gap-4 border-t border-slate-200 px-6 py-4">
               <button

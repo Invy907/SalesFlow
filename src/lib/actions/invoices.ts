@@ -55,6 +55,7 @@ export async function createInvoice(
       tax_rounding: parsed.data.taxRounding,
       withholding_type: parsed.data.withholdingType,
       template_key: parsed.data.templateKey ?? null,
+      output_locale: parsed.data.outputLocale,
       template_message: parsed.data.templateMessage ?? null,
       remarks: parsed.data.remarks ?? null,
       internal_memo: parsed.data.internalMemo ?? null,

@@ -3,6 +3,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getEstimateContent } from "../../content";
 import { EstimateDocumentPreview } from "../../estimate-document-preview";
 import type { EstimatePreviewData } from "../../estimate-document-preview";
+import { normalizeDocumentOutputLocale } from "@/lib/documents/output-locale";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,6 @@ export default async function SharedEstimatePage({
   params: Promise<{ lang: string; token: string }>;
 }) {
   const { lang, token } = await params;
-  const ui = getEstimateContent(lang);
   const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase.rpc("get_shared_document", { _token: token });
 
@@ -26,6 +26,8 @@ export default async function SharedEstimatePage({
   const lines = doc.lines ?? [];
   const recipient = (estimate.recipient_snapshot ?? {}) as Record<string, string>;
   const sender = (estimate.sender_snapshot ?? {}) as Record<string, string>;
+  const outputLocale = normalizeDocumentOutputLocale(estimate.output_locale, lang);
+  const ui = getEstimateContent(outputLocale);
 
   const preview: EstimatePreviewData = {
     documentNumber: String(estimate.document_number ?? ""),

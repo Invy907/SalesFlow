@@ -1,5 +1,6 @@
 import type { SpreadsheetLineItem } from "./export-spreadsheet";
 import type { SalesDocumentDetail } from "./detail-types";
+import { normalizeDocumentOutputLocale } from "./output-locale";
 
 type LineRow = {
   line_no?: number | string;
@@ -16,6 +17,7 @@ type DocumentRow = {
   subject?: string | null;
   issue_date?: string | null;
   status?: string | null;
+  output_locale?: string | null;
   template_message?: string | null;
   remarks?: string | null;
   subtotal?: number | string | null;
@@ -29,7 +31,7 @@ type DocumentRow = {
 };
 
 export function mapDocumentLines(lines: LineRow[] | null | undefined): SpreadsheetLineItem[] {
-  return (lines ?? []).map((line, index) => ({
+  return (lines ?? []).map((line) => ({
     name: line.name_snapshot ?? "",
     qty: Number(line.qty ?? 0),
     unit: line.unit_snapshot ?? "",
@@ -53,6 +55,7 @@ export function mapSalesDocumentDetail(
     issueDate: row.issue_date ?? "",
     secondaryDate: options?.secondaryDate ?? undefined,
     status: row.status ?? "draft",
+    outputLocale: normalizeDocumentOutputLocale(row.output_locale),
     templateMessage: row.template_message ?? "",
     remarks: row.remarks ?? "",
     subtotal: Number(row.subtotal ?? 0),

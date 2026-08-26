@@ -15,6 +15,7 @@ import { importEstimateAsAiSource } from "@/lib/actions/ai-estimates";
 import { getEstimateContent } from "../content";
 import { EstimateDocumentPreview } from "../estimate-document-preview";
 import { downloadSalesDocumentXlsx } from "@/lib/documents/export-spreadsheet";
+import type { DocumentOutputLocale } from "@/lib/documents/output-locale";
 
 export type EstimateDetail = {
   id: string;
@@ -25,6 +26,7 @@ export type EstimateDetail = {
   issueDate: string;
   expiryDate: string;
   status: string;
+  outputLocale: DocumentOutputLocale;
   internalMemo: string;
   templateMessage: string;
   remarks: string;
@@ -45,6 +47,7 @@ const yen = (value: number) => `¥ ${value.toLocaleString("ja-JP")}`;
 export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
   const { lang } = useLanguage();
   const ui = getEstimateContent(lang);
+  const documentUi = getEstimateContent(detail.outputLocale);
   const router = useRouter();
 
   const [isIssueMenuOpen, setIsIssueMenuOpen] = useState(false);
@@ -158,31 +161,31 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
 
   function downloadEstimateExcel() {
     downloadSalesDocumentXlsx({
-      title: ui.listTitle,
+      title: documentUi.listTitle,
       filenameBase: detail.documentNumber || detail.id,
       fields: [
-        [ui.estimateNumber, detail.documentNumber],
-        [ui.client, detail.clientName],
-        [ui.subject, detail.subject || "—"],
-        [ui.issueDate, detail.issueDate],
-        [ui.expiryDate, detail.expiryDate || ui.noDate],
-        [ui.companyName, detail.sender.companyName],
+        [documentUi.estimateNumber, detail.documentNumber],
+        [documentUi.client, detail.clientName],
+        [documentUi.subject, detail.subject || "—"],
+        [documentUi.issueDate, detail.issueDate],
+        [documentUi.expiryDate, detail.expiryDate || documentUi.noDate],
+        [documentUi.companyName, detail.sender.companyName],
       ],
       lineHeaders: [
-        ui.itemHeaders[0],
-        ui.itemHeaders[1],
-        ui.itemHeaders[2],
-        ui.itemHeaders[3],
-        ui.itemHeaders[5],
+        documentUi.itemHeaders[0],
+        documentUi.itemHeaders[1],
+        documentUi.itemHeaders[2],
+        documentUi.itemHeaders[3],
+        documentUi.itemHeaders[5],
       ],
       lines: detail.lines,
       summaryRows: [
-        [ui.subtotal, detail.subtotal],
-        [ui.tax, detail.tax],
-        [ui.total, detail.total],
+        [documentUi.subtotal, detail.subtotal],
+        [documentUi.tax, detail.tax],
+        [documentUi.total, detail.total],
       ],
       remarks: detail.remarks,
-      remarksLabel: ui.remarks,
+      remarksLabel: documentUi.remarks,
     });
     setToast(ui.actions.excelDownloaded);
   }
@@ -226,7 +229,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
   return (
     <SalesFlowShell activeItem="estimates">
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-        <div className="mt-2 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="no-print mt-2 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <h1 className="text-[34px] font-bold tracking-tight text-slate-900">{ui.detailTitle}</h1>
 
           <div className="relative flex flex-wrap items-center gap-3" ref={issueMenuRef}>
@@ -285,7 +288,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
           </div>
         </div>
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[1.3fr_0.9fr]">
+        <div className="no-print mt-8 grid gap-8 lg:grid-cols-[1.3fr_0.9fr]">
           <div className="grid grid-cols-1 gap-y-3 text-base sm:grid-cols-[160px_1fr] sm:text-[18px]">
             <div className="text-slate-700">{ui.estimateNumber}</div>
             <div className="font-medium">{detail.documentNumber}</div>
@@ -354,10 +357,10 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
         </div>
 
         <div className="mt-12">
-          <EstimateDocumentPreview detail={detail} ui={ui} />
+          <EstimateDocumentPreview detail={detail} ui={documentUi} />
         </div>
 
-        <div className="mt-8">
+        <div className="no-print mt-8">
           <Link
             href={`/${lang}/estimates`}
             className="text-[16px] font-semibold text-cyan-600 hover:text-cyan-700"
@@ -368,7 +371,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
       </div>
 
       {modal ? (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 p-6">
+        <div className="no-print fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 p-6">
           <div className="w-full max-w-[720px] overflow-hidden rounded-2xl bg-white shadow-[0_24px_60px_rgba(15,23,42,0.28)]">
             {modal === "email" ? (
               <form
@@ -432,7 +435,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
       {toast ? (
         <div
           role="status"
-          className="fixed bottom-8 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900/90 px-6 py-3 text-[15px] text-white shadow-lg"
+          className="no-print fixed bottom-8 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900/90 px-6 py-3 text-[15px] text-white shadow-lg"
         >
           {toast}
         </div>

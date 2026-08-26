@@ -16,9 +16,13 @@ import {
   type LineItemTotals,
 } from "../../documents/new-document-shared";
 import { DeliveryNotePreview, DeliveryNoteThumbnail } from "../../documents/document-previews";
+import { OutputLanguageSelector } from "../../documents/output-language-selector";
+import {
+  normalizeDocumentOutputLocale,
+  type DocumentOutputLocale,
+} from "@/lib/documents/output-locale";
 import { getDeliveryNoteContent } from "../content";
 
-type Locale = "ja" | "ko" | "en";
 type TabKey = "basic" | "recipient" | "tax" | "template";
 type TemplateType = "standard" | "envelope" | null;
 
@@ -28,6 +32,9 @@ export function NewDeliveryNoteClient() {
   const [activeTab, setActiveTab] = useState<TabKey>("basic");
   const [selectedTemplate, setSelectedTemplate] = useState<"standard" | "envelope">("standard");
   const [previewModal, setPreviewModal] = useState<TemplateType>(null);
+  const [outputLocale, setOutputLocale] = useState<DocumentOutputLocale>(() =>
+    normalizeDocumentOutputLocale(undefined, lang),
+  );
   const [lineItemTotals, setLineItemTotals] = useState<LineItemTotals>(EMPTY_LINE_ITEM_TOTALS);
   const { primaryDate, setPrimaryDate, secondaryDate, setSecondaryDate } = useDocumentDateFields(ui.issueDateValue);
 
@@ -244,7 +251,7 @@ export function NewDeliveryNoteClient() {
                   onClick={() => setPreviewModal(selectedTemplate)}
                   className="w-full overflow-hidden rounded border border-slate-300 bg-white shadow-sm transition hover:shadow-md"
                 >
-                  <DeliveryNoteThumbnail ui={ui} />
+                  <DeliveryNoteThumbnail ui={ui} outputLocale={outputLocale} />
                 </button>
                 <div className="rounded bg-[#14a7bb] px-6 py-2 text-[14px] font-semibold text-white">
                   {selectedTemplate === "standard" ? ui.templateStandard : ui.templateEnvelope}
@@ -265,6 +272,12 @@ export function NewDeliveryNoteClient() {
                 </p>
 
                 <div className="mt-6 space-y-5">
+                  <OutputLanguageSelector
+                    uiLocale={lang}
+                    value={outputLocale}
+                    onChange={setOutputLocale}
+                  />
+
                   <label className="block">
                     <div className="mb-2 text-[16px] font-semibold text-slate-800">{ui.templateMessageLabel}</div>
                     <input className="field" placeholder={ui.templateMessagePlaceholder} />
@@ -312,7 +325,7 @@ export function NewDeliveryNoteClient() {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-6">
-              <DeliveryNotePreview ui={ui} />
+              <DeliveryNotePreview ui={ui} outputLocale={outputLocale} />
             </div>
             <div className="flex items-center justify-end gap-4 border-t border-slate-200 px-6 py-4">
               <button

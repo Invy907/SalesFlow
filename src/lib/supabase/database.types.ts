@@ -387,6 +387,7 @@ export type Database = {
           issue_date: string
           linked_invoice_id: string | null
           organization_id: string
+          output_locale: string
           recipient_snapshot: Json | null
           remarks: string | null
           sender_snapshot: Json | null
@@ -416,6 +417,7 @@ export type Database = {
           issue_date: string
           linked_invoice_id?: string | null
           organization_id: string
+          output_locale?: string
           recipient_snapshot?: Json | null
           remarks?: string | null
           sender_snapshot?: Json | null
@@ -445,6 +447,7 @@ export type Database = {
           issue_date?: string
           linked_invoice_id?: string | null
           organization_id?: string
+          output_locale?: string
           recipient_snapshot?: Json | null
           remarks?: string | null
           sender_snapshot?: Json | null
@@ -752,6 +755,7 @@ export type Database = {
           ordered_at: string | null
           ordered_order_id: string | null
           organization_id: string
+          output_locale: string
           recipient_snapshot: Json | null
           remarks: string | null
           sender_snapshot: Json | null
@@ -782,6 +786,7 @@ export type Database = {
           ordered_at?: string | null
           ordered_order_id?: string | null
           organization_id: string
+          output_locale?: string
           recipient_snapshot?: Json | null
           remarks?: string | null
           sender_snapshot?: Json | null
@@ -812,6 +817,7 @@ export type Database = {
           ordered_at?: string | null
           ordered_order_id?: string | null
           organization_id?: string
+          output_locale?: string
           recipient_snapshot?: Json | null
           remarks?: string | null
           sender_snapshot?: Json | null
@@ -1078,6 +1084,7 @@ export type Database = {
           internal_memo: string | null
           issue_date: string
           organization_id: string
+          output_locale: string
           paid_amount: number
           paid_at: string | null
           payment_due: string | null
@@ -1117,6 +1124,7 @@ export type Database = {
           internal_memo?: string | null
           issue_date: string
           organization_id: string
+          output_locale?: string
           paid_amount?: number
           paid_at?: string | null
           payment_due?: string | null
@@ -1156,6 +1164,7 @@ export type Database = {
           internal_memo?: string | null
           issue_date?: string
           organization_id?: string
+          output_locale?: string
           paid_amount?: number
           paid_at?: string | null
           payment_due?: string | null
@@ -2146,6 +2155,7 @@ export type Database = {
           issue_date: string
           linked_invoice_id: string | null
           organization_id: string
+          output_locale: string
           recipient_snapshot: Json | null
           remarks: string | null
           sender_snapshot: Json | null
@@ -2175,6 +2185,7 @@ export type Database = {
           issue_date: string
           linked_invoice_id?: string | null
           organization_id: string
+          output_locale?: string
           recipient_snapshot?: Json | null
           remarks?: string | null
           sender_snapshot?: Json | null
@@ -2204,6 +2215,7 @@ export type Database = {
           issue_date?: string
           linked_invoice_id?: string | null
           organization_id?: string
+          output_locale?: string
           recipient_snapshot?: Json | null
           remarks?: string | null
           sender_snapshot?: Json | null

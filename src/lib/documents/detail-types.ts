@@ -1,4 +1,5 @@
 import type { SpreadsheetLineItem } from "./export-spreadsheet";
+import type { DocumentOutputLocale } from "./output-locale";
 
 export type SalesDocumentDetail = {
   id: string;
@@ -8,6 +9,7 @@ export type SalesDocumentDetail = {
   issueDate: string;
   secondaryDate?: string;
   status: string;
+  outputLocale: DocumentOutputLocale;
   templateMessage: string;
   remarks: string;
   subtotal: number;

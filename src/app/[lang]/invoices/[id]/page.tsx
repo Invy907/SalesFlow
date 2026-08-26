@@ -6,6 +6,7 @@ import { buildInvoiceDetailUi } from "@/lib/documents/build-detail-ui";
 import { mapSalesDocumentDetail } from "@/lib/documents/map-document-detail";
 import { SalesDocumentDetailClient } from "@/components/sales-document-detail-client";
 import { getInvoiceContent } from "../content";
+import { normalizeDocumentOutputLocale } from "@/lib/documents/output-locale";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,7 @@ export default async function InvoiceDetailPage({
   if (!invoice || invoice.organization_id !== scope.orgId) notFound();
 
   const ui = getInvoiceContent(lang);
+  const outputLocale = normalizeDocumentOutputLocale(invoice.output_locale);
   const detail = mapSalesDocumentDetail(
     invoice as Parameters<typeof mapSalesDocumentDetail>[0],
     invoice.invoice_line_items as Parameters<typeof mapSalesDocumentDetail>[1],
@@ -39,6 +41,7 @@ export default async function InvoiceDetailPage({
     <SalesDocumentDetailClient
       detail={detail}
       ui={buildInvoiceDetailUi(lang, ui)}
+      documentUi={buildInvoiceDetailUi(outputLocale, getInvoiceContent(outputLocale))}
       shellActiveItem="invoices"
       listHref={`/${lang}/invoices`}
     />

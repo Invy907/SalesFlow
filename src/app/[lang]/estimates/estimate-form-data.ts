@@ -8,6 +8,7 @@ import { TAX_CATEGORY_TO_LABEL } from "@/lib/tax";
 import type { TaxCategory } from "@/lib/tax";
 import type { LineItemRow } from "../documents/new-document-shared";
 import type { EstimateFormInitial } from "./estimate-form-client";
+import { normalizeDocumentOutputLocale } from "@/lib/documents/output-locale";
 
 export type ClientOption = { id: string; name: string };
 
@@ -70,6 +71,7 @@ export async function buildNewEstimateInitial(lang: string): Promise<{
       taxDisplay: defaults?.tax_display_default ?? "separate",
       taxRounding: defaults?.tax_rounding_default ?? "round_down",
       templateKey: defaults?.estimate_template_key ?? "standard",
+      outputLocale: normalizeDocumentOutputLocale(lang),
       templateMessage: defaults?.estimate_message ?? "",
       remarks: defaults?.estimate_remarks ?? "",
       lines: [],
@@ -126,6 +128,7 @@ export async function buildEditEstimateInitial(
       taxDisplay: estimate.tax_display ?? "separate",
       taxRounding: estimate.tax_rounding ?? "round_down",
       templateKey: estimate.template_key ?? "standard",
+      outputLocale: normalizeDocumentOutputLocale(estimate.output_locale),
       templateMessage: estimate.template_message ?? "",
       remarks: estimate.remarks ?? "",
       lines: toLineRows(lines),

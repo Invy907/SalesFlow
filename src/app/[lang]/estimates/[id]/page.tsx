@@ -4,6 +4,7 @@ import { getEstimateById } from "@/lib/db/estimates";
 import { getCompanyProfile } from "@/lib/db/company";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { EstimateDetailClient, type EstimateDetail } from "./estimate-detail-client";
+import { normalizeDocumentOutputLocale } from "@/lib/documents/output-locale";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,7 @@ export default async function EstimateDetailPage({
     issueDate: (estimate.issue_date as string) ?? "",
     expiryDate: (estimate.expiry_date as string) ?? "",
     status: (estimate.status as string) ?? "draft",
+    outputLocale: normalizeDocumentOutputLocale(estimate.output_locale),
     internalMemo: (estimate.internal_memo as string) ?? "",
     templateMessage: (estimate.template_message as string) ?? "",
     remarks: (estimate.remarks as string) ?? "",

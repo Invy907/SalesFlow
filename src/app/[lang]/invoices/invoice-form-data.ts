@@ -4,6 +4,7 @@ import { requireActiveOrg } from "@/lib/guards";
 import { getClients } from "@/lib/db/clients";
 import { getBankAccounts, getCompanyProfile, getDocumentDefaults } from "@/lib/db/company";
 import type { InvoiceFormInitial } from "./invoice-form-client";
+import { normalizeDocumentOutputLocale } from "@/lib/documents/output-locale";
 
 export type ClientOption = { id: string; name: string };
 export type BankAccountOption = {
@@ -53,6 +54,7 @@ export async function buildNewInvoiceInitial(lang: string): Promise<{
       taxRounding: defaults?.tax_rounding_default ?? "round_down",
       withholdingType: defaults?.withholding_default ?? "none",
       templateKey: defaults?.invoice_template_key ?? "standard",
+      outputLocale: normalizeDocumentOutputLocale(lang),
       templateMessage: defaults?.invoice_message ?? "",
       remarks: defaults?.invoice_remarks ?? "",
       bankAccountIds: [],

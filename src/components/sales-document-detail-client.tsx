@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { SalesFlowShell, type ActiveItem } from "@/components/salesflow-shell";
-import { useLanguage } from "@/contexts/language-context";
 import type { SalesDocumentDetail, SalesDocumentDetailUi } from "@/lib/documents/detail-types";
 import { downloadSalesDocumentXlsx } from "@/lib/documents/export-spreadsheet";
 import { SalesDocumentPreview } from "./sales-document-preview";
@@ -15,15 +14,16 @@ const yen = (value: number) => `¥ ${value.toLocaleString("ja-JP")}`;
 export function SalesDocumentDetailClient({
   detail,
   ui,
+  documentUi,
   shellActiveItem,
   listHref,
 }: {
   detail: SalesDocumentDetail;
   ui: SalesDocumentDetailUi;
+  documentUi: SalesDocumentDetailUi;
   shellActiveItem: ActiveItem;
   listHref: string;
 }) {
-  const { lang } = useLanguage();
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [toast, setToast] = useState("");
   const exportMenuRef = useRef<HTMLDivElement>(null);
@@ -53,35 +53,38 @@ export function SalesDocumentDetailClient({
 
   function downloadExcel() {
     const fields: Array<[string, string | number]> = [
-      [ui.documentNumberLabel, detail.documentNumber],
-      [ui.client, detail.clientName],
-      [ui.subject, detail.subject || "—"],
-      [ui.issueDate, detail.issueDate],
+      [documentUi.documentNumberLabel, detail.documentNumber],
+      [documentUi.client, detail.clientName],
+      [documentUi.subject, detail.subject || "—"],
+      [documentUi.issueDate, detail.issueDate],
     ];
-    if (ui.secondaryDateLabel) {
-      fields.push([ui.secondaryDateLabel, detail.secondaryDate || ui.noDate]);
+    if (documentUi.secondaryDateLabel) {
+      fields.push([
+        documentUi.secondaryDateLabel,
+        detail.secondaryDate || documentUi.noDate,
+      ]);
     }
-    fields.push([ui.documentAmountLabel, detail.total]);
+    fields.push([documentUi.documentAmountLabel, detail.total]);
 
     downloadSalesDocumentXlsx({
-      title: ui.listTitle,
+      title: documentUi.listTitle,
       filenameBase: detail.documentNumber || detail.id,
       fields,
       lineHeaders: [
-        ui.itemHeaders[0],
-        ui.itemHeaders[1],
-        ui.itemHeaders[2],
-        ui.itemHeaders[3],
-        ui.itemHeaders[5],
+        documentUi.itemHeaders[0],
+        documentUi.itemHeaders[1],
+        documentUi.itemHeaders[2],
+        documentUi.itemHeaders[3],
+        documentUi.itemHeaders[5],
       ],
       lines: detail.lines,
       summaryRows: [
-        [ui.subtotal, detail.subtotal],
-        [ui.tax, detail.tax],
-        [ui.total, detail.total],
+        [documentUi.subtotal, detail.subtotal],
+        [documentUi.tax, detail.tax],
+        [documentUi.total, detail.total],
       ],
       remarks: detail.remarks,
-      remarksLabel: ui.remarks,
+      remarksLabel: documentUi.remarks,
     });
     setToast(ui.actions.excelDownloaded);
   }
@@ -153,7 +156,7 @@ export function SalesDocumentDetailClient({
         </div>
 
         <div className="mt-12">
-          <SalesDocumentPreview detail={detail} ui={ui} />
+          <SalesDocumentPreview detail={detail} ui={documentUi} />
         </div>
 
         <div className="no-print mt-8">

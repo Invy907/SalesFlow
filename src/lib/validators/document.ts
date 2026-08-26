@@ -24,6 +24,8 @@ export const withholdingTypeSchema = z.enum([
   "without_recovery",
 ]);
 
+export const documentOutputLocaleSchema = z.enum(["ko", "ja", "en"]);
+
 export const lineItemSchema = z.object({
   itemId: z.string().uuid().optional(),
   name: z.string().min(1).max(255),
@@ -45,6 +47,7 @@ export const createEstimateSchema = z.object({
   taxRounding: taxRoundingSchema,
   withholdingType: withholdingTypeSchema,
   templateKey: z.string().default("standard"),
+  outputLocale: documentOutputLocaleSchema.default("ja"),
   templateMessage: z.string().optional(),
   remarks: z.string().optional(),
   internalMemo: z.string().optional(),

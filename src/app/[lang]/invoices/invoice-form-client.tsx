@@ -25,6 +25,11 @@ import {
   InvoiceTemplateMiniPreview,
   InvoiceThumbnail,
 } from "../documents/document-previews";
+import { OutputLanguageSelector } from "../documents/output-language-selector";
+import {
+  normalizeDocumentOutputLocale,
+  type DocumentOutputLocale,
+} from "@/lib/documents/output-locale";
 import { getInvoiceContent } from "./content";
 
 type TabKey = "basic" | "recipient" | "payment" | "tax" | "template";
@@ -56,6 +61,7 @@ export type InvoiceFormInitial = {
   taxRounding: TaxRounding;
   withholdingType: WithholdingType;
   templateKey: string;
+  outputLocale: DocumentOutputLocale;
   templateMessage: string;
   remarks: string;
   bankAccountIds: string[];
@@ -79,6 +85,9 @@ export function InvoiceFormClient({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>("basic");
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateKey>(initial.templateKey || "standard");
+  const [outputLocale, setOutputLocale] = useState<DocumentOutputLocale>(() =>
+    normalizeDocumentOutputLocale(initial.outputLocale, lang),
+  );
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<TemplateKey | null>(null);
   const [lineItemTotals, setLineItemTotals] = useState<LineItemTotals>(EMPTY_LINE_ITEM_TOTALS);
@@ -164,6 +173,7 @@ export function InvoiceFormClient({
         taxRounding: form.taxRounding,
         withholdingType: form.withholdingType,
         templateKey: selectedTemplate,
+        outputLocale,
         templateMessage: form.templateMessage,
         remarks: form.remarks,
         bankAccountIds: form.bankAccountIds,
@@ -578,7 +588,7 @@ export function InvoiceFormClient({
                   onClick={() => setGalleryOpen(true)}
                   className="w-full overflow-hidden rounded border border-slate-300 bg-white shadow-sm transition hover:shadow-md"
                 >
-                  <InvoiceThumbnail ui={ui} />
+                  <InvoiceThumbnail ui={ui} outputLocale={outputLocale} />
                 </button>
                 <div className="rounded bg-[#14a7bb] px-6 py-2 text-[14px] font-semibold text-white">
                   {ui.templateList.find((t) => t.key === selectedTemplate)?.name ?? ui.templateList[0].name}
@@ -601,6 +611,12 @@ export function InvoiceFormClient({
                 </p>
 
                 <div className="mt-6 space-y-5">
+                  <OutputLanguageSelector
+                    uiLocale={lang}
+                    value={outputLocale}
+                    onChange={setOutputLocale}
+                  />
+
                   <label className="block">
                     <div className="mb-2 text-[16px] font-semibold text-slate-800">{ui.templateMessageLabel}</div>
                     <input
@@ -651,7 +667,7 @@ export function InvoiceFormClient({
                     ].join(" ")}
                   >
                     <div className="flex-1 bg-white">
-                      <InvoiceTemplateMiniPreview ui={ui} />
+                      <InvoiceTemplateMiniPreview ui={ui} outputLocale={outputLocale} />
                     </div>
                     <div className="bg-slate-700 px-2 py-2 text-center text-[12px] font-semibold text-white">
                       {tmpl.name}
@@ -688,7 +704,7 @@ export function InvoiceFormClient({
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-6">
-              <InvoicePreview ui={ui} />
+              <InvoicePreview ui={ui} outputLocale={outputLocale} />
             </div>
             <div className="flex items-center justify-end gap-4 border-t border-slate-200 px-6 py-4">
               <button

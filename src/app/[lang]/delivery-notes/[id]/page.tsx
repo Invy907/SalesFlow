@@ -6,6 +6,7 @@ import { buildDeliveryNoteDetailUi } from "@/lib/documents/build-detail-ui";
 import { mapSalesDocumentDetail } from "@/lib/documents/map-document-detail";
 import { SalesDocumentDetailClient } from "@/components/sales-document-detail-client";
 import { getDeliveryNoteContent } from "../content";
+import { normalizeDocumentOutputLocale } from "@/lib/documents/output-locale";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,7 @@ export default async function DeliveryNoteDetailPage({
   if (!note || note.organization_id !== scope.orgId) notFound();
 
   const ui = getDeliveryNoteContent(lang);
+  const outputLocale = normalizeDocumentOutputLocale(note.output_locale);
   const detail = mapSalesDocumentDetail(
     note as Parameters<typeof mapSalesDocumentDetail>[0],
     note.delivery_note_line_items as Parameters<typeof mapSalesDocumentDetail>[1],
@@ -39,6 +41,10 @@ export default async function DeliveryNoteDetailPage({
     <SalesDocumentDetailClient
       detail={detail}
       ui={buildDeliveryNoteDetailUi(lang, ui)}
+      documentUi={buildDeliveryNoteDetailUi(
+        outputLocale,
+        getDeliveryNoteContent(outputLocale),
+      )}
       shellActiveItem="delivery-notes"
       listHref={`/${lang}/delivery-notes`}
     />
