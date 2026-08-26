@@ -6,6 +6,7 @@ import { SalesFlowShell, type ActiveItem } from "@/components/salesflow-shell";
 import type { SalesDocumentDetail, SalesDocumentDetailUi } from "@/lib/documents/detail-types";
 import { downloadSalesDocumentXlsx } from "@/lib/documents/export-spreadsheet";
 import { SalesDocumentPreview } from "./sales-document-preview";
+import { formatClientNameWithHonorific } from "@/lib/documents/client-honorific";
 
 type ExportAction = "download" | "excel" | "print";
 
@@ -54,7 +55,14 @@ export function SalesDocumentDetailClient({
   function downloadExcel() {
     const fields: Array<[string, string | number]> = [
       [documentUi.documentNumberLabel, detail.documentNumber],
-      [documentUi.client, detail.clientName],
+      [
+        documentUi.client,
+        formatClientNameWithHonorific(
+          detail.clientName,
+          documentUi.companyHonorific,
+          detail.showClientHonorific,
+        ),
+      ],
       [documentUi.subject, detail.subject || "—"],
       [documentUi.issueDate, detail.issueDate],
     ];

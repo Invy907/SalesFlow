@@ -7,6 +7,7 @@ import { useLanguage } from "@/contexts/language-context";
 import { appHrefs } from "@/lib/app-hrefs";
 import {
   DocumentBottomBar,
+  ClientHonorificToggle,
   DocumentDateFieldRow,
   DocumentLineItemsTable,
   EMPTY_LINE_ITEM_TOTALS,
@@ -35,6 +36,7 @@ export function NewReceiptClient() {
   const [outputLocale, setOutputLocale] = useState<DocumentOutputLocale>(() =>
     normalizeDocumentOutputLocale(undefined, lang),
   );
+  const [showClientHonorific, setShowClientHonorific] = useState(true);
   const [lineItemTotals, setLineItemTotals] = useState<LineItemTotals>(EMPTY_LINE_ITEM_TOTALS);
   const { primaryDate, setPrimaryDate, secondaryDate, setSecondaryDate } = useDocumentDateFields(ui.issueDateValue);
 
@@ -81,8 +83,14 @@ export function NewReceiptClient() {
                   <FormField label={ui.client} required={ui.required}>
                     <div className="flex gap-2">
                       <input className="field flex-1" />
-                      <SharedHonorificField honorific={ui.companyHonorific} />
+                      {showClientHonorific ? <SharedHonorificField honorific={ui.companyHonorific} /> : null}
                     </div>
+                    <ClientHonorificToggle
+                      checked={showClientHonorific}
+                      onChange={setShowClientHonorific}
+                      uiLocale={lang}
+                      honorific={ui.companyHonorific}
+                    />
                   </FormField>
 
                   <DocumentDateFieldRow
@@ -163,8 +171,14 @@ export function NewReceiptClient() {
                 <input className="field mt-2" placeholder={ui.sectionPlaceholder} />
                 <div className="mt-2 flex gap-2">
                   <input className="field flex-1" placeholder={ui.contactPlaceholder} />
-                  <SharedHonorificField honorific={ui.companyHonorific} />
+                  {showClientHonorific ? <SharedHonorificField honorific={ui.companyHonorific} /> : null}
                 </div>
+                <ClientHonorificToggle
+                  checked={showClientHonorific}
+                  onChange={setShowClientHonorific}
+                  uiLocale={lang}
+                  honorific={ui.companyHonorific}
+                />
               </FormField>
             </div>
 
@@ -247,7 +261,12 @@ export function NewReceiptClient() {
                   onClick={() => setPreviewModal(selectedTemplate)}
                   className="w-full overflow-hidden rounded border border-slate-300 bg-white shadow-sm transition hover:shadow-md"
                 >
-                  <ReceiptThumbnail ui={ui} type={selectedTemplate} outputLocale={outputLocale} />
+                  <ReceiptThumbnail
+                    ui={ui}
+                    type={selectedTemplate}
+                    outputLocale={outputLocale}
+                    showClientHonorific={showClientHonorific}
+                  />
                 </button>
                 <div className="rounded bg-[#14a7bb] px-6 py-2 text-[14px] font-semibold text-white">
                   {selectedTemplate === "standard" ? ui.templateStandard : ui.templateEnvelope}
@@ -330,7 +349,12 @@ export function NewReceiptClient() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
-              <ReceiptPreview ui={ui} type={previewModal} outputLocale={outputLocale} />
+              <ReceiptPreview
+                ui={ui}
+                type={previewModal}
+                outputLocale={outputLocale}
+                showClientHonorific={showClientHonorific}
+              />
             </div>
 
             <div className="flex items-center justify-end gap-4 border-t border-slate-200 px-6 py-4">

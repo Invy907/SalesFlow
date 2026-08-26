@@ -48,6 +48,7 @@ export const createEstimateSchema = z.object({
   withholdingType: withholdingTypeSchema,
   templateKey: z.string().default("standard"),
   outputLocale: documentOutputLocaleSchema.default("ja"),
+  showClientHonorific: z.boolean().default(true),
   templateMessage: z.string().optional(),
   remarks: z.string().optional(),
   internalMemo: z.string().optional(),

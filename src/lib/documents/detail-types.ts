@@ -10,6 +10,7 @@ export type SalesDocumentDetail = {
   secondaryDate?: string;
   status: string;
   outputLocale: DocumentOutputLocale;
+  showClientHonorific: boolean;
   templateMessage: string;
   remarks: string;
   subtotal: number;

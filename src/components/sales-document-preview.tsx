@@ -1,4 +1,5 @@
 import type { SalesDocumentDetail, SalesDocumentDetailUi } from "@/lib/documents/detail-types";
+import { formatClientNameWithHonorific } from "@/lib/documents/client-honorific";
 
 const yen = (value: number) => `¥ ${value.toLocaleString("ja-JP")}`;
 
@@ -30,7 +31,11 @@ export function SalesDocumentPreview({
         <div className="mt-12 grid gap-8 md:grid-cols-2">
           <div>
             <p className="text-[18px] font-semibold underline underline-offset-4">
-              {detail.clientName} {ui.companyHonorific || ""}
+              {formatClientNameWithHonorific(
+                detail.clientName,
+                ui.companyHonorific,
+                detail.showClientHonorific,
+              )}
             </p>
             <p className="mt-5 text-[16px] text-slate-800">
               {detail.templateMessage || ui.previewLead}

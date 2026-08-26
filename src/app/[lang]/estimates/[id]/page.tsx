@@ -53,6 +53,7 @@ export default async function EstimateDetailPage({
     expiryDate: (estimate.expiry_date as string) ?? "",
     status: (estimate.status as string) ?? "draft",
     outputLocale: normalizeDocumentOutputLocale(estimate.output_locale),
+    showClientHonorific: estimate.show_client_honorific !== false,
     internalMemo: (estimate.internal_memo as string) ?? "",
     templateMessage: (estimate.template_message as string) ?? "",
     remarks: (estimate.remarks as string) ?? "",

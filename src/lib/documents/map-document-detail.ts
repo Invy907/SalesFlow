@@ -1,6 +1,7 @@
 import type { SpreadsheetLineItem } from "./export-spreadsheet";
 import type { SalesDocumentDetail } from "./detail-types";
 import { normalizeDocumentOutputLocale } from "./output-locale";
+import { normalizeShowClientHonorific } from "./client-honorific";
 
 type LineRow = {
   line_no?: number | string;
@@ -18,6 +19,7 @@ type DocumentRow = {
   issue_date?: string | null;
   status?: string | null;
   output_locale?: string | null;
+  show_client_honorific?: boolean | null;
   template_message?: string | null;
   remarks?: string | null;
   subtotal?: number | string | null;
@@ -56,6 +58,7 @@ export function mapSalesDocumentDetail(
     secondaryDate: options?.secondaryDate ?? undefined,
     status: row.status ?? "draft",
     outputLocale: normalizeDocumentOutputLocale(row.output_locale),
+    showClientHonorific: normalizeShowClientHonorific(row.show_client_honorific),
     templateMessage: row.template_message ?? "",
     remarks: row.remarks ?? "",
     subtotal: Number(row.subtotal ?? 0),

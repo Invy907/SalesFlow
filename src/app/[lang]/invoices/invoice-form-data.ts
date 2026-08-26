@@ -55,6 +55,7 @@ export async function buildNewInvoiceInitial(lang: string): Promise<{
       withholdingType: defaults?.withholding_default ?? "none",
       templateKey: defaults?.invoice_template_key ?? "standard",
       outputLocale: normalizeDocumentOutputLocale(lang),
+      showClientHonorific: true,
       templateMessage: defaults?.invoice_message ?? "",
       remarks: defaults?.invoice_remarks ?? "",
       bankAccountIds: [],

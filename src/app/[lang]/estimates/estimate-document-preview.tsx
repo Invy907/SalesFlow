@@ -1,8 +1,10 @@
 import type { getEstimateContent } from "./content";
+import { formatClientNameWithHonorific } from "@/lib/documents/client-honorific";
 
 export type EstimatePreviewData = {
   documentNumber: string;
   clientName: string;
+  showClientHonorific: boolean;
   subject: string;
   issueDate: string;
   expiryDate: string;
@@ -47,7 +49,11 @@ export function EstimateDocumentPreview({
         <div className="mt-12 grid gap-8 md:grid-cols-2">
           <div>
             <p className="text-[18px] font-semibold underline underline-offset-4">
-              {detail.clientName} {ui.companyHonorific || ""}
+              {formatClientNameWithHonorific(
+                detail.clientName,
+                ui.companyHonorific,
+                detail.showClientHonorific,
+              )}
             </p>
             <p className="mt-5 text-[16px] text-slate-800">
               {detail.templateMessage || ui.previewLead}

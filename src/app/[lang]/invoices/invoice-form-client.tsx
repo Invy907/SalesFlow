@@ -9,6 +9,7 @@ import { getSupportHref } from "@/app/[lang]/support/content";
 import { useLanguage } from "@/contexts/language-context";
 import {
   DocumentBottomBar,
+  ClientHonorificToggle,
   DocumentDateFieldRow,
   DocumentLineItemsTable,
   EMPTY_LINE_ITEM_TOTALS,
@@ -62,6 +63,7 @@ export type InvoiceFormInitial = {
   withholdingType: WithholdingType;
   templateKey: string;
   outputLocale: DocumentOutputLocale;
+  showClientHonorific?: boolean;
   templateMessage: string;
   remarks: string;
   bankAccountIds: string[];
@@ -87,6 +89,9 @@ export function InvoiceFormClient({
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateKey>(initial.templateKey || "standard");
   const [outputLocale, setOutputLocale] = useState<DocumentOutputLocale>(() =>
     normalizeDocumentOutputLocale(initial.outputLocale, lang),
+  );
+  const [showClientHonorific, setShowClientHonorific] = useState(
+    initial.showClientHonorific ?? true,
   );
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<TemplateKey | null>(null);
@@ -174,6 +179,7 @@ export function InvoiceFormClient({
         withholdingType: form.withholdingType,
         templateKey: selectedTemplate,
         outputLocale,
+        showClientHonorific,
         templateMessage: form.templateMessage,
         remarks: form.remarks,
         bankAccountIds: form.bankAccountIds,
@@ -248,8 +254,14 @@ export function InvoiceFormClient({
                           setForm((f) => ({ ...f, clientName: name, clientId: match?.id ?? null }));
                         }}
                       />
-                      <SharedHonorificField honorific={ui.companyHonorific} />
+                      {showClientHonorific ? <SharedHonorificField honorific={ui.companyHonorific} /> : null}
                     </div>
+                    <ClientHonorificToggle
+                      checked={showClientHonorific}
+                      onChange={setShowClientHonorific}
+                      uiLocale={lang}
+                      honorific={ui.companyHonorific}
+                    />
                     <datalist id="sf-invoice-client-options">
                       {clients.map((c) => (
                         <option key={c.id} value={c.name} />
@@ -390,8 +402,14 @@ export function InvoiceFormClient({
                       value={form.recipient.contact}
                       onChange={(e) => setRecipient("contact", e.target.value)}
                     />
-                    <SharedHonorificField honorific={ui.companyHonorific} />
+                    {showClientHonorific ? <SharedHonorificField honorific={ui.companyHonorific} /> : null}
                   </div>
+                  <ClientHonorificToggle
+                    checked={showClientHonorific}
+                    onChange={setShowClientHonorific}
+                    uiLocale={lang}
+                    honorific={ui.companyHonorific}
+                  />
                 </FormField>
 
                 <FormField label={ui.billingMonthLabel}>
@@ -588,7 +606,11 @@ export function InvoiceFormClient({
                   onClick={() => setGalleryOpen(true)}
                   className="w-full overflow-hidden rounded border border-slate-300 bg-white shadow-sm transition hover:shadow-md"
                 >
-                  <InvoiceThumbnail ui={ui} outputLocale={outputLocale} />
+                  <InvoiceThumbnail
+                    ui={ui}
+                    outputLocale={outputLocale}
+                    showClientHonorific={showClientHonorific}
+                  />
                 </button>
                 <div className="rounded bg-[#14a7bb] px-6 py-2 text-[14px] font-semibold text-white">
                   {ui.templateList.find((t) => t.key === selectedTemplate)?.name ?? ui.templateList[0].name}
@@ -667,7 +689,11 @@ export function InvoiceFormClient({
                     ].join(" ")}
                   >
                     <div className="flex-1 bg-white">
-                      <InvoiceTemplateMiniPreview ui={ui} outputLocale={outputLocale} />
+                      <InvoiceTemplateMiniPreview
+                        ui={ui}
+                        outputLocale={outputLocale}
+                        showClientHonorific={showClientHonorific}
+                      />
                     </div>
                     <div className="bg-slate-700 px-2 py-2 text-center text-[12px] font-semibold text-white">
                       {tmpl.name}
@@ -704,7 +730,11 @@ export function InvoiceFormClient({
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-6">
-              <InvoicePreview ui={ui} outputLocale={outputLocale} />
+              <InvoicePreview
+                ui={ui}
+                outputLocale={outputLocale}
+                showClientHonorific={showClientHonorific}
+              />
             </div>
             <div className="flex items-center justify-end gap-4 border-t border-slate-200 px-6 py-4">
               <button

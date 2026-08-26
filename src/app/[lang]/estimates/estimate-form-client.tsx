@@ -10,6 +10,7 @@ import {
   DocumentDateFieldRow,
   DocumentLineItemsTable,
   EMPTY_LINE_ITEM_TOTALS,
+  ClientHonorificToggle,
   HonorificField as SharedHonorificField,
   type LineItemRow,
   type LineItemTotals,
@@ -59,6 +60,7 @@ export type EstimateFormInitial = {
   taxRounding: string;
   templateKey: string;
   outputLocale?: DocumentOutputLocale;
+  showClientHonorific?: boolean;
   templateMessage: string;
   remarks: string;
   lines: LineItemRow[];
@@ -83,6 +85,9 @@ export function EstimateFormClient({
   const [previewModal, setPreviewModal] = useState<TemplateType>(null);
   const [outputLocale, setOutputLocale] = useState<DocumentOutputLocale>(() =>
     normalizeDocumentOutputLocale(initial.outputLocale, lang),
+  );
+  const [showClientHonorific, setShowClientHonorific] = useState(
+    initial.showClientHonorific ?? true,
   );
   const [totals, setTotals] = useState<LineItemTotals>(EMPTY_LINE_ITEM_TOTALS);
   const [rows, setRows] = useState<LineItemRow[]>(initial.lines);
@@ -147,6 +152,7 @@ export function EstimateFormClient({
         withholdingType: "none" as const,
         templateKey: selectedTemplate,
         outputLocale,
+        showClientHonorific,
         templateMessage: form.templateMessage,
         remarks: form.remarks,
         recipientSnapshot: { ...form.recipient, clientName: form.clientName },
@@ -267,8 +273,14 @@ export function EstimateFormClient({
                           }));
                         }}
                       />
-                      <SharedHonorificField honorific={ui.companyHonorific} />
+                      {showClientHonorific ? <SharedHonorificField honorific={ui.companyHonorific} /> : null}
                     </div>
+                    <ClientHonorificToggle
+                      checked={showClientHonorific}
+                      onChange={setShowClientHonorific}
+                      uiLocale={lang}
+                      honorific={ui.companyHonorific}
+                    />
                     <datalist id="estimate-client-options">
                       {clients.map((c) => (
                         <option key={c.id} value={c.name} />
@@ -423,7 +435,11 @@ export function EstimateFormClient({
                   onClick={() => setPreviewModal(selectedTemplate)}
                   className="w-full overflow-hidden rounded border border-slate-300 bg-white shadow-sm transition hover:shadow-md"
                 >
-                  <EstimateThumbnail ui={ui} outputLocale={outputLocale} />
+                  <EstimateThumbnail
+                    ui={ui}
+                    outputLocale={outputLocale}
+                    showClientHonorific={showClientHonorific}
+                  />
                 </button>
                 <div className="rounded bg-[#14a7bb] px-6 py-2 text-[14px] font-semibold text-white">
                   {selectedTemplate === "standard" ? ui.templateStandard : ui.templateEnvelope}
@@ -502,7 +518,11 @@ export function EstimateFormClient({
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-6">
-              <EstimatePreview ui={ui} outputLocale={outputLocale} />
+              <EstimatePreview
+                ui={ui}
+                outputLocale={outputLocale}
+                showClientHonorific={showClientHonorific}
+              />
             </div>
             <div className="flex items-center justify-end gap-4 border-t border-slate-200 px-6 py-4">
               <button

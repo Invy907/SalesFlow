@@ -16,6 +16,7 @@ import { getEstimateContent } from "../content";
 import { EstimateDocumentPreview } from "../estimate-document-preview";
 import { downloadSalesDocumentXlsx } from "@/lib/documents/export-spreadsheet";
 import type { DocumentOutputLocale } from "@/lib/documents/output-locale";
+import { formatClientNameWithHonorific } from "@/lib/documents/client-honorific";
 
 export type EstimateDetail = {
   id: string;
@@ -27,6 +28,7 @@ export type EstimateDetail = {
   expiryDate: string;
   status: string;
   outputLocale: DocumentOutputLocale;
+  showClientHonorific: boolean;
   internalMemo: string;
   templateMessage: string;
   remarks: string;
@@ -165,7 +167,14 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
       filenameBase: detail.documentNumber || detail.id,
       fields: [
         [documentUi.estimateNumber, detail.documentNumber],
-        [documentUi.client, detail.clientName],
+        [
+          documentUi.client,
+          formatClientNameWithHonorific(
+            detail.clientName,
+            documentUi.companyHonorific,
+            detail.showClientHonorific,
+          ),
+        ],
         [documentUi.subject, detail.subject || "—"],
         [documentUi.issueDate, detail.issueDate],
         [documentUi.expiryDate, detail.expiryDate || documentUi.noDate],
@@ -296,7 +305,11 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
             <div>
               {detail.clientName ? (
                 <span>
-                  {detail.clientName} {ui.companyHonorific || ""}
+                  {formatClientNameWithHonorific(
+                    detail.clientName,
+                    ui.companyHonorific,
+                    detail.showClientHonorific,
+                  )}
                 </span>
               ) : (
                 "—"
