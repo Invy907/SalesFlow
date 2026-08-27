@@ -1,10 +1,16 @@
 import type { getEstimateContent } from "./content";
-import { formatClientNameWithHonorific } from "@/lib/documents/client-honorific";
+import {
+  clientHonorificSuffix,
+  formatClientNameWithHonorific,
+  type ClientHonorific,
+} from "@/lib/documents/client-honorific";
 
 export type EstimatePreviewData = {
   documentNumber: string;
   clientName: string;
-  showClientHonorific: boolean;
+  clientHonorific: ClientHonorific;
+  /** 출력 언어. 붙일 경칭 문자열을 고르는 데 쓴다. */
+  outputLocale: string;
   subject: string;
   issueDate: string;
   expiryDate: string;
@@ -51,8 +57,8 @@ export function EstimateDocumentPreview({
             <p className="text-[18px] font-semibold underline underline-offset-4">
               {formatClientNameWithHonorific(
                 detail.clientName,
-                ui.companyHonorific,
-                detail.showClientHonorific,
+                clientHonorificSuffix(detail.clientHonorific, detail.outputLocale),
+                detail.clientHonorific !== "none",
               )}
             </p>
             <p className="mt-5 text-[16px] text-slate-800">

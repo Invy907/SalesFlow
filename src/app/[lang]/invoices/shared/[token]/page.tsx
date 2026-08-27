@@ -4,7 +4,10 @@ import { SalesDocumentPreview } from "@/components/sales-document-preview";
 import { buildInvoiceDetailUi } from "@/lib/documents/build-detail-ui";
 import type { SalesDocumentDetail } from "@/lib/documents/detail-types";
 import { normalizeDocumentOutputLocale } from "@/lib/documents/output-locale";
-import { normalizeShowClientHonorific } from "@/lib/documents/client-honorific";
+import {
+  normalizeClientHonorific,
+  normalizeShowClientHonorific,
+} from "@/lib/documents/client-honorific";
 import { getInvoiceContent } from "../../content";
 
 /** Public invoice view. Destination of the periodic-invoice automatic email. */
@@ -46,6 +49,7 @@ export default async function SharedInvoicePage({
     status: String(invoice.status ?? "issued"),
     outputLocale,
     showClientHonorific: normalizeShowClientHonorific(invoice.show_client_honorific),
+    clientHonorific: normalizeClientHonorific(invoice.client_honorific),
     templateMessage: String(invoice.template_message ?? ""),
     remarks: String(invoice.remarks ?? ""),
     subtotal: Number(invoice.subtotal ?? 0),

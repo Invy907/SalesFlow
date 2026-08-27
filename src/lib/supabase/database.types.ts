@@ -388,6 +388,7 @@ export type Database = {
           linked_invoice_id: string | null
           organization_id: string
           output_locale: string
+          client_honorific: string
           show_client_honorific: boolean
           recipient_snapshot: Json | null
           remarks: string | null
@@ -419,6 +420,7 @@ export type Database = {
           linked_invoice_id?: string | null
           organization_id: string
           output_locale?: string
+          client_honorific?: string
           show_client_honorific?: boolean
           recipient_snapshot?: Json | null
           remarks?: string | null
@@ -450,6 +452,7 @@ export type Database = {
           linked_invoice_id?: string | null
           organization_id?: string
           output_locale?: string
+          client_honorific?: string
           show_client_honorific?: boolean
           recipient_snapshot?: Json | null
           remarks?: string | null
@@ -759,6 +762,7 @@ export type Database = {
           ordered_order_id: string | null
           organization_id: string
           output_locale: string
+          client_honorific: string
           show_client_honorific: boolean
           recipient_snapshot: Json | null
           remarks: string | null
@@ -791,6 +795,7 @@ export type Database = {
           ordered_order_id?: string | null
           organization_id: string
           output_locale?: string
+          client_honorific?: string
           show_client_honorific?: boolean
           recipient_snapshot?: Json | null
           remarks?: string | null
@@ -823,6 +828,7 @@ export type Database = {
           ordered_order_id?: string | null
           organization_id?: string
           output_locale?: string
+          client_honorific?: string
           show_client_honorific?: boolean
           recipient_snapshot?: Json | null
           remarks?: string | null
@@ -1100,6 +1106,7 @@ export type Database = {
           issue_date: string
           organization_id: string
           output_locale: string
+          client_honorific: string
           show_client_honorific: boolean
           paid_amount: number
           paid_at: string | null
@@ -1141,6 +1148,7 @@ export type Database = {
           issue_date: string
           organization_id: string
           output_locale?: string
+          client_honorific?: string
           show_client_honorific?: boolean
           paid_amount?: number
           paid_at?: string | null
@@ -1182,6 +1190,7 @@ export type Database = {
           issue_date?: string
           organization_id?: string
           output_locale?: string
+          client_honorific?: string
           show_client_honorific?: boolean
           paid_amount?: number
           paid_at?: string | null
@@ -2198,6 +2207,7 @@ export type Database = {
           linked_invoice_id: string | null
           organization_id: string
           output_locale: string
+          client_honorific: string
           show_client_honorific: boolean
           recipient_snapshot: Json | null
           remarks: string | null
@@ -2229,6 +2239,7 @@ export type Database = {
           linked_invoice_id?: string | null
           organization_id: string
           output_locale?: string
+          client_honorific?: string
           show_client_honorific?: boolean
           recipient_snapshot?: Json | null
           remarks?: string | null
@@ -2260,6 +2271,7 @@ export type Database = {
           linked_invoice_id?: string | null
           organization_id?: string
           output_locale?: string
+          client_honorific?: string
           show_client_honorific?: boolean
           recipient_snapshot?: Json | null
           remarks?: string | null

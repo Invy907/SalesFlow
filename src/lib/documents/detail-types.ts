@@ -1,4 +1,5 @@
 import type { SpreadsheetLineItem } from "./export-spreadsheet";
+import type { ClientHonorific } from "./client-honorific";
 import type { DocumentOutputLocale } from "./output-locale";
 
 export type SalesDocumentDetail = {
@@ -11,6 +12,8 @@ export type SalesDocumentDetail = {
   status: string;
   outputLocale: DocumentOutputLocale;
   showClientHonorific: boolean;
+  /** 御中 / 様 / hidden */
+  clientHonorific: ClientHonorific;
   templateMessage: string;
   remarks: string;
   subtotal: number;

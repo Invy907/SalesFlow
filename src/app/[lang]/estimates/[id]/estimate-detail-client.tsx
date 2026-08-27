@@ -16,7 +16,11 @@ import { getEstimateContent } from "../content";
 import { EstimateDocumentPreview } from "../estimate-document-preview";
 import { downloadSalesDocumentXlsx } from "@/lib/documents/export-spreadsheet";
 import type { DocumentOutputLocale } from "@/lib/documents/output-locale";
-import { formatClientNameWithHonorific } from "@/lib/documents/client-honorific";
+import {
+  clientHonorificSuffix,
+  formatClientNameWithHonorific,
+  type ClientHonorific,
+} from "@/lib/documents/client-honorific";
 
 export type EstimateDetail = {
   id: string;
@@ -28,7 +32,7 @@ export type EstimateDetail = {
   expiryDate: string;
   status: string;
   outputLocale: DocumentOutputLocale;
-  showClientHonorific: boolean;
+  clientHonorific: ClientHonorific;
   internalMemo: string;
   templateMessage: string;
   remarks: string;
@@ -171,8 +175,8 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
           documentUi.client,
           formatClientNameWithHonorific(
             detail.clientName,
-            documentUi.companyHonorific,
-            detail.showClientHonorific,
+            clientHonorificSuffix(detail.clientHonorific, detail.outputLocale),
+            detail.clientHonorific !== "none",
           ),
         ],
         [documentUi.subject, detail.subject || "—"],
@@ -307,8 +311,8 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
                 <span>
                   {formatClientNameWithHonorific(
                     detail.clientName,
-                    ui.companyHonorific,
-                    detail.showClientHonorific,
+                    clientHonorificSuffix(detail.clientHonorific, detail.outputLocale),
+                    detail.clientHonorific !== "none",
                   )}
                 </span>
               ) : (
@@ -370,7 +374,10 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
         </div>
 
         <div className="mt-12">
-          <EstimateDocumentPreview detail={detail} ui={documentUi} />
+          <EstimateDocumentPreview
+            detail={{ ...detail, outputLocale: detail.outputLocale }}
+            ui={documentUi}
+          />
         </div>
 
         <div className="no-print mt-8">

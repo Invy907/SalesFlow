@@ -8,7 +8,12 @@ import {
   getDocumentPreviewCopy,
   type DocumentPreviewCopy,
 } from "@/lib/documents/preview-copy";
-import { formatClientNameWithHonorific } from "@/lib/documents/client-honorific";
+import {
+  clientHonorificSuffix,
+  formatClientNameWithHonorific,
+  DEFAULT_CLIENT_HONORIFIC,
+  type ClientHonorific,
+} from "@/lib/documents/client-honorific";
 import { getDeliveryNoteContent } from "../delivery-notes/content";
 import { getEstimateContent } from "../estimates/content";
 import { getInvoiceContent } from "../invoices/content";
@@ -64,13 +69,13 @@ function StandardDocumentPreview({
   ui,
   secondaryDateLine,
   outputLocale,
-  showClientHonorific,
+  clientHonorific,
 }: {
   title: string;
   ui: StandardSampleUi;
   secondaryDateLine?: string;
   outputLocale: DocumentOutputLocale;
-  showClientHonorific: boolean;
+  clientHonorific: ClientHonorific;
 }) {
   const copy = getDocumentPreviewCopy(outputLocale);
 
@@ -86,7 +91,11 @@ function StandardDocumentPreview({
       <div className="mb-6 flex items-start justify-between">
         <div>
           <p className="text-[15px] font-semibold">
-            {formatClientNameWithHonorific(ui.sampleClient, ui.companyHonorific, showClientHonorific)}
+            {formatClientNameWithHonorific(
+              ui.sampleClient,
+              clientHonorificSuffix(clientHonorific, outputLocale),
+              clientHonorific !== "none",
+            )}
           </p>
           <p className="mt-1 text-[12px] text-slate-600">{ui.sampleSubject}</p>
           {secondaryDateLine ? <p className="text-[12px] text-slate-600">{secondaryDateLine}</p> : null}
@@ -174,11 +183,11 @@ function DocumentItemsTable({ ui, copy }: { ui: StandardSampleUi; copy: Document
 export function EstimatePreview({
   ui,
   outputLocale,
-  showClientHonorific = true,
+  clientHonorific = DEFAULT_CLIENT_HONORIFIC,
 }: {
   ui: EstimateUi;
   outputLocale?: DocumentOutputLocale;
-  showClientHonorific?: boolean;
+  clientHonorific?: ClientHonorific;
 }) {
   const locale = normalizeDocumentOutputLocale(outputLocale);
   const localizedUi = outputLocale ? getEstimateContent(locale) : ui;
@@ -188,7 +197,7 @@ export function EstimatePreview({
       ui={localizedUi}
       secondaryDateLine={localizedUi.sampleExpiryDate}
       outputLocale={locale}
-      showClientHonorific={showClientHonorific}
+      clientHonorific={clientHonorific}
     />
   );
 }
@@ -196,15 +205,15 @@ export function EstimatePreview({
 export function EstimateThumbnail({
   ui,
   outputLocale,
-  showClientHonorific = true,
+  clientHonorific = DEFAULT_CLIENT_HONORIFIC,
 }: {
   ui: EstimateUi;
   outputLocale?: DocumentOutputLocale;
-  showClientHonorific?: boolean;
+  clientHonorific?: ClientHonorific;
 }) {
   return (
     <DocumentPreviewThumbnail>
-      <EstimatePreview ui={ui} outputLocale={outputLocale} showClientHonorific={showClientHonorific} />
+      <EstimatePreview ui={ui} outputLocale={outputLocale} clientHonorific={clientHonorific} />
     </DocumentPreviewThumbnail>
   );
 }
@@ -212,11 +221,11 @@ export function EstimateThumbnail({
 export function DeliveryNotePreview({
   ui,
   outputLocale,
-  showClientHonorific = true,
+  clientHonorific = DEFAULT_CLIENT_HONORIFIC,
 }: {
   ui: DeliveryNoteUi;
   outputLocale?: DocumentOutputLocale;
-  showClientHonorific?: boolean;
+  clientHonorific?: ClientHonorific;
 }) {
   const locale = normalizeDocumentOutputLocale(outputLocale);
   const localizedUi = outputLocale ? getDeliveryNoteContent(locale) : ui;
@@ -226,7 +235,7 @@ export function DeliveryNotePreview({
       ui={localizedUi}
       secondaryDateLine={localizedUi.sampleDeliveryDate}
       outputLocale={locale}
-      showClientHonorific={showClientHonorific}
+      clientHonorific={clientHonorific}
     />
   );
 }
@@ -234,15 +243,15 @@ export function DeliveryNotePreview({
 export function DeliveryNoteThumbnail({
   ui,
   outputLocale,
-  showClientHonorific = true,
+  clientHonorific = DEFAULT_CLIENT_HONORIFIC,
 }: {
   ui: DeliveryNoteUi;
   outputLocale?: DocumentOutputLocale;
-  showClientHonorific?: boolean;
+  clientHonorific?: ClientHonorific;
 }) {
   return (
     <DocumentPreviewThumbnail>
-      <DeliveryNotePreview ui={ui} outputLocale={outputLocale} showClientHonorific={showClientHonorific} />
+      <DeliveryNotePreview ui={ui} outputLocale={outputLocale} clientHonorific={clientHonorific} />
     </DocumentPreviewThumbnail>
   );
 }
@@ -250,11 +259,11 @@ export function DeliveryNoteThumbnail({
 export function InvoicePreview({
   ui,
   outputLocale,
-  showClientHonorific = true,
+  clientHonorific = DEFAULT_CLIENT_HONORIFIC,
 }: {
   ui: InvoiceUi;
   outputLocale?: DocumentOutputLocale;
-  showClientHonorific?: boolean;
+  clientHonorific?: ClientHonorific;
 }) {
   const locale = normalizeDocumentOutputLocale(outputLocale);
   const localizedUi = outputLocale ? getInvoiceContent(locale) : ui;
@@ -264,7 +273,7 @@ export function InvoicePreview({
       ui={localizedUi}
       secondaryDateLine={localizedUi.samplePaymentDue}
       outputLocale={locale}
-      showClientHonorific={showClientHonorific}
+      clientHonorific={clientHonorific}
     />
   );
 }
@@ -272,15 +281,15 @@ export function InvoicePreview({
 export function InvoiceThumbnail({
   ui,
   outputLocale,
-  showClientHonorific = true,
+  clientHonorific = DEFAULT_CLIENT_HONORIFIC,
 }: {
   ui: InvoiceUi;
   outputLocale?: DocumentOutputLocale;
-  showClientHonorific?: boolean;
+  clientHonorific?: ClientHonorific;
 }) {
   return (
     <DocumentPreviewThumbnail scaleClass="scale-[0.45]" widthClass="w-[222%]">
-      <InvoicePreview ui={ui} outputLocale={outputLocale} showClientHonorific={showClientHonorific} />
+      <InvoicePreview ui={ui} outputLocale={outputLocale} clientHonorific={clientHonorific} />
     </DocumentPreviewThumbnail>
   );
 }
@@ -288,15 +297,15 @@ export function InvoiceThumbnail({
 export function InvoiceTemplateMiniPreview({
   ui,
   outputLocale,
-  showClientHonorific = true,
+  clientHonorific = DEFAULT_CLIENT_HONORIFIC,
 }: {
   ui: InvoiceUi;
   outputLocale?: DocumentOutputLocale;
-  showClientHonorific?: boolean;
+  clientHonorific?: ClientHonorific;
 }) {
   return (
     <DocumentPreviewThumbnail scaleClass="scale-[0.28]" widthClass="w-[357%]">
-      <InvoicePreview ui={ui} outputLocale={outputLocale} showClientHonorific={showClientHonorific} />
+      <InvoicePreview ui={ui} outputLocale={outputLocale} clientHonorific={clientHonorific} />
     </DocumentPreviewThumbnail>
   );
 }
@@ -358,12 +367,12 @@ export function ReceiptPreview({
   ui,
   type = "standard",
   outputLocale,
-  showClientHonorific = true,
+  clientHonorific = DEFAULT_CLIENT_HONORIFIC,
 }: {
   ui: ReceiptUi;
   type?: "standard" | "envelope";
   outputLocale?: DocumentOutputLocale;
-  showClientHonorific?: boolean;
+  clientHonorific?: ClientHonorific;
 }) {
   const locale = normalizeDocumentOutputLocale(outputLocale);
   const localizedUi = outputLocale ? getReceiptContent(locale) : ui;
@@ -378,8 +387,8 @@ export function ReceiptPreview({
           <p className="mt-2 text-[14px] font-semibold">
             {formatClientNameWithHonorific(
               copy.envelopeRecipient,
-              localizedUi.companyHonorific,
-              showClientHonorific,
+              clientHonorificSuffix(clientHonorific, locale),
+              clientHonorific !== "none",
             )}
           </p>
         </div>
@@ -401,8 +410,8 @@ export function ReceiptPreview({
           <p className="text-[15px] font-semibold">
             {formatClientNameWithHonorific(
               localizedUi.sampleClient,
-              localizedUi.companyHonorific,
-              showClientHonorific,
+              clientHonorificSuffix(clientHonorific, locale),
+              clientHonorific !== "none",
             )}
           </p>
           <p className="mt-2 text-[12px] text-slate-600">{localizedUi.sampleSubject}</p>
@@ -441,12 +450,12 @@ export function ReceiptThumbnail({
   ui,
   type = "standard",
   outputLocale,
-  showClientHonorific = true,
+  clientHonorific = DEFAULT_CLIENT_HONORIFIC,
 }: {
   ui: ReceiptUi;
   type?: "standard" | "envelope";
   outputLocale?: DocumentOutputLocale;
-  showClientHonorific?: boolean;
+  clientHonorific?: ClientHonorific;
 }) {
   return (
     <DocumentPreviewThumbnail scaleClass="scale-[0.45]" widthClass="w-[220%]">
@@ -454,7 +463,7 @@ export function ReceiptThumbnail({
         ui={ui}
         type={type}
         outputLocale={outputLocale}
-        showClientHonorific={showClientHonorific}
+        clientHonorific={clientHonorific}
       />
     </DocumentPreviewThumbnail>
   );

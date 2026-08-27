@@ -9,7 +9,7 @@ import { getSupportHref } from "@/app/[lang]/support/content";
 import { useLanguage } from "@/contexts/language-context";
 import {
   DocumentBottomBar,
-  ClientHonorificToggle,
+  ClientHonorificSelect,
   DocumentDateFieldRow,
   DocumentLineItemsTable,
   EMPTY_LINE_ITEM_TOTALS,
@@ -19,6 +19,11 @@ import {
   type LineItemRow,
   type LineItemTotals,
 } from "../documents/new-document-shared";
+import {
+  clientHonorificSuffix,
+  DEFAULT_CLIENT_HONORIFIC,
+  type ClientHonorific,
+} from "@/lib/documents/client-honorific";
 import { createInvoice } from "@/lib/actions/invoices";
 import { taxCategoryFromLabel, taxRateSnapshotFor } from "@/lib/tax";
 import {
@@ -70,7 +75,7 @@ export type InvoiceFormInitial = {
   withholdingType: WithholdingType;
   templateKey: string;
   outputLocale: DocumentOutputLocale;
-  showClientHonorific?: boolean;
+  clientHonorific?: ClientHonorific;
   templateMessage: string;
   remarks: string;
   bankAccountIds: string[];
@@ -107,8 +112,8 @@ export function InvoiceFormClient({
   const [outputLocale, setOutputLocale] = useState<DocumentOutputLocale>(() =>
     normalizeDocumentOutputLocale(initial.outputLocale, lang),
   );
-  const [showClientHonorific, setShowClientHonorific] = useState(
-    initial.showClientHonorific ?? true,
+  const [clientHonorific, setClientHonorific] = useState<ClientHonorific>(
+    initial.clientHonorific ?? DEFAULT_CLIENT_HONORIFIC,
   );
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<TemplateKey | null>(null);
@@ -241,7 +246,7 @@ export function InvoiceFormClient({
         withholdingType: form.withholdingType,
         templateKey: selectedTemplate,
         outputLocale,
-        showClientHonorific,
+        clientHonorific,
         templateMessage: form.templateMessage,
         remarks: form.remarks,
         bankAccountIds: form.bankAccountIds,
@@ -329,7 +334,11 @@ export function InvoiceFormClient({
                           applyClient(clientOptions.find((c) => c.name === name) ?? null, name);
                         }}
                       />
-                      {showClientHonorific ? <SharedHonorificField honorific={ui.companyHonorific} /> : null}
+                      {clientHonorific !== "none" ? (
+                      <SharedHonorificField
+                        honorific={clientHonorificSuffix(clientHonorific, outputLocale)}
+                      />
+                    ) : null}
                     </div>
                     <button
                       type="button"
@@ -338,11 +347,11 @@ export function InvoiceFormClient({
                     >
                       {ui.clientAdd}
                     </button>
-                    <ClientHonorificToggle
-                      checked={showClientHonorific}
-                      onChange={setShowClientHonorific}
+                    <ClientHonorificSelect
+                      value={clientHonorific}
+                      onChange={setClientHonorific}
                       uiLocale={lang}
-                      honorific={ui.companyHonorific}
+                      outputLocale={outputLocale}
                     />
                     <datalist id="sf-invoice-client-options">
                       {clientOptions.map((c) => (
@@ -475,13 +484,17 @@ export function InvoiceFormClient({
                       value={form.recipient.contact}
                       onChange={(e) => setRecipient("contact", e.target.value)}
                     />
-                    {showClientHonorific ? <SharedHonorificField honorific={ui.companyHonorific} /> : null}
+                    {clientHonorific !== "none" ? (
+                      <SharedHonorificField
+                        honorific={clientHonorificSuffix(clientHonorific, outputLocale)}
+                      />
+                    ) : null}
                   </div>
-                  <ClientHonorificToggle
-                    checked={showClientHonorific}
-                    onChange={setShowClientHonorific}
+                  <ClientHonorificSelect
+                    value={clientHonorific}
+                    onChange={setClientHonorific}
                     uiLocale={lang}
-                    honorific={ui.companyHonorific}
+                    outputLocale={outputLocale}
                   />
                 </FormField>
 
@@ -659,7 +672,7 @@ export function InvoiceFormClient({
                   <InvoiceThumbnail
                     ui={ui}
                     outputLocale={outputLocale}
-                    showClientHonorific={showClientHonorific}
+                    clientHonorific={clientHonorific}
                   />
                 </button>
                 <div className="rounded bg-[#14a7bb] px-6 py-2 text-[14px] font-semibold text-white">
@@ -725,7 +738,7 @@ export function InvoiceFormClient({
               input={{
                 documentNumber: initial.documentNumber || ui.autoNumber,
                 clientName: form.clientName,
-                showClientHonorific,
+                clientHonorific,
                 subject: form.subject,
                 issueDate: toIsoDate(primaryDate),
                 secondaryDate: secondaryDate ? toIsoDate(secondaryDate) : undefined,
@@ -778,7 +791,7 @@ export function InvoiceFormClient({
                       <InvoiceTemplateMiniPreview
                         ui={ui}
                         outputLocale={outputLocale}
-                        showClientHonorific={showClientHonorific}
+                        clientHonorific={clientHonorific}
                       />
                     </div>
                     <div className="bg-slate-700 px-2 py-2 text-center text-[12px] font-semibold text-white">
@@ -819,7 +832,7 @@ export function InvoiceFormClient({
               <InvoicePreview
                 ui={ui}
                 outputLocale={outputLocale}
-                showClientHonorific={showClientHonorific}
+                clientHonorific={clientHonorific}
               />
             </div>
             <div className="flex items-center justify-end gap-4 border-t border-slate-200 px-6 py-4">

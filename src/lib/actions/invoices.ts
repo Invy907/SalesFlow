@@ -58,7 +58,9 @@ export async function createInvoice(
       withholding_type: parsed.data.withholdingType,
       template_key: parsed.data.templateKey ?? null,
       output_locale: parsed.data.outputLocale,
-      show_client_honorific: parsed.data.showClientHonorific,
+      client_honorific: parsed.data.clientHonorific,
+      // 기존 조회 코드 호환용으로 같은 뜻을 boolean 으로도 남긴다.
+      show_client_honorific: parsed.data.clientHonorific !== "none",
       template_message: parsed.data.templateMessage ?? null,
       remarks: parsed.data.remarks ?? null,
       internal_memo: parsed.data.internalMemo ?? null,

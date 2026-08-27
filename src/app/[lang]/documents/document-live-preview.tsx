@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { SalesDocumentPreview } from "@/components/sales-document-preview";
 import type { SalesDocumentDetail, SalesDocumentDetailUi } from "@/lib/documents/detail-types";
 import type { DocumentOutputLocale } from "@/lib/documents/output-locale";
+import type { ClientHonorific } from "@/lib/documents/client-honorific";
 import { computeDocumentTotals, taxCategoryFromLabel, type TaxRounding } from "@/lib/tax";
 import type { LineItemRow } from "./new-document-shared";
 
@@ -17,7 +18,7 @@ import type { LineItemRow } from "./new-document-shared";
 export type LivePreviewInput = {
   documentNumber: string;
   clientName: string;
-  showClientHonorific: boolean;
+  clientHonorific: ClientHonorific;
   subject: string;
   issueDate: string;
   secondaryDate?: string;
@@ -60,7 +61,8 @@ export function buildLivePreviewDetail(input: LivePreviewInput): SalesDocumentDe
     secondaryDate: input.secondaryDate,
     status: "draft",
     outputLocale: input.outputLocale,
-    showClientHonorific: input.showClientHonorific,
+    showClientHonorific: input.clientHonorific !== "none",
+    clientHonorific: input.clientHonorific,
     templateMessage: input.templateMessage,
     remarks: input.remarks,
     subtotal: totals.subtotal,

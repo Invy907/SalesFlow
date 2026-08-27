@@ -7,7 +7,7 @@ import { useLanguage } from "@/contexts/language-context";
 import { appHrefs } from "@/lib/app-hrefs";
 import {
   DocumentBottomBar,
-  ClientHonorificToggle,
+  ClientHonorificSelect,
   DocumentDateFieldRow,
   DocumentLineItemsTable,
   EMPTY_LINE_ITEM_TOTALS,
@@ -16,6 +16,11 @@ import {
   useDocumentDateFields,
   type LineItemTotals,
 } from "../../documents/new-document-shared";
+import {
+  clientHonorificSuffix,
+  DEFAULT_CLIENT_HONORIFIC,
+  type ClientHonorific,
+} from "@/lib/documents/client-honorific";
 import { DeliveryNotePreview, DeliveryNoteThumbnail } from "../../documents/document-previews";
 import { OutputLanguageSelector } from "../../documents/output-language-selector";
 import {
@@ -36,7 +41,8 @@ export function NewDeliveryNoteClient() {
   const [outputLocale, setOutputLocale] = useState<DocumentOutputLocale>(() =>
     normalizeDocumentOutputLocale(undefined, lang),
   );
-  const [showClientHonorific, setShowClientHonorific] = useState(true);
+  const [clientHonorific, setClientHonorific] =
+    useState<ClientHonorific>(DEFAULT_CLIENT_HONORIFIC);
   const [lineItemTotals, setLineItemTotals] = useState<LineItemTotals>(EMPTY_LINE_ITEM_TOTALS);
   const { primaryDate, setPrimaryDate, secondaryDate, setSecondaryDate } = useDocumentDateFields(ui.issueDateValue);
 
@@ -84,13 +90,17 @@ export function NewDeliveryNoteClient() {
                   <FormField label={ui.client} required={ui.required}>
                     <div className="flex gap-2">
                       <input className="field flex-1" />
-                      {showClientHonorific ? <SharedHonorificField honorific={ui.companyHonorific} /> : null}
+                      {clientHonorific !== "none" ? (
+                      <SharedHonorificField
+                        honorific={clientHonorificSuffix(clientHonorific, outputLocale)}
+                      />
+                    ) : null}
                     </div>
-                    <ClientHonorificToggle
-                      checked={showClientHonorific}
-                      onChange={setShowClientHonorific}
+                    <ClientHonorificSelect
+                      value={clientHonorific}
+                      onChange={setClientHonorific}
                       uiLocale={lang}
-                      honorific={ui.companyHonorific}
+                      outputLocale={outputLocale}
                     />
                   </FormField>
 
@@ -168,13 +178,17 @@ export function NewDeliveryNoteClient() {
                 <input className="field mt-2" placeholder={ui.namePlaceholder} />
                 <div className="mt-2 flex gap-2">
                   <input className="field flex-1" placeholder={ui.contactPlaceholder} />
-                  {showClientHonorific ? <SharedHonorificField honorific={ui.companyHonorific} /> : null}
+                  {clientHonorific !== "none" ? (
+                      <SharedHonorificField
+                        honorific={clientHonorificSuffix(clientHonorific, outputLocale)}
+                      />
+                    ) : null}
                 </div>
-                <ClientHonorificToggle
-                  checked={showClientHonorific}
-                  onChange={setShowClientHonorific}
+                <ClientHonorificSelect
+                  value={clientHonorific}
+                  onChange={setClientHonorific}
                   uiLocale={lang}
-                  honorific={ui.companyHonorific}
+                  outputLocale={outputLocale}
                 />
               </FormField>
             </div>
@@ -268,7 +282,7 @@ export function NewDeliveryNoteClient() {
                   <DeliveryNoteThumbnail
                     ui={ui}
                     outputLocale={outputLocale}
-                    showClientHonorific={showClientHonorific}
+                    clientHonorific={clientHonorific}
                   />
                 </button>
                 <div className="rounded bg-[#14a7bb] px-6 py-2 text-[14px] font-semibold text-white">
@@ -346,7 +360,7 @@ export function NewDeliveryNoteClient() {
               <DeliveryNotePreview
                 ui={ui}
                 outputLocale={outputLocale}
-                showClientHonorific={showClientHonorific}
+                clientHonorific={clientHonorific}
               />
             </div>
             <div className="flex items-center justify-end gap-4 border-t border-slate-200 px-6 py-4">

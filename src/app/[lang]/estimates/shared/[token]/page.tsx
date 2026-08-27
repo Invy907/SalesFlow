@@ -4,7 +4,7 @@ import { getEstimateContent } from "../../content";
 import { EstimateDocumentPreview } from "../../estimate-document-preview";
 import type { EstimatePreviewData } from "../../estimate-document-preview";
 import { normalizeDocumentOutputLocale } from "@/lib/documents/output-locale";
-import { normalizeShowClientHonorific } from "@/lib/documents/client-honorific";
+import { normalizeClientHonorific } from "@/lib/documents/client-honorific";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +33,8 @@ export default async function SharedEstimatePage({
   const preview: EstimatePreviewData = {
     documentNumber: String(estimate.document_number ?? ""),
     clientName: recipient.clientName ?? String(recipient.companyName ?? ""),
-    showClientHonorific: normalizeShowClientHonorific(estimate.show_client_honorific),
+    clientHonorific: normalizeClientHonorific(estimate.client_honorific),
+    outputLocale,
     subject: String(estimate.subject ?? ""),
     issueDate: String(estimate.issue_date ?? ""),
     expiryDate: String(estimate.expiry_date ?? ""),

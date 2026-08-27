@@ -26,6 +26,9 @@ export const withholdingTypeSchema = z.enum([
 
 export const documentOutputLocaleSchema = z.enum(["ko", "ja", "en"]);
 
+/** 御中 / 様 / no honorific. See lib/documents/client-honorific.ts */
+export const clientHonorificSchema = z.enum(["onchu", "sama", "none"]);
+
 export const lineItemSchema = z.object({
   itemId: z.string().uuid().optional(),
   name: z.string().min(1).max(255),
@@ -48,7 +51,7 @@ export const createEstimateSchema = z.object({
   withholdingType: withholdingTypeSchema,
   templateKey: z.string().default("standard"),
   outputLocale: documentOutputLocaleSchema.default("ja"),
-  showClientHonorific: z.boolean().default(true),
+  clientHonorific: clientHonorificSchema.default("onchu"),
   templateMessage: z.string().optional(),
   remarks: z.string().optional(),
   internalMemo: z.string().optional(),

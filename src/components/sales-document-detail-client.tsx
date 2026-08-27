@@ -6,7 +6,10 @@ import { SalesFlowShell, type ActiveItem } from "@/components/salesflow-shell";
 import type { SalesDocumentDetail, SalesDocumentDetailUi } from "@/lib/documents/detail-types";
 import { downloadSalesDocumentXlsx } from "@/lib/documents/export-spreadsheet";
 import { SalesDocumentPreview } from "./sales-document-preview";
-import { formatClientNameWithHonorific } from "@/lib/documents/client-honorific";
+import {
+  clientHonorificSuffix,
+  formatClientNameWithHonorific,
+} from "@/lib/documents/client-honorific";
 
 type ExportAction = "download" | "excel" | "print";
 
@@ -59,8 +62,8 @@ export function SalesDocumentDetailClient({
         documentUi.client,
         formatClientNameWithHonorific(
           detail.clientName,
-          documentUi.companyHonorific,
-          detail.showClientHonorific,
+          clientHonorificSuffix(detail.clientHonorific, detail.outputLocale),
+          detail.clientHonorific !== "none",
         ),
       ],
       [documentUi.subject, detail.subject || "—"],

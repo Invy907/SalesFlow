@@ -1,5 +1,10 @@
 import "server-only";
 
+import {
+  DEFAULT_CLIENT_HONORIFIC,
+  normalizeClientHonorific,
+} from "@/lib/documents/client-honorific";
+
 import { requireActiveOrg } from "@/lib/guards";
 import { getClients } from "@/lib/db/clients";
 import { getCompanyProfile, getDocumentDefaults } from "@/lib/db/company";
@@ -72,7 +77,7 @@ export async function buildNewEstimateInitial(lang: string): Promise<{
       taxRounding: defaults?.tax_rounding_default ?? "round_down",
       templateKey: defaults?.estimate_template_key ?? "standard",
       outputLocale: normalizeDocumentOutputLocale(lang),
-      showClientHonorific: true,
+      clientHonorific: DEFAULT_CLIENT_HONORIFIC,
       templateMessage: defaults?.estimate_message ?? "",
       remarks: defaults?.estimate_remarks ?? "",
       lines: [],
@@ -130,7 +135,7 @@ export async function buildEditEstimateInitial(
       taxRounding: estimate.tax_rounding ?? "round_down",
       templateKey: estimate.template_key ?? "standard",
       outputLocale: normalizeDocumentOutputLocale(estimate.output_locale),
-      showClientHonorific: estimate.show_client_honorific !== false,
+      clientHonorific: normalizeClientHonorific(estimate.client_honorific),
       templateMessage: estimate.template_message ?? "",
       remarks: estimate.remarks ?? "",
       lines: toLineRows(lines),

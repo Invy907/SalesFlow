@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { pageContainerClass } from "@/components/page-container";
+import {
+  clientHonorificSuffix,
+  type ClientHonorific,
+} from "@/lib/documents/client-honorific";
 import { LocalizedFileInput } from "@/components/localized-file-input";
 import { appHrefs } from "@/lib/app-hrefs";
 import { DateFieldInput } from "../estimates/date-field-input";
@@ -353,41 +357,55 @@ export function HonorificField({ honorific }: { honorific?: string }) {
   );
 }
 
-export function ClientHonorificToggle({
-  checked,
+/**
+ * Client honorific picker. Defaults to 御中; 様 and "no honorific" can be chosen.
+ * The printed suffix follows the document output language, so the options show it directly.
+ */
+export function ClientHonorificSelect({
+  value,
   onChange,
   uiLocale,
-  honorific,
+  outputLocale,
 }: {
-  checked: boolean;
-  onChange: (checked: boolean) => void;
+  value: ClientHonorific;
+  onChange: (value: ClientHonorific) => void;
   uiLocale: string;
-  honorific?: string;
+  outputLocale: string;
 }) {
-  const copy = uiLocale === "ja"
-    ? { label: "取引先の敬称を表示", on: "ON", off: "OFF" }
-    : uiLocale === "en"
-      ? { label: "Show client honorific", on: "ON", off: "OFF" }
-      : { label: "거래처 경칭 표시", on: "ON", off: "OFF" };
-  const suffix = honorific?.trim();
+  const copy =
+    uiLocale === "ja"
+      ? { label: "取引先の敬称", onchu: "御中", sama: "様", none: "なし" }
+      : uiLocale === "en"
+        ? { label: "Client honorific", onchu: "Company", sama: "Individual", none: "None" }
+        : { label: "거래처 경칭", onchu: "귀중", sama: "님", none: "표시 안 함" };
+
+  const options: Array<{ key: ClientHonorific; label: string }> = [
+    { key: "onchu", label: clientHonorificSuffix("onchu", outputLocale) || copy.onchu },
+    { key: "sama", label: clientHonorificSuffix("sama", outputLocale) || copy.sama },
+    { key: "none", label: copy.none },
+  ];
 
   return (
-    <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-      <span className="text-sm font-medium text-slate-700">
-        {copy.label}{suffix ? ` (${suffix})` : ""}
-      </span>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        onClick={() => onChange(!checked)}
-        className={[
-          "inline-flex min-w-20 items-center justify-center rounded-full px-4 py-1.5 text-xs font-bold text-white transition",
-          checked ? "bg-cyan-600 hover:bg-cyan-700" : "bg-slate-400 hover:bg-slate-500",
-        ].join(" ")}
-      >
-        {checked ? copy.on : copy.off}
-      </button>
+    <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+      <span className="text-sm font-medium text-slate-700">{copy.label}</span>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => (
+          <button
+            key={option.key}
+            type="button"
+            aria-pressed={value === option.key}
+            onClick={() => onChange(option.key)}
+            className={[
+              "rounded-full px-4 py-1.5 text-sm font-semibold transition",
+              value === option.key
+                ? "bg-cyan-600 text-white hover:bg-cyan-700"
+                : "border border-slate-300 bg-white text-slate-600 hover:bg-slate-100",
+            ].join(" ")}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

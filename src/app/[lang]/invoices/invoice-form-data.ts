@@ -1,5 +1,7 @@
 import "server-only";
 
+import { DEFAULT_CLIENT_HONORIFIC } from "@/lib/documents/client-honorific";
+
 import { requireActiveOrg } from "@/lib/guards";
 import { getClientOptions } from "@/lib/db/clients";
 import { getBankAccounts, getCompanyProfile, getDocumentDefaults } from "@/lib/db/company";
@@ -52,7 +54,7 @@ export async function buildNewInvoiceInitial(lang: string): Promise<{
       withholdingType: defaults?.withholding_default ?? "none",
       templateKey: defaults?.invoice_template_key ?? "standard",
       outputLocale: normalizeDocumentOutputLocale(lang),
-      showClientHonorific: true,
+      clientHonorific: DEFAULT_CLIENT_HONORIFIC,
       templateMessage: defaults?.invoice_message ?? "",
       remarks: defaults?.invoice_remarks ?? "",
       bankAccountIds: [],
