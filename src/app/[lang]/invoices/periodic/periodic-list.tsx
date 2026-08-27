@@ -93,19 +93,10 @@ export function PeriodicList({
 
       <div className="mx-auto min-h-[calc(100vh-130px)] w-full max-w-[1260px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <div className="flex flex-col gap-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <h1 className="text-[28px] font-bold tracking-tight text-slate-900">
-              {ui.periodicTitle}
-            </h1>
-            {!isTrashTab ? (
-              <Link
-                href="/invoices/periodic/new"
-                className="inline-flex items-center justify-center rounded bg-[#f59b45] px-6 py-3 text-[16px] font-semibold text-white transition hover:bg-[#ef8d32]"
-              >
-                {ui.periodicCreate}
-              </Link>
-            ) : null}
-          </div>
+          {/* 생성 버튼은 InvoiceSubNav 가 이미 렌더링한다. 여기서 또 두면 같은 버튼이 두 개가 된다. */}
+          <h1 className="text-[28px] font-bold tracking-tight text-slate-900">
+            {ui.periodicTitle}
+          </h1>
 
           <p className="text-[15px] text-slate-600">
             {ui.periodicDesc}{" "}
