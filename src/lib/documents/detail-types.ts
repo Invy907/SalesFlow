@@ -20,7 +20,15 @@ export type SalesDocumentDetail = {
   tax: number;
   total: number;
   lines: SpreadsheetLineItem[];
-  sender: { companyName: string; tel: string; email: string };
+  /** Whether the seal is stamped on this document */
+  showSeal: boolean;
+  sender: {
+    companyName: string;
+    tel: string;
+    email: string;
+    /** Seal image (signed URL). Nothing is stamped without it. */
+    sealUrl?: string | null;
+  };
 };
 
 export type SalesDocumentDetailUi = {
@@ -48,6 +56,14 @@ export type SalesDocumentDetailUi = {
     download: string;
     excel: string;
     print: string;
+    email?: string;
+  };
+  emailModal?: {
+    title: string;
+    description: string;
+    fieldLabel: string;
+    submit: string;
+    success: string;
   };
   actions: {
     downloaded: string;

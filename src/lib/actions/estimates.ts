@@ -8,6 +8,8 @@ import { hasContentLineItem } from "@/lib/validators/document";
 import { maybeImportIssuedEstimateAsAiSource } from "@/lib/actions/ai-estimates";
 import { newShareToken, shareExpiryFromNow } from "@/lib/share-tokens";
 import { computeDocumentTotals } from "@/lib/tax";
+import { sendSalesDocumentEmail } from "@/lib/documents/send-document-email";
+import { getServerSiteUrl } from "@/lib/site-url.server";
 
 type ActionResult<T = void> =
   | { ok: true; data: T }
@@ -66,6 +68,7 @@ export async function createEstimate(
       template_key: parsed.data.templateKey ?? null,
       output_locale: parsed.data.outputLocale,
       client_honorific: parsed.data.clientHonorific,
+      show_seal: parsed.data.showSeal,
       // 기존 조회 코드 호환용으로 같은 뜻을 boolean 으로도 남긴다.
       show_client_honorific: parsed.data.clientHonorific !== "none",
       template_message: parsed.data.templateMessage ?? null,
@@ -272,6 +275,42 @@ export async function saveEstimateMemo(estimateId: string, memo: string): Promis
   if (error) return { ok: false, error: error.message };
   revalidatePath(`/[lang]/estimates/${estimateId}`, "page");
   return { ok: true, data: undefined };
+}
+
+export async function sendEstimateEmail(
+  estimateId: string,
+  recipientEmail: string,
+): Promise<
+  ActionResult<{
+    messageId: string;
+    shareToken: string;
+    shareExpiresAt: string;
+    shareUrl: string;
+  }>
+> {
+  const supabase = await getSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Unauthorized" };
+
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+
+  const origin = await getServerSiteUrl();
+  const result = await sendSalesDocumentEmail(supabase, {
+    organizationId: org.organization_id,
+    userId: user.id,
+    origin,
+    kind: "estimate",
+    documentId: estimateId,
+    recipientEmail,
+  });
+
+  if (result.ok) {
+    revalidatePath(`/[lang]/estimates/${estimateId}`, "page");
+  }
+  return result;
 }
 
 export async function deleteEstimate(estimateId: string): Promise<ActionResult> {

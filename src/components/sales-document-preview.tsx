@@ -71,9 +71,21 @@ export function SalesDocumentPreview({
           </div>
 
           <div className="self-start text-[16px] leading-8 text-slate-800">
-            <p className="text-[20px] font-semibold">{detail.sender.companyName}</p>
-            {detail.sender.tel ? <p className="mt-6">TEL: {detail.sender.tel}</p> : null}
-            {detail.sender.email ? <p>{detail.sender.email}</p> : null}
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-[20px] font-semibold">{detail.sender.companyName}</p>
+                {detail.sender.tel ? <p className="mt-6">TEL: {detail.sender.tel}</p> : null}
+                {detail.sender.email ? <p>{detail.sender.email}</p> : null}
+              </div>
+              {detail.showSeal && detail.sender.sealUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={detail.sender.sealUrl}
+                  alt=""
+                  className="mt-1 h-[84px] w-[84px] shrink-0 object-contain"
+                />
+              ) : null}
+            </div>
           </div>
         </div>
 

@@ -4,6 +4,7 @@ import { SalesDocumentPreview } from "@/components/sales-document-preview";
 import { buildInvoiceDetailUi } from "@/lib/documents/build-detail-ui";
 import type { SalesDocumentDetail } from "@/lib/documents/detail-types";
 import { normalizeDocumentOutputLocale } from "@/lib/documents/output-locale";
+import { getSealUrlForOrg } from "@/lib/documents/seal-url";
 import {
   normalizeClientHonorific,
   normalizeShowClientHonorific,
@@ -39,6 +40,11 @@ export default async function SharedInvoicePage({
   const outputLocale = normalizeDocumentOutputLocale(invoice.output_locale);
   const ui = buildInvoiceDetailUi(outputLocale, getInvoiceContent(outputLocale));
 
+  const sealUrl =
+    invoice.show_seal !== false
+      ? await getSealUrlForOrg(invoice.organization_id as string | null)
+      : null;
+
   const preview: SalesDocumentDetail = {
     id: String(invoice.id ?? ""),
     documentNumber: String(invoice.document_number ?? ""),
@@ -62,10 +68,12 @@ export default async function SharedInvoicePage({
       unit: String(line.unit_snapshot ?? ""),
       unitPrice: Number(line.unit_price_snapshot ?? 0),
     })),
+    showSeal: invoice.show_seal !== false,
     sender: {
       companyName: sender.companyName ?? "",
       tel: sender.tel ?? "",
       email: sender.email ?? "",
+      sealUrl,
     },
   };
 

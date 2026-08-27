@@ -67,6 +67,7 @@ export const createEstimateSchema = z.object({
   templateKey: z.string().default("standard"),
   outputLocale: documentOutputLocaleSchema.default("ja"),
   clientHonorific: clientHonorificSchema.default("onchu"),
+  showSeal: z.boolean().default(true),
   templateMessage: z.string().optional(),
   remarks: z.string().optional(),
   internalMemo: z.string().optional(),

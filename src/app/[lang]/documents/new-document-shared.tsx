@@ -337,9 +337,11 @@ export function DocumentDateFieldRow({ fields }: { fields: [DocumentDateFieldCon
   );
 }
 
-export function useDocumentDateFields(initialPrimaryValue?: string) {
+export function useDocumentDateFields(initialPrimaryValue?: string, initialSecondaryValue?: string) {
   const [primaryDate, setPrimaryDate] = useState(() => toDateInputValue(initialPrimaryValue));
-  const [secondaryDate, setSecondaryDate] = useState("");
+  const [secondaryDate, setSecondaryDate] = useState(() =>
+    initialSecondaryValue ? toDateInputValue(initialSecondaryValue) : "",
+  );
 
   return {
     primaryDate,

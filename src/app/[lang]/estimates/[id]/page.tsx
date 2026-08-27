@@ -47,6 +47,7 @@ export default async function EstimateDetailPage({
     id: estimate.id as string,
     documentNumber: (estimate.document_number as string) ?? "",
     clientId: (estimate.client_id as string | null) ?? null,
+    clientEmail: ((estimate.clients as { email?: string | null } | null)?.email as string) ?? "",
     clientName:
       ((estimate.clients as { name?: string } | null)?.name as string) ?? recipient.clientName ?? "",
     subject: (estimate.subject as string) ?? "",

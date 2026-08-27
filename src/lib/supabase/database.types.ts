@@ -390,6 +390,7 @@ export type Database = {
           output_locale: string
           client_honorific: string
           show_client_honorific: boolean
+          show_seal: boolean
           recipient_snapshot: Json | null
           remarks: string | null
           sender_snapshot: Json | null
@@ -422,6 +423,7 @@ export type Database = {
           output_locale?: string
           client_honorific?: string
           show_client_honorific?: boolean
+          show_seal?: boolean
           recipient_snapshot?: Json | null
           remarks?: string | null
           sender_snapshot?: Json | null
@@ -454,6 +456,7 @@ export type Database = {
           output_locale?: string
           client_honorific?: string
           show_client_honorific?: boolean
+          show_seal?: boolean
           recipient_snapshot?: Json | null
           remarks?: string | null
           sender_snapshot?: Json | null
@@ -764,6 +767,7 @@ export type Database = {
           output_locale: string
           client_honorific: string
           show_client_honorific: boolean
+          show_seal: boolean
           recipient_snapshot: Json | null
           remarks: string | null
           sender_snapshot: Json | null
@@ -797,6 +801,7 @@ export type Database = {
           output_locale?: string
           client_honorific?: string
           show_client_honorific?: boolean
+          show_seal?: boolean
           recipient_snapshot?: Json | null
           remarks?: string | null
           sender_snapshot?: Json | null
@@ -830,6 +835,7 @@ export type Database = {
           output_locale?: string
           client_honorific?: string
           show_client_honorific?: boolean
+          show_seal?: boolean
           recipient_snapshot?: Json | null
           remarks?: string | null
           sender_snapshot?: Json | null
@@ -1108,6 +1114,7 @@ export type Database = {
           output_locale: string
           client_honorific: string
           show_client_honorific: boolean
+          show_seal: boolean
           paid_amount: number
           paid_at: string | null
           payment_due: string | null
@@ -1150,6 +1157,7 @@ export type Database = {
           output_locale?: string
           client_honorific?: string
           show_client_honorific?: boolean
+          show_seal?: boolean
           paid_amount?: number
           paid_at?: string | null
           payment_due?: string | null
@@ -1192,6 +1200,7 @@ export type Database = {
           output_locale?: string
           client_honorific?: string
           show_client_honorific?: boolean
+          show_seal?: boolean
           paid_amount?: number
           paid_at?: string | null
           payment_due?: string | null
@@ -2209,6 +2218,7 @@ export type Database = {
           output_locale: string
           client_honorific: string
           show_client_honorific: boolean
+          show_seal: boolean
           recipient_snapshot: Json | null
           remarks: string | null
           sender_snapshot: Json | null
@@ -2241,6 +2251,7 @@ export type Database = {
           output_locale?: string
           client_honorific?: string
           show_client_honorific?: boolean
+          show_seal?: boolean
           recipient_snapshot?: Json | null
           remarks?: string | null
           sender_snapshot?: Json | null
@@ -2273,6 +2284,7 @@ export type Database = {
           output_locale?: string
           client_honorific?: string
           show_client_honorific?: boolean
+          show_seal?: boolean
           recipient_snapshot?: Json | null
           remarks?: string | null
           sender_snapshot?: Json | null

@@ -89,8 +89,8 @@ const labels = {
       title: "取引先情報の更新",
       description: "メール送信をするにはメールアドレスの登録をしてください。",
       fieldLabel: "メールアドレス",
-      submit: "登録して送信へ進む",
-      success: "メールアドレスを登録しました。送信準備ができました。"
+      submit: "登録して送信",
+      success: "メールを送信しました。"
     },
     shareModal: {
       title: "共有リンク（チャット/SNS）",
@@ -278,8 +278,8 @@ const labels = {
       title: "거래처 정보 업데이트",
       description: "메일을 보내려면 이메일 주소를 등록해 주세요.",
       fieldLabel: "이메일 주소",
-      submit: "등록 후 발송으로 진행",
-      success: "이메일 주소를 등록했습니다. 발송 준비가 완료되었습니다."
+      submit: "등록 후 발송",
+      success: "메일을 발송했습니다."
     },
     shareModal: {
       title: "공유 링크(채팅/SNS)",
@@ -463,8 +463,8 @@ const labels = {
       title: "Update client information",
       description: "Please register an email address before sending by email.",
       fieldLabel: "Email address",
-      submit: "Register and continue",
-      success: "Email address saved. Ready to send."
+      submit: "Save and send",
+      success: "Email sent."
     },
     shareModal: {
       title: "Share link (chat/SNS)",

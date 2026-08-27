@@ -164,6 +164,7 @@ export function EstimateFormClient({
         templateKey: selectedTemplate,
         outputLocale,
         clientHonorific,
+        showSeal: true,
         templateMessage: form.templateMessage,
         remarks: form.remarks,
         recipientSnapshot: { ...form.recipient, clientName: form.clientName },

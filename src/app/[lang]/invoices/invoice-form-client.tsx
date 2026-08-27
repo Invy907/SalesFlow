@@ -81,6 +81,18 @@ export type InvoiceFormInitial = {
   remarks: string;
   bankAccountIds: string[];
   lines: LineItemRow[];
+  /** Filled only when duplicating an existing invoice. */
+  showSeal?: boolean;
+  recipient?: Partial<{
+    postalCode: string;
+    addressLine1: string;
+    addressLine2: string;
+    companyName: string;
+    department: string;
+    section: string;
+    contact: string;
+    phone: string;
+  }>;
 };
 
 /** Includes the registered address/phone so picking a client fills the recipient block. */
@@ -100,10 +112,13 @@ export function InvoiceFormClient({
   initial,
   clients,
   bankAccounts,
+  sealUrl = null,
 }: {
   initial: InvoiceFormInitial;
   clients: InvoiceClientOption[];
   bankAccounts: InvoiceBankAccount[];
+  /** Company seal image (signed URL). null when none is registered. */
+  sealUrl?: string | null;
 }) {
   const { lang } = useLanguage();
   const ui = getInvoiceContent(lang);
@@ -128,8 +143,10 @@ export function InvoiceFormClient({
   const [clientOptions, setClientOptions] = useState<InvoiceClientOption[]>(clients);
   const [clientModalOpen, setClientModalOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(true);
+  const [showSeal, setShowSeal] = useState(initial.showSeal !== false);
   const { primaryDate, setPrimaryDate, secondaryDate, setSecondaryDate } = useDocumentDateFields(
     initial.issueDate || ui.issueDateValue,
+    initial.paymentDue,
   );
 
   const [form, setForm] = useState({
@@ -139,14 +156,14 @@ export function InvoiceFormClient({
     senderCompanyName: initial.senderCompanyName,
     billingMonth: initial.billingMonth,
     recipient: {
-      postalCode: "",
-      addressLine1: "",
-      addressLine2: "",
-      companyName: "",
-      department: "",
-      section: "",
-      contact: "",
-      phone: "",
+      postalCode: initial.recipient?.postalCode ?? "",
+      addressLine1: initial.recipient?.addressLine1 ?? "",
+      addressLine2: initial.recipient?.addressLine2 ?? "",
+      companyName: initial.recipient?.companyName ?? "",
+      department: initial.recipient?.department ?? "",
+      section: initial.recipient?.section ?? "",
+      contact: initial.recipient?.contact ?? "",
+      phone: initial.recipient?.phone ?? "",
     },
     taxDisplay: initial.taxDisplay === "separate_on_invoice" ? "separate" : initial.taxDisplay,
     taxRounding: initial.taxRounding,
@@ -249,6 +266,7 @@ export function InvoiceFormClient({
         templateKey: selectedTemplate,
         outputLocale,
         clientHonorific,
+        showSeal,
         templateMessage: form.templateMessage,
         remarks: form.remarks,
         bankAccountIds: form.bankAccountIds,
@@ -404,6 +422,20 @@ export function InvoiceFormClient({
                     />
                     <div className="mt-1 text-right text-sm text-slate-400">{form.subject.length}/70</div>
                     {err("subject")}
+                  </FormField>
+
+                  <FormField label={ui.freeTextLabel}>
+                    <p className="mb-2 text-sm text-slate-500">{ui.freeTextHint}</p>
+                    <textarea
+                      className="field min-h-[100px]"
+                      maxLength={2000}
+                      placeholder={ui.templateMessagePlaceholder}
+                      value={form.templateMessage}
+                      onChange={(e) => set("templateMessage", e.target.value)}
+                    />
+                    <div className="mt-1 text-right text-sm text-slate-400">
+                      {form.templateMessage.length}/2000
+                    </div>
                   </FormField>
 
                   <div>
@@ -704,15 +736,28 @@ export function InvoiceFormClient({
                     onChange={setOutputLocale}
                   />
 
-                  <label className="block">
-                    <div className="mb-2 text-[16px] font-semibold text-slate-800">{ui.templateMessageLabel}</div>
-                    <input
-                      className="field"
-                      placeholder={ui.templateMessagePlaceholder}
-                      value={form.templateMessage}
-                      onChange={(e) => set("templateMessage", e.target.value)}
-                    />
-                  </label>
+
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p className="text-[16px] font-semibold text-slate-800">{ui.sealTitle}</p>
+                    {sealUrl ? (
+                      <label className="mt-3 flex items-center gap-3 text-[15px] text-slate-800">
+                        <input
+                          type="checkbox"
+                          checked={showSeal}
+                          onChange={(e) => setShowSeal(e.target.checked)}
+                          className="h-4 w-4 accent-cyan-600"
+                        />
+                        {ui.sealShow}
+                      </label>
+                    ) : (
+                      <p className="mt-2 text-sm text-slate-500">
+                        {ui.sealNotRegistered}{" "}
+                        <Link href={appHrefs.settingsCompany} className="text-cyan-600 underline">
+                          {ui.sealSettingsLink} ↗
+                        </Link>
+                      </p>
+                    )}
+                  </div>
 
                   <p className="text-sm text-slate-500">{ui.templateFieldsMovedNote}</p>
                 </div>
@@ -724,7 +769,8 @@ export function InvoiceFormClient({
         {/* Shared by every tab: remounting per tab would drop what is being typed. */}
         <DocumentLineItemsTable
           ui={ui}
-          storageKey="invoice-new-line-items"
+          storageKey={initial.lines.length > 0 ? undefined : "invoice-new-line-items"}
+          initialRows={initial.lines.length > 0 ? initial.lines : undefined}
           onTotalsChange={handleTotalsChange}
           onRowsChange={handleRowsChange}
         />
@@ -749,6 +795,8 @@ export function InvoiceFormClient({
                 templateMessage: form.templateMessage,
                 remarks: form.remarks,
                 senderCompanyName: form.senderCompanyName,
+                sealUrl,
+                showSeal,
                 taxRounding: form.taxRounding,
                 rows,
               }}

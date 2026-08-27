@@ -44,6 +44,7 @@ export default async function InvoiceDetailPage({
       documentUi={buildInvoiceDetailUi(outputLocale, getInvoiceContent(outputLocale))}
       shellActiveItem="invoices"
       listHref={`/${lang}/invoices`}
+      clientEmail={((invoice.clients as { email?: string | null } | null)?.email as string) ?? ""}
     />
   );
 }

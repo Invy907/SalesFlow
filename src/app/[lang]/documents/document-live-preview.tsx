@@ -29,6 +29,9 @@ export type LivePreviewInput = {
   senderCompanyName: string;
   senderTel?: string;
   senderEmail?: string;
+  /** Seal image (signed URL) and whether it is stamped on this document */
+  sealUrl?: string | null;
+  showSeal?: boolean;
   taxRounding: TaxRounding;
   rows: LineItemRow[];
 };
@@ -74,10 +77,12 @@ export function buildLivePreviewDetail(input: LivePreviewInput): SalesDocumentDe
       unit: row.unit,
       unitPrice: toNumber(row.price),
     })),
+    showSeal: input.showSeal !== false,
     sender: {
       companyName: input.senderCompanyName,
       tel: input.senderTel ?? "",
       email: input.senderEmail ?? "",
+      sealUrl: input.sealUrl ?? null,
     },
   };
 }

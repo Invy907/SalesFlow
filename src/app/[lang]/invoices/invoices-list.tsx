@@ -213,6 +213,14 @@ export function InvoicesList({
                             {previewId === row.id ? ui.previewHide : ui.previewShow}
                           </button>
                           {!isTrashTab ? (
+                            <Link
+                              href={`/${lang}/invoices/new?copyFrom=${row.id}`}
+                              className="text-slate-700 hover:underline"
+                            >
+                              {ui.duplicateAction}
+                            </Link>
+                          ) : null}
+                          {!isTrashTab ? (
                             <button
                               type="button"
                               onClick={() => handleDelete(row)}
@@ -238,6 +246,12 @@ export function InvoicesList({
                 <div className="flex items-center gap-3 text-[14px]">
                   <Link href={`/${lang}/invoices/${previewId}`} className="text-[#14a7bb] hover:underline">
                     {ui.previewOpenDetail}
+                  </Link>
+                  <Link
+                    href={`/${lang}/invoices/new?copyFrom=${previewId}`}
+                    className="text-slate-700 hover:underline"
+                  >
+                    {ui.duplicateAction}
                   </Link>
                   <button
                     type="button"

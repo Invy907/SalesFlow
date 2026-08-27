@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { SalesFlowShell, type ActiveItem } from "@/components/salesflow-shell";
 import type { SalesDocumentDetail, SalesDocumentDetailUi } from "@/lib/documents/detail-types";
 import { downloadSalesDocumentXlsx } from "@/lib/documents/export-spreadsheet";
@@ -10,8 +11,9 @@ import {
   clientHonorificSuffix,
   formatClientNameWithHonorific,
 } from "@/lib/documents/client-honorific";
+import { sendInvoiceEmail } from "@/lib/actions/invoices";
 
-type ExportAction = "download" | "excel" | "print";
+type ExportAction = "download" | "excel" | "print" | "email";
 
 const yen = (value: number) => `¥ ${value.toLocaleString("ja-JP")}`;
 
@@ -21,16 +23,23 @@ export function SalesDocumentDetailClient({
   documentUi,
   shellActiveItem,
   listHref,
+  clientEmail = "",
 }: {
   detail: SalesDocumentDetail;
   ui: SalesDocumentDetailUi;
   documentUi: SalesDocumentDetailUi;
   shellActiveItem: ActiveItem;
   listHref: string;
+  clientEmail?: string;
 }) {
+  const router = useRouter();
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [email, setEmail] = useState(clientEmail);
   const [toast, setToast] = useState("");
+  const [pending, startTransition] = useTransition();
   const exportMenuRef = useRef<HTMLDivElement>(null);
+  const isInvoice = shellActiveItem === "invoices";
 
   useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
@@ -100,9 +109,26 @@ export function SalesDocumentDetailClient({
     setToast(ui.actions.excelDownloaded);
   }
 
+  function handleSendEmail() {
+    if (!isInvoice || !ui.emailModal) return;
+    startTransition(async () => {
+      const result = await sendInvoiceEmail(detail.id, email);
+      if (!result.ok) {
+        setToast(result.error);
+        return;
+      }
+      setIsEmailModalOpen(false);
+      setToast(ui.emailModal!.success);
+      router.refresh();
+    });
+  }
+
   function handleExportAction(action: ExportAction) {
     setIsExportMenuOpen(false);
     switch (action) {
+      case "email":
+        setIsEmailModalOpen(true);
+        return;
       case "download":
         setToast(ui.actions.downloaded);
         window.print();
@@ -140,6 +166,12 @@ export function SalesDocumentDetailClient({
                 />
                 <ExportMenuItem label={ui.exportMenu.excel} onClick={() => handleExportAction("excel")} />
                 <ExportMenuItem label={ui.exportMenu.print} onClick={() => handleExportAction("print")} />
+                {isInvoice && ui.exportMenu.email ? (
+                  <ExportMenuItem
+                    label={ui.exportMenu.email}
+                    onClick={() => handleExportAction("email")}
+                  />
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -188,7 +220,88 @@ export function SalesDocumentDetailClient({
           {toast}
         </div>
       ) : null}
+
+      {isEmailModalOpen ? (
+        <InvoiceEmailModal
+          ui={ui}
+          email={email}
+          pending={pending}
+          onClose={() => setIsEmailModalOpen(false)}
+          onEmailChange={setEmail}
+          onSubmit={handleSendEmail}
+        />
+      ) : null}
     </SalesFlowShell>
+  );
+}
+
+function InvoiceEmailModal({
+  ui,
+  email,
+  pending,
+  onClose,
+  onEmailChange,
+  onSubmit,
+}: {
+  ui: SalesDocumentDetailUi;
+  email: string;
+  pending: boolean;
+  onClose: () => void;
+  onEmailChange: (value: string) => void;
+  onSubmit: () => void;
+}) {
+  if (!ui.emailModal) return null;
+
+  return (
+    <div className="no-print fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 p-6">
+      <div className="w-full max-w-[720px] overflow-hidden rounded-2xl bg-white shadow-[0_24px_60px_rgba(15,23,42,0.28)]">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSubmit();
+          }}
+        >
+          <ModalHeader title={ui.emailModal.title} onClose={onClose} />
+          <div className="px-9 py-10">
+            <p className="text-[18px] text-slate-800">{ui.emailModal.description}</p>
+            <label className="mt-6 block text-[15px] font-semibold text-slate-700">
+              {ui.emailModal.fieldLabel}
+            </label>
+            <input
+              className="field mt-2"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => onEmailChange(e.target.value)}
+            />
+          </div>
+          <div className="flex justify-end gap-3 border-t border-slate-200 px-9 py-5">
+            <button
+              type="submit"
+              disabled={pending}
+              className="rounded bg-[#14a7bb] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#1096a8] disabled:opacity-60"
+            >
+              {ui.emailModal.submit}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ModalHeader({ title, onClose }: { title: string; onClose: () => void }) {
+  return (
+    <div className="flex items-center justify-between border-b border-slate-200 px-9 py-5">
+      <h2 className="text-[22px] font-bold text-slate-900">{title}</h2>
+      <button
+        type="button"
+        onClick={onClose}
+        className="rounded px-3 py-1 text-[15px] text-slate-500 hover:bg-slate-100"
+      >
+        ✕
+      </button>
+    </div>
   );
 }
 

@@ -9,6 +9,7 @@ import {
   issueEstimate,
   revokeShareEstimate,
   saveEstimateMemo,
+  sendEstimateEmail,
   shareEstimate,
 } from "@/lib/actions/estimates";
 import { importEstimateAsAiSource } from "@/lib/actions/ai-estimates";
@@ -26,6 +27,7 @@ export type EstimateDetail = {
   id: string;
   documentNumber: string;
   clientId: string | null;
+  clientEmail: string;
   clientName: string;
   subject: string;
   issueDate: string;
@@ -58,7 +60,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
 
   const [isIssueMenuOpen, setIsIssueMenuOpen] = useState(false);
   const [modal, setModal] = useState<ModalType>(null);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(detail.clientEmail);
   const [memo, setMemo] = useState(detail.internalMemo);
   const [toast, setToast] = useState("");
   const [shareToken, setShareToken] = useState(detail.shareToken);
@@ -201,6 +203,21 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
       remarksLabel: documentUi.remarks,
     });
     setToast(ui.actions.excelDownloaded);
+  }
+
+  function handleSendEmail() {
+    startTransition(async () => {
+      const result = await sendEstimateEmail(detail.id, email);
+      if (!result.ok) {
+        setToast(result.error);
+        return;
+      }
+      setShareToken(result.data.shareToken);
+      setShareExpiresAt(result.data.shareExpiresAt);
+      setModal(null);
+      setToast(ui.emailModal.success);
+      router.refresh();
+    });
   }
 
   function handleIssueAction(action: IssueAction) {
@@ -397,8 +414,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
               <form
                 onSubmit={(event) => {
                   event.preventDefault();
-                  setModal(null);
-                  setToast(ui.emailModal.success);
+                  handleSendEmail();
                 }}
               >
                 <ModalHeader title={ui.emailModal.title} onClose={() => setModal(null)} />
@@ -418,7 +434,8 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
                 <div className="flex justify-end gap-3 border-t border-slate-200 px-9 py-5">
                   <button
                     type="submit"
-                    className="rounded bg-[#14a7bb] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#1096a8]"
+                    disabled={pending}
+                    className="rounded bg-[#14a7bb] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#1096a8] disabled:opacity-60"
                   >
                     {ui.emailModal.submit}
                   </button>

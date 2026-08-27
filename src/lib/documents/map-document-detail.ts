@@ -21,6 +21,7 @@ type DocumentRow = {
   output_locale?: string | null;
   show_client_honorific?: boolean | null;
   client_honorific?: string | null;
+  show_seal?: boolean | null;
   template_message?: string | null;
   remarks?: string | null;
   subtotal?: number | string | null;
@@ -67,6 +68,7 @@ export function mapSalesDocumentDetail(
     tax: Number(row.tax_amount ?? 0),
     total: Number(row.total ?? 0),
     lines: mapDocumentLines(lines),
+    showSeal: row.show_seal !== false,
     sender,
   };
 }

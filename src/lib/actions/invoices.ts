@@ -7,7 +7,10 @@ import { createInvoiceSchema, type CreateInvoiceInput } from "@/lib/validators/d
 import { hasContentLineItem } from "@/lib/validators/document";
 import { computeDocumentTotals } from "@/lib/tax";
 import { mapSalesDocumentDetail } from "@/lib/documents/map-document-detail";
+import { getDocumentSealUrl } from "@/lib/documents/seal-url";
 import type { SalesDocumentDetail } from "@/lib/documents/detail-types";
+import { sendSalesDocumentEmail } from "@/lib/documents/send-document-email";
+import { getServerSiteUrl } from "@/lib/site-url.server";
 
 type ActionResult<T = void> =
   | { ok: true; data: T }
@@ -68,6 +71,7 @@ export async function createInvoice(
       template_key: parsed.data.templateKey ?? null,
       output_locale: parsed.data.outputLocale,
       client_honorific: parsed.data.clientHonorific,
+      show_seal: parsed.data.showSeal,
       // 기존 조회 코드 호환용으로 같은 뜻을 boolean 으로도 남긴다.
       show_client_honorific: parsed.data.clientHonorific !== "none",
       template_message: parsed.data.templateMessage ?? null,
@@ -132,7 +136,7 @@ export async function getInvoicePreview(
 
   const { data: profile } = await supabase
     .from("company_profiles")
-    .select("company_name_line1, tel, email")
+    .select("company_name_line1, tel, email, seal_path")
     .eq("organization_id", org.organization_id)
     .maybeSingle();
 
@@ -143,6 +147,10 @@ export async function getInvoicePreview(
       companyName: (profile?.company_name_line1 as string | null) ?? "",
       tel: (profile?.tel as string | null) ?? "",
       email: (profile?.email as string | null) ?? "",
+      sealUrl:
+        invoice.show_seal !== false
+          ? await getDocumentSealUrl(profile?.seal_path as string | null)
+          : null,
     },
     { secondaryDate: (invoice.payment_due as string | null) ?? undefined },
   );
@@ -186,6 +194,42 @@ export async function recordPayment(
 
   revalidatePath("/[lang]/invoices", "page");
   return { ok: true, data: undefined };
+}
+
+export async function sendInvoiceEmail(
+  invoiceId: string,
+  recipientEmail: string,
+): Promise<
+  ActionResult<{
+    messageId: string;
+    shareToken: string;
+    shareExpiresAt: string;
+    shareUrl: string;
+  }>
+> {
+  const supabase = await getSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Unauthorized" };
+
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+
+  const origin = await getServerSiteUrl();
+  const result = await sendSalesDocumentEmail(supabase, {
+    organizationId: org.organization_id,
+    userId: user.id,
+    origin,
+    kind: "invoice",
+    documentId: invoiceId,
+    recipientEmail,
+  });
+
+  if (result.ok) {
+    revalidatePath(`/[lang]/invoices/${invoiceId}`, "page");
+  }
+  return result;
 }
 
 export async function deleteInvoice(invoiceId: string): Promise<ActionResult> {
