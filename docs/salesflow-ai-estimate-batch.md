@@ -116,6 +116,37 @@ npm run ai-estimate:report  -- --run-id <ID>
 npm run ai-estimate:ingest  -- --all --confirm   # 전체 5,000건. 이 조합 없이는 전체 실행 금지
 ```
 
+## 5.5 런타임 검색 (하이브리드 RAG)
+
+견적 초안 생성(`generateAiEstimateDraft`)의 과거 견적 검색은 세 채널을 합산한다.
+
+```
+최종점수 = keyword * tokenScore + vector * cosine유사도 + (같은 거래처면 0.35)
+```
+
+- 키워드 채널: `ai_estimate_examples.search_text` 토큰 겹침. 후보 상한 500건
+- 벡터 채널: 쿼리를 `RETRIEVAL_QUERY` 로 임베딩해 `ai_estimate_search_chunks` RPC 호출, 상한 30건
+- 두 채널을 example 단위로 합쳐 상위 20건을 뽑고, 품목까지 조회한 뒤 상위 5건을 근거로 쓴다
+
+가중치는 `src/lib/ai/estimates/retrieval.ts` 에 있다. 벡터 채널이 후보를 돌려주면
+`keyword 0.4 / vector 0.6`, 아니면 `keyword 1.0` 으로 떨어져 하이브리드 도입 전과 점수
+스케일이 같다. `draft` 의 confidence 가 이 점수에 직접 의존하기 때문이다.
+
+**벡터 채널이 동작하는 조건**
+
+1. `GEMINI_API_KEY` 설정 (없으면 임베딩을 건너뛴다)
+2. `npm run ai-estimate:reindex` 로 `embedding_vector` 를 채워둔 청크 존재
+
+둘 중 하나라도 없으면 자동으로 키워드 전용으로 동작한다. 임베딩 실패나 RPC 오류도
+초안 생성을 막지 않고 키워드 결과로 흡수한다.
+
+RPC 는 `organization_id` 만 거르고 chunks RLS 는 관리자에게 private 자료도 허용한다.
+그래서 조직 설정이 `allow_private_sources = false` 일 때는 상세 조회 단계에서
+`visibility = 'organization'` 을 다시 적용한다.
+
+어떤 검색이 쓰였는지는 `ai_estimate_suggestions.provider`(`...-hybrid-retrieval`)와
+`suggestion_data.retrieval.mode` 에 남는다.
+
 ## 6. 로그에 남기지 않는 것
 
 Gemini/Supabase 키, 견적서 원문, 사업자번호, 계좌번호, 연락처, 서명·도장, Gemini 전체 응답.

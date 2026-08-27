@@ -19,6 +19,11 @@ import {
 } from "@/lib/ai/estimates/schemas";
 import { extractionSearchText, normalizeItemName } from "@/lib/ai/estimates/normalize";
 import {
+  searchApprovedExamples,
+  type ApprovedExampleSearch,
+} from "@/lib/ai/estimates/hybrid-search";
+import { tokenScore } from "@/lib/ai/estimates/retrieval";
+import {
   isMarketResearchConfigured,
   MARKET_RESEARCH_MODEL,
   researchPublicMarketPrice,
@@ -446,13 +451,6 @@ export async function maybeImportIssuedEstimateAsAiSource(estimateId: string): P
   await importEstimateAsAiSource(estimateId);
 }
 
-function tokenScore(query: string, text: string) {
-  const tokens = normalizeItemName(query).split(" ").filter((token) => token.length > 1);
-  if (!tokens.length) return 0;
-  const normalized = normalizeItemName(text);
-  return tokens.filter((token) => normalized.includes(token)).length / tokens.length;
-}
-
 export async function generateAiEstimateDraft(input: unknown): Promise<ActionResult<{ suggestionId: string; draft: AiEstimateDraft; marketResearch: AiMarketResearchResult | null }>> {
   const parsed = aiDraftRequestSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid request" };
@@ -498,28 +496,28 @@ export async function generateAiEstimateDraft(input: unknown): Promise<ActionRes
     }
   }
 
-  let examplesQuery = scope.supabase
-    .from("ai_estimate_examples")
-    .select("id, client_id, client_name, subject, issue_date, template_message, remarks, search_text, visibility, ai_estimate_example_lines(name, qty, unit, unit_price, tax_category)")
-    .eq("organization_id", scope.orgId)
-    .order("issue_date", { ascending: false, nullsFirst: false })
-    .limit(50);
-  if (!settings?.allow_private_sources) examplesQuery = examplesQuery.eq("visibility", "organization");
-  const { data: examples, error } = await examplesQuery;
-  if (error) return { ok: false, error: error.message };
-
   const queryText = [parsed.data.clientName, parsed.data.subject, parsed.data.workDescription].filter(Boolean).join(" ");
-  const ranked = (examples ?? [])
-    .map((example) => ({
-      example,
-      score: Math.min(1, tokenScore(queryText, example.search_text as string) + (parsed.data.clientId && example.client_id === parsed.data.clientId ? 0.35 : 0)),
-    }))
-    .filter(({ score }) => score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
+  let search: ApprovedExampleSearch;
+  try {
+    search = await searchApprovedExamples({
+      supabase: scope.supabase,
+      orgId: scope.orgId,
+      queryText,
+      clientId: parsed.data.clientId,
+      allowPrivateSources: Boolean(settings?.allow_private_sources),
+    });
+  } catch (searchError) {
+    return {
+      ok: false,
+      error: searchError instanceof Error ? searchError.message : "과거 견적 검색에 실패했습니다.",
+    };
+  }
+
+  const ranked = search.matches;
   const best = ranked[0];
   let draft: AiEstimateDraft;
-  let provider = marketResearch ? "salesflow-retrieval+gemini-google-search" : "salesflow-retrieval";
+  const retrievalLabel = search.vectorUsed ? "salesflow-hybrid-retrieval" : "salesflow-retrieval";
+  let provider = marketResearch ? `${retrievalLabel}+gemini-google-search` : retrievalLabel;
   let model = marketResearch ? MARKET_RESEARCH_MODEL : "approved-example-v1";
   let generationEvidence: AiEstimateGenerationEvidence[] = [];
   let priceAnchors: AiEstimatePriceAnchor[] = [];
@@ -705,7 +703,11 @@ export async function generateAiEstimateDraft(input: unknown): Promise<ActionRes
       requested_by: scope.userId,
       prompt_text: parsed.data.workDescription,
       request_context: parsed.data,
-      suggestion_data: { draft, marketResearch },
+      suggestion_data: {
+        draft,
+        marketResearch,
+        retrieval: { mode: search.vectorUsed ? "hybrid" : "keyword", vectorUsed: search.vectorUsed },
+      },
       evidence_example_ids: draft.evidence.map((item) => item.exampleId),
       provider,
       model,
