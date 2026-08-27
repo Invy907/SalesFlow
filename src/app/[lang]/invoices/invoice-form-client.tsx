@@ -339,7 +339,7 @@ export function InvoiceFormClient({
         </div>
 
         <div className={activeTab === "basic" ? "" : "hidden"}>
-            <div className="mt-10 grid gap-8 xl:grid-cols-2">
+            <div className={`mt-10 grid gap-8 ${previewOpen ? "grid-cols-1" : "xl:grid-cols-2"}`}>
               <section>
                 <SectionTitle title={ui.invoiceInfo} />
                 <div className="mt-5 space-y-5">

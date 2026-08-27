@@ -4,6 +4,7 @@ import {
   formatClientNameWithHonorific,
 } from "@/lib/documents/client-honorific";
 import { isBlankDocumentLine } from "@/lib/documents/export-spreadsheet";
+import { formatDisplayDate } from "@/app/[lang]/estimates/date-field-utils";
 
 const yen = (value: number) => `¥ ${value.toLocaleString("ja-JP")}`;
 
@@ -18,6 +19,11 @@ export function SalesDocumentPreview({
   variant?: "page" | "panel";
 }) {
   const panel = variant === "panel";
+  const issueDateLabel = formatDisplayDate(detail.issueDate, detail.outputLocale);
+  const secondaryDateLabel = detail.secondaryDate
+    ? formatDisplayDate(detail.secondaryDate, detail.outputLocale)
+    : ui.noDate;
+
   return (
     <div
       className={
@@ -33,9 +39,9 @@ export function SalesDocumentPreview({
         ].join(" ")}
       >
         <div className="flex justify-end">
-          <div className="space-y-2 text-right text-[16px] font-semibold text-slate-900">
-            <p>{detail.issueDate}</p>
-            <p>
+          <div className="min-w-0 max-w-full space-y-1 text-right text-[14px] font-semibold text-slate-900 sm:text-[16px]">
+            <p className="tabular-nums whitespace-nowrap">{issueDateLabel}</p>
+            <p className="break-words leading-snug">
               {ui.documentNumberLabel}: {detail.documentNumber}
             </p>
           </div>
@@ -56,6 +62,14 @@ export function SalesDocumentPreview({
                 detail.clientHonorific !== "none",
               )}
             </p>
+            {detail.subject ? (
+              <p className="mt-2 text-[14px] text-slate-600">{detail.subject}</p>
+            ) : null}
+            {ui.secondaryDateLabel ? (
+              <p className="mt-1 text-[14px] text-slate-600">
+                {ui.secondaryDateLabel}: {secondaryDateLabel}
+              </p>
+            ) : null}
             <p className="mt-5 text-[16px] text-slate-800">
               {detail.templateMessage || ui.previewLead}
             </p>

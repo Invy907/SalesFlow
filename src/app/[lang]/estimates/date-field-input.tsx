@@ -279,7 +279,12 @@ export function DateFieldInput({
           ].join(" ")}
         >
           <div className="min-w-0">
-            <p className={value ? "text-[18px] font-semibold text-slate-900" : "text-[16px] text-slate-400"}>
+            <p
+              className={[
+                "truncate",
+                value ? "text-[18px] font-semibold text-slate-900" : "text-[16px] text-slate-400",
+              ].join(" ")}
+            >
               {displayValue}
             </p>
           </div>
@@ -315,7 +320,14 @@ export function DateFieldInput({
         ].join(" ")}
       >
         <CalendarIcon className="h-5 w-5 shrink-0 text-slate-400" />
-        <span className={value ? "font-medium text-slate-700" : "text-slate-400"}>{displayValue}</span>
+        <span
+          className={[
+            "min-w-0 flex-1 truncate",
+            value ? "font-medium text-slate-700" : "text-slate-400",
+          ].join(" ")}
+        >
+          {displayValue}
+        </span>
       </button>
       {calendarPanel}
     </div>

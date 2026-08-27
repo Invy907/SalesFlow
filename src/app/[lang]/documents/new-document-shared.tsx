@@ -327,11 +327,13 @@ type DocumentDateFieldConfig = {
 
 export function DocumentDateFieldRow({ fields }: { fields: [DocumentDateFieldConfig, DocumentDateFieldConfig] }) {
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       {fields.map((field) => (
-        <FormField key={field.label} label={field.label} required={field.required}>
-          <DateFieldInput value={field.value} onChange={field.onChange} placeholder={field.placeholder} />
-        </FormField>
+        <div key={field.label} className="min-w-0">
+          <FormField label={field.label} required={field.required}>
+            <DateFieldInput value={field.value} onChange={field.onChange} placeholder={field.placeholder} />
+          </FormField>
+        </div>
       ))}
     </div>
   );
