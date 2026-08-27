@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
 import { appHrefs } from "@/lib/app-hrefs";
@@ -13,7 +13,9 @@ import {
   EMPTY_LINE_ITEM_TOTALS,
   HonorificField as SharedHonorificField,
   SenderDetailFields,
+  toIsoDate,
   useDocumentDateFields,
+  type LineItemRow,
   type LineItemTotals,
 } from "../../documents/new-document-shared";
 import {
@@ -28,13 +30,31 @@ import {
   type DocumentOutputLocale,
 } from "@/lib/documents/output-locale";
 import { getReceiptContent } from "../content";
+import { DocumentPreviewPanel } from "../../documents/document-live-preview";
+import { buildReceiptDetailUi } from "@/lib/documents/build-detail-ui";
+import { getDocumentPreviewPanelLabels } from "@/lib/documents/preview-panel-labels";
+import type { TaxRounding } from "@/lib/tax";
 
 type TabKey = "basic" | "recipient" | "tax" | "template";
 type TemplateType = "standard" | "envelope" | null;
 
+const TAX_ROUNDING_ORDER: TaxRounding[] = ["round_down", "round_up", "round_half"];
+
+type PreviewForm = {
+  clientName: string;
+  documentNumber: string;
+  subject: string;
+  senderCompanyName: string;
+  templateMessage: string;
+  remarks: string;
+  taxRounding: TaxRounding;
+};
+
 export function NewReceiptClient() {
   const { lang } = useLanguage();
   const ui = getReceiptContent(lang);
+  const previewLabels = getDocumentPreviewPanelLabels(lang);
+  const [previewOpen, setPreviewOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>("basic");
   const [selectedTemplate, setSelectedTemplate] = useState<"standard" | "envelope">("standard");
   const [previewModal, setPreviewModal] = useState<TemplateType>(null);
@@ -44,7 +64,33 @@ export function NewReceiptClient() {
   const [clientHonorific, setClientHonorific] =
     useState<ClientHonorific>(DEFAULT_CLIENT_HONORIFIC);
   const [lineItemTotals, setLineItemTotals] = useState<LineItemTotals>(EMPTY_LINE_ITEM_TOTALS);
+  const [rows, setRows] = useState<LineItemRow[]>([]);
   const { primaryDate, setPrimaryDate, secondaryDate, setSecondaryDate } = useDocumentDateFields(ui.issueDateValue);
+
+  // 프리뷰에 그대로 반영해야 하는 입력만 상태로 들고 있는다.
+  const [form, setForm] = useState<PreviewForm>({
+    clientName: "",
+    documentNumber: ui.receiptNumberValue,
+    subject: "",
+    senderCompanyName: ui.companyValue,
+    templateMessage: "",
+    remarks: "",
+    taxRounding: "round_down",
+  });
+  const set = <K extends keyof PreviewForm>(key: K, value: PreviewForm[K]) =>
+    setForm((f) => ({ ...f, [key]: value }));
+
+  const handleRowsChange = useCallback((next: LineItemRow[]) => setRows(next), []);
+  const handleTotalsChange = useCallback((next: LineItemTotals) => setLineItemTotals(next), []);
+
+  const lineItemsTable = (
+    <DocumentLineItemsTable
+      ui={ui}
+      storageKey="receipt-new-line-items"
+      onTotalsChange={handleTotalsChange}
+      onRowsChange={handleRowsChange}
+    />
+  );
 
   const tabs: { key: TabKey; label: string }[] = ui.newTabs.map(
     (label, index) => ({
@@ -56,10 +102,25 @@ export function NewReceiptClient() {
   return (
     <SalesFlowShell activeItem="receipts">
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-28 lg:px-8 lg:py-10 lg:pb-32">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[30px]">
-          {ui.newTitle}
-        </h1>
+        <div className="flex flex-wrap items-center gap-4">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[30px]">
+            {ui.newTitle}
+          </h1>
+          <button
+            type="button"
+            onClick={() => setPreviewOpen((open) => !open)}
+            className="ml-auto rounded border border-slate-300 bg-white px-4 py-2 text-[14px] font-medium text-slate-700 transition hover:bg-slate-50"
+          >
+            {previewOpen ? previewLabels.hide : previewLabels.show}
+          </button>
+        </div>
 
+        <div
+          className={
+            previewOpen ? "grid gap-8 2xl:grid-cols-[minmax(0,1fr)_600px] 2xl:items-start" : ""
+          }
+        >
+        <div className="min-w-0">
         <div className="-mx-4 mt-8 overflow-x-auto px-4 sm:mx-0 sm:mt-10 sm:px-0">
           <div className="flex min-w-max gap-6 border-b border-slate-200 text-base text-slate-500 sm:gap-10 sm:text-[18px]">
             {tabs.map((tab) => (
@@ -88,7 +149,11 @@ export function NewReceiptClient() {
                 <div className="mt-5 space-y-5">
                   <FormField label={ui.client} required={ui.required}>
                     <div className="flex gap-2">
-                      <input className="field flex-1" />
+                      <input
+                        className="field flex-1"
+                        value={form.clientName}
+                        onChange={(e) => set("clientName", e.target.value)}
+                      />
                       {clientHonorific !== "none" ? (
                       <SharedHonorificField
                         honorific={clientHonorificSuffix(clientHonorific, outputLocale)}
@@ -126,12 +191,23 @@ export function NewReceiptClient() {
                       {ui.receiptHint}{" "}
                       <Link href={appHrefs.supportInvoiceGuide} className="underline">↗</Link>
                     </p>
-                    <input className="field" defaultValue={ui.receiptNumberValue} />
+                    <input
+                      className="field"
+                      value={form.documentNumber}
+                      onChange={(e) => set("documentNumber", e.target.value)}
+                    />
                   </FormField>
 
                   <FormField label={ui.subject}>
-                    <input className="field" />
-                    <div className="mt-1 text-right text-sm text-slate-400">0/70</div>
+                    <input
+                      className="field"
+                      maxLength={70}
+                      value={form.subject}
+                      onChange={(e) => set("subject", e.target.value)}
+                    />
+                    <div className="mt-1 text-right text-sm text-slate-400">
+                      {form.subject.length}/70
+                    </div>
                   </FormField>
                 </div>
               </section>
@@ -140,7 +216,11 @@ export function NewReceiptClient() {
                 <SectionTitle title={ui.senderInfo} />
                 <div className="mt-5 space-y-5">
                   <FormField label={ui.companyName} required={ui.requiredLine}>
-                    <input className="field" defaultValue={ui.companyValue} />
+                    <input
+                      className="field"
+                      value={form.senderCompanyName}
+                      onChange={(e) => set("senderCompanyName", e.target.value)}
+                    />
                     <input className="field mt-2" />
                     <input className="field mt-2" />
                   </FormField>
@@ -149,8 +229,8 @@ export function NewReceiptClient() {
               </section>
             </div>
 
-            <DocumentLineItemsTable ui={ui} storageKey="receipt-new-line-items" onTotalsChange={setLineItemTotals} />
-            <RemarksField ui={ui} />
+            {lineItemsTable}
+            <RemarksField ui={ui} value={form.remarks} onChange={(v) => set("remarks", v)} />
           </>
         )}
 
@@ -196,8 +276,8 @@ export function NewReceiptClient() {
               </FormField>
             </div>
 
-            <DocumentLineItemsTable ui={ui} storageKey="receipt-new-line-items" onTotalsChange={setLineItemTotals} />
-            <RemarksField ui={ui} />
+            {lineItemsTable}
+            <RemarksField ui={ui} value={form.remarks} onChange={(v) => set("remarks", v)} />
           </>
         )}
 
@@ -223,7 +303,13 @@ export function NewReceiptClient() {
                 <div className="mt-4 space-y-3">
                   {[ui.roundDown, ui.roundUp, ui.roundHalf].map((label, index) => (
                     <label key={label} className="flex items-center gap-3 text-[16px] text-slate-800">
-                      <input type="radio" name="taxRounding" defaultChecked={index === 0} className="h-4 w-4 accent-cyan-600" />
+                      <input
+                        type="radio"
+                        name="taxRounding"
+                        checked={form.taxRounding === TAX_ROUNDING_ORDER[index]}
+                        onChange={() => set("taxRounding", TAX_ROUNDING_ORDER[index])}
+                        className="h-4 w-4 accent-cyan-600"
+                      />
                       {label}
                     </label>
                   ))}
@@ -246,11 +332,15 @@ export function NewReceiptClient() {
               </section>
             </div>
 
-            <DocumentLineItemsTable ui={ui} storageKey="receipt-new-line-items" onTotalsChange={setLineItemTotals} />
+            {lineItemsTable}
 
             <div className="mt-12">
               <label className="mb-2 block text-[18px] font-semibold text-slate-800">{ui.remarks}</label>
-              <textarea className="field min-h-[140px]" />
+              <textarea
+                className="field min-h-[140px]"
+                value={form.remarks}
+                onChange={(e) => set("remarks", e.target.value)}
+              />
               <div className="mt-2 flex items-center justify-between text-sm text-slate-500">
                 <label className="flex cursor-pointer items-center gap-2">
                   <input type="checkbox" className="h-4 w-4 accent-cyan-600" />
@@ -309,7 +399,12 @@ export function NewReceiptClient() {
                   />
 
                   <FormField label={ui.templateMessageLabel}>
-                    <input className="field" placeholder={ui.templateMessagePlaceholder} />
+                    <input
+                      className="field"
+                      placeholder={ui.templateMessagePlaceholder}
+                      value={form.templateMessage}
+                      onChange={(e) => set("templateMessage", e.target.value)}
+                    />
                   </FormField>
 
                   <div>
@@ -333,9 +428,35 @@ export function NewReceiptClient() {
               </div>
             </div>
 
-            <DocumentLineItemsTable ui={ui} storageKey="receipt-new-line-items" onTotalsChange={setLineItemTotals} />
+            {lineItemsTable}
           </>
         )}
+        </div>
+
+        {previewOpen ? (
+          <aside className="min-w-0 2xl:sticky 2xl:top-6">
+            <DocumentPreviewPanel
+              uiLocale={lang}
+              onClose={() => setPreviewOpen(false)}
+              ui={buildReceiptDetailUi(outputLocale, getReceiptContent(outputLocale))}
+              input={{
+                documentNumber: form.documentNumber,
+                clientName: form.clientName,
+                clientHonorific,
+                subject: form.subject,
+                issueDate: toIsoDate(primaryDate),
+                secondaryDate: secondaryDate ? toIsoDate(secondaryDate) : undefined,
+                outputLocale,
+                templateMessage: form.templateMessage,
+                remarks: form.remarks,
+                senderCompanyName: form.senderCompanyName,
+                taxRounding: form.taxRounding,
+                rows,
+              }}
+            />
+          </aside>
+        ) : null}
+        </div>
       </div>
 
       <DocumentBottomBar
@@ -395,11 +516,23 @@ export function NewReceiptClient() {
   );
 }
 
-function RemarksField({ ui }: { ui: ReturnType<typeof getReceiptContent> }) {
+function RemarksField({
+  ui,
+  value,
+  onChange,
+}: {
+  ui: ReturnType<typeof getReceiptContent>;
+  value: string;
+  onChange: (value: string) => void;
+}) {
   return (
     <div className="mt-12">
       <label className="mb-2 block text-[18px] font-semibold text-slate-800">{ui.remarks}</label>
-      <textarea className="field min-h-[140px]" />
+      <textarea
+        className="field min-h-[140px]"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
     </div>
   );
 }

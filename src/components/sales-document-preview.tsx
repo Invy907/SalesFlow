@@ -9,13 +9,28 @@ const yen = (value: number) => `¥ ${value.toLocaleString("ja-JP")}`;
 export function SalesDocumentPreview({
   detail,
   ui,
+  variant = "page",
 }: {
   detail: SalesDocumentDetail;
   ui: SalesDocumentDetailUi;
+  /** panel: 작성 화면의 좁은 프리뷰 열용. 여백을 줄여 문서를 최대한 크게 보여준다. */
+  variant?: "page" | "panel";
 }) {
+  const panel = variant === "panel";
   return (
-    <div className="sales-document-print rounded bg-[#dfe7f2] p-4 sm:p-10">
-      <div className="mx-auto w-full max-w-[980px] bg-white px-6 py-10 shadow-sm sm:px-14 sm:py-16">
+    <div
+      className={
+        panel
+          ? "sales-document-print bg-[#dfe7f2] p-3"
+          : "sales-document-print rounded bg-[#dfe7f2] p-4 sm:p-10"
+      }
+    >
+      <div
+        className={[
+          "mx-auto w-full max-w-[980px] bg-white shadow-sm",
+          panel ? "px-10 py-12" : "px-6 py-10 sm:px-14 sm:py-16",
+        ].join(" ")}
+      >
         <div className="flex justify-end">
           <div className="space-y-2 text-right text-[16px] font-semibold text-slate-900">
             <p>{detail.issueDate}</p>

@@ -349,6 +349,9 @@ export function useDocumentDateFields(initialPrimaryValue?: string) {
   };
 }
 
+/** 화면의 YYYY/MM/DD → DB 의 YYYY-MM-DD */
+export { toIsoDate } from "../estimates/date-field-utils";
+
 export function HonorificField({ honorific }: { honorific?: string }) {
   return (
     <div className="flex w-20 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white px-3 text-xl text-slate-700">

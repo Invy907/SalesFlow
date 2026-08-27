@@ -33,6 +33,10 @@ import {
 } from "@/lib/tax";
 import { toIsoDate } from "./date-field-utils";
 import { getEstimateContent } from "./content";
+import { DocumentPreviewPanel } from "../documents/document-live-preview";
+import { buildEstimateDetailUi } from "@/lib/documents/build-detail-ui";
+import { getDocumentPreviewPanelLabels } from "@/lib/documents/preview-panel-labels";
+import type { TaxRounding } from "@/lib/tax";
 import type { ClientOption } from "./estimate-form-data";
 import { AiEstimatePanel } from "@/components/ai-estimates/ai-estimate-panel";
 import { taxLabelFromCategory } from "@/lib/ai/estimates/normalize";
@@ -80,9 +84,11 @@ export function EstimateFormClient({
 }) {
   const { lang } = useLanguage();
   const ui = getEstimateContent(lang);
+  const previewLabels = getDocumentPreviewPanelLabels(lang);
   const router = useRouter();
 
   const isEdit = Boolean(initial.id);
+  const [previewOpen, setPreviewOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>("basic");
   const [selectedTemplate, setSelectedTemplate] = useState<"standard" | "envelope">(
     initial.templateKey === "envelope" ? "envelope" : "standard",
@@ -220,9 +226,18 @@ export function EstimateFormClient({
   return (
     <SalesFlowShell activeItem="estimates">
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-28 lg:px-8 lg:py-10 lg:pb-32">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[30px]">
-          {isEdit ? ui.editAction : ui.newTitle}
-        </h1>
+        <div className="flex flex-wrap items-center gap-4">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[30px]">
+            {isEdit ? ui.editAction : ui.newTitle}
+          </h1>
+          <button
+            type="button"
+            onClick={() => setPreviewOpen((open) => !open)}
+            className="ml-auto rounded border border-slate-300 bg-white px-4 py-2 text-[14px] font-medium text-slate-700 transition hover:bg-slate-50"
+          >
+            {previewOpen ? previewLabels.hide : previewLabels.show}
+          </button>
+        </div>
 
         <AiEstimatePanel
           clientId={form.clientId}
@@ -231,6 +246,12 @@ export function EstimateFormClient({
           onApply={applyAiDraft}
         />
 
+        <div
+          className={
+            previewOpen ? "grid gap-8 2xl:grid-cols-[minmax(0,1fr)_600px] 2xl:items-start" : ""
+          }
+        >
+        <div className="min-w-0">
         <div className="-mx-4 mt-8 overflow-x-auto px-4 sm:mx-0 sm:mt-10 sm:px-0">
           <div className="flex min-w-max gap-6 border-b border-slate-200 text-base text-slate-500 sm:gap-10 sm:text-[18px]">
             {tabs.map((tab) => (
@@ -498,6 +519,32 @@ export function EstimateFormClient({
             {lineItemsTable}
           </>
         )}
+        </div>
+
+        {previewOpen ? (
+          <aside className="min-w-0 2xl:sticky 2xl:top-6">
+            <DocumentPreviewPanel
+              uiLocale={lang}
+              onClose={() => setPreviewOpen(false)}
+              ui={buildEstimateDetailUi(outputLocale, getEstimateContent(outputLocale))}
+              input={{
+                documentNumber: form.documentNumber || ui.estimateHint,
+                clientName: form.clientName,
+                clientHonorific,
+                subject: form.subject,
+                issueDate: toIsoDate(primaryDate),
+                secondaryDate: secondaryDate ? toIsoDate(secondaryDate) : undefined,
+                outputLocale,
+                templateMessage: form.templateMessage,
+                remarks: form.remarks,
+                senderCompanyName: form.senderCompanyName,
+                taxRounding: form.taxRounding as TaxRounding,
+                rows,
+              }}
+            />
+          </aside>
+        ) : null}
+        </div>
       </div>
 
       <DocumentBottomBar

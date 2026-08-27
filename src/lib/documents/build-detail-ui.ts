@@ -153,3 +153,56 @@ export function buildReceiptDetailUi(locale: string, ui: ReceiptContentSlice): S
     actions: exportUi.actions,
   };
 }
+
+type EstimateContentSlice = {
+  listTitle: string;
+  detailTitle: string;
+  estimateNumber: string;
+  client: string;
+  subject: string;
+  issueDate: string;
+  expiryDate: string;
+  noDate: string;
+  status: string;
+  itemHeaders: readonly string[];
+  subtotal: string;
+  tax: string;
+  total: string;
+  remarks: string;
+  noLineItems: string;
+  companyHonorific?: string;
+  previewLead: string;
+  backToList: string;
+  estimateAmount: string;
+};
+
+export function buildEstimateDetailUi(
+  locale: string,
+  ui: EstimateContentSlice,
+): SalesDocumentDetailUi {
+  const exportUi = getDocumentExportUiLabels(locale);
+  return {
+    detailTitle: ui.detailTitle,
+    listTitle: ui.listTitle,
+    documentNumberLabel: ui.estimateNumber,
+    documentAmountLabel: ui.estimateAmount,
+    client: ui.client,
+    subject: ui.subject,
+    issueDate: ui.issueDate,
+    secondaryDateLabel: ui.expiryDate,
+    noDate: ui.noDate,
+    status: ui.status,
+    itemHeaders: ui.itemHeaders,
+    subtotal: ui.subtotal,
+    tax: ui.tax,
+    total: ui.total,
+    remarks: ui.remarks,
+    noLineItems: ui.noLineItems,
+    companyHonorific: ui.companyHonorific,
+    previewLead: ui.previewLead,
+    backToList: ui.backToList,
+    exportAction: exportUi.exportAction,
+    exportMenu: exportUi.exportMenu,
+    actions: exportUi.actions,
+  };
+}

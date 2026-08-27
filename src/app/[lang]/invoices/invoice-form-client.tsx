@@ -42,7 +42,8 @@ import {
   ClientRegistrationModal,
   type CreatedClientSummary,
 } from "../clients/client-registration-modal";
-import { DocumentLivePreview } from "../documents/document-live-preview";
+import { DocumentPreviewPanel } from "../documents/document-live-preview";
+import { getDocumentPreviewPanelLabels } from "@/lib/documents/preview-panel-labels";
 import { buildInvoiceDetailUi } from "@/lib/documents/build-detail-ui";
 
 type TabKey = "basic" | "recipient" | "payment" | "tax" | "template";
@@ -106,6 +107,7 @@ export function InvoiceFormClient({
 }) {
   const { lang } = useLanguage();
   const ui = getInvoiceContent(lang);
+  const previewLabels = getDocumentPreviewPanelLabels(lang);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>("basic");
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateKey>(initial.templateKey || "standard");
@@ -287,14 +289,14 @@ export function InvoiceFormClient({
             onClick={() => setPreviewOpen((open) => !open)}
             className="ml-auto rounded border border-slate-300 bg-white px-4 py-2 text-[14px] font-medium text-slate-700 transition hover:bg-slate-50"
           >
-            {previewOpen ? ui.previewHide : ui.previewShow}
+            {previewOpen ? previewLabels.hide : previewLabels.show}
           </button>
         </div>
 
         <div
           className={
             previewOpen
-              ? "grid gap-8 2xl:grid-cols-[minmax(0,1fr)_620px] 2xl:items-start"
+              ? "grid gap-8 2xl:grid-cols-[minmax(0,1fr)_600px] 2xl:items-start"
               : ""
           }
         >
@@ -732,9 +734,10 @@ export function InvoiceFormClient({
 
         {previewOpen ? (
           <aside className="min-w-0 2xl:sticky 2xl:top-6">
-            <p className="mb-2 text-[15px] font-semibold text-slate-700">{ui.previewTitle}</p>
-            <DocumentLivePreview
-              ui={buildInvoiceDetailUi(outputLocale, ui)}
+            <DocumentPreviewPanel
+              uiLocale={lang}
+              onClose={() => setPreviewOpen(false)}
+              ui={buildInvoiceDetailUi(outputLocale, getInvoiceContent(outputLocale))}
               input={{
                 documentNumber: initial.documentNumber || ui.autoNumber,
                 clientName: form.clientName,
