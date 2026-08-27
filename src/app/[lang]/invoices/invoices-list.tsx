@@ -6,7 +6,10 @@ import { useRouter } from "next/navigation";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
 import { ListPageTabs } from "../list-page-shared";
-import { deleteInvoice } from "@/lib/actions/invoices";
+import { deleteInvoice, getInvoicePreview } from "@/lib/actions/invoices";
+import { SalesDocumentPreview } from "@/components/sales-document-preview";
+import { buildInvoiceDetailUi } from "@/lib/documents/build-detail-ui";
+import type { SalesDocumentDetail } from "@/lib/documents/detail-types";
 import { getInvoiceContent } from "./content";
 import { InvoiceSubNav } from "./invoice-sub-nav";
 
@@ -47,6 +50,10 @@ export function InvoicesList({
   const [search, setSearch] = useState(query);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // In-list preview so the document can be checked without leaving the page.
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [preview, setPreview] = useState<SalesDocumentDetail | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const isTrashTab = activeTab === 2;
   const isOpenTab = activeTab === 0;
@@ -62,6 +69,23 @@ export function InvoicesList({
     if (p > 1) params.set("page", String(p));
     const qs = params.toString();
     router.push(`/${lang}/invoices${qs ? `?${qs}` : ""}`);
+  }
+
+  function togglePreview(row: InvoiceListRow) {
+    if (previewId === row.id) {
+      setPreviewId(null);
+      setPreview(null);
+      return;
+    }
+    setPreviewId(row.id);
+    setPreview(null);
+    setPreviewLoading(true);
+    startTransition(async () => {
+      const result = await getInvoicePreview(row.id);
+      setPreviewLoading(false);
+      if (result.ok) setPreview(result.data);
+      else setError(result.error);
+    });
   }
 
   function handleDelete(row: InvoiceListRow) {
@@ -180,16 +204,25 @@ export function InvoicesList({
                         {row.total.toLocaleString("ja-JP")} 円
                       </td>
                       <td className="px-4 py-4">
-                        {!isTrashTab ? (
+                        <div className="flex flex-wrap items-center gap-3">
                           <button
                             type="button"
-                            onClick={() => handleDelete(row)}
-                            disabled={pending}
-                            className="text-red-600 hover:underline disabled:opacity-60"
+                            onClick={() => togglePreview(row)}
+                            className="text-[#14a7bb] hover:underline"
                           >
-                            削除
+                            {previewId === row.id ? ui.previewHide : ui.previewShow}
                           </button>
-                        ) : null}
+                          {!isTrashTab ? (
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(row)}
+                              disabled={pending}
+                              className="text-red-600 hover:underline disabled:opacity-60"
+                            >
+                              削除
+                            </button>
+                          ) : null}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -197,6 +230,41 @@ export function InvoicesList({
               </table>
             </div>
           )}
+
+          {previewId ? (
+            <section className="rounded border border-slate-200 bg-white p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-[16px] font-semibold text-slate-800">{ui.previewTitle}</h2>
+                <div className="flex items-center gap-3 text-[14px]">
+                  <Link href={`/${lang}/invoices/${previewId}`} className="text-[#14a7bb] hover:underline">
+                    {ui.previewOpenDetail}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPreviewId(null);
+                      setPreview(null);
+                    }}
+                    className="text-slate-500 hover:underline"
+                  >
+                    {ui.previewHide}
+                  </button>
+                </div>
+              </div>
+              {previewLoading || !preview ? (
+                <p className="py-10 text-center text-[15px] text-slate-400">{ui.previewLoading}</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <div className="min-w-[720px]">
+                    <SalesDocumentPreview
+                      detail={preview}
+                      ui={buildInvoiceDetailUi(preview.outputLocale, getInvoiceContent(preview.outputLocale))}
+                    />
+                  </div>
+                </div>
+              )}
+            </section>
+          ) : null}
 
           {totalPages > 1 ? (
             <div className="flex items-center justify-center gap-3 text-[14px]">

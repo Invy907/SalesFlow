@@ -92,6 +92,7 @@ type LineItemsTableProps = {
   totalLabel: string;
   itemHeaders: readonly string[];
   unitPlaceholder: string;
+  deleteRowLabel: string;
   topNotice?: ReactNode;
   onTotalsChange?: (totals: LineItemTotals) => void;
   onRowsChange?: (rows: LineItemRow[]) => void;
@@ -618,6 +619,7 @@ export function CommonLineItemsTable({
   totalLabel,
   itemHeaders,
   unitPlaceholder,
+  deleteRowLabel,
   topNotice,
   onTotalsChange,
   onRowsChange,
@@ -692,6 +694,15 @@ export function CommonLineItemsTable({
     setRows((current) => [...current, createEmptyRow()]);
   };
 
+  /** Remove a row. The last one is emptied instead so the table never disappears. */
+  const removeRow = (index: number) => {
+    setRows((current) =>
+      current.length <= 1
+        ? [createEmptyRow()]
+        : current.filter((_, rowIndex) => rowIndex !== index),
+    );
+  };
+
   const subtotal = rows.reduce((sum, row) => sum + parseNumberInput(row.qty) * parseNumberInput(row.price), 0);
   const taxBreakdown = TAX_RATE_OPTIONS.map((taxType) => {
     const taxableAmount = rows.reduce((sum, row) => {
@@ -762,12 +773,13 @@ export function CommonLineItemsTable({
           ].join(" ")}
         >
           <colgroup>
-            <col className="w-[29%]" />
-            <col className="w-[13%]" />
+            <col className="w-[27%]" />
             <col className="w-[12%]" />
-            <col className="w-[18%]" />
+            <col className="w-[11%]" />
+            <col className="w-[17%]" />
+            <col className="w-[13%]" />
             <col className="w-[14%]" />
-            <col className="w-[14%]" />
+            <col className="w-[6%]" />
           </colgroup>
           <thead className={["bg-[#f5f7fa] text-slate-800", compact ? "text-[13px]" : "text-[16px]"].join(" ")}>
             <tr>
@@ -775,13 +787,21 @@ export function CommonLineItemsTable({
                 <th
                   key={header}
                   className={[
-                    "border-b border-r border-slate-300 text-center font-semibold last:border-r-0",
+                    "border-b border-r border-slate-300 text-center font-semibold",
                     compact ? "px-2 py-1.5" : "px-4 py-4",
                   ].join(" ")}
                 >
                   {header}
                 </th>
               ))}
+              <th
+                className={[
+                  "border-b border-slate-300 text-center font-semibold",
+                  compact ? "px-1 py-1.5 text-[12px]" : "px-2 py-4",
+                ].join(" ")}
+              >
+                {deleteRowLabel}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -827,7 +847,7 @@ export function CommonLineItemsTable({
                   <td className={["border-b border-r border-slate-200 align-middle", compact ? "px-1 py-1" : "px-3 py-2"].join(" ")}>
                     <TaxRateSelect compact value={row.tax} onChange={(value) => updateRow(index, "tax", value)} />
                   </td>
-                  <td className={["border-b border-slate-200 align-middle", compact ? "px-1 py-1" : "px-3 py-2"].join(" ")}>
+                  <td className={["border-b border-r border-slate-200 align-middle", compact ? "px-1 py-1" : "px-3 py-2"].join(" ")}>
                     <div
                       className={[
                         "flex items-center justify-end rounded-md bg-slate-50 text-right font-medium tabular-nums leading-normal text-slate-700",
@@ -837,12 +857,26 @@ export function CommonLineItemsTable({
                       {row.qty || row.price ? formatAmount(amount) : ""}
                     </div>
                   </td>
+                  <td className={["border-b border-slate-200 text-center align-middle", compact ? "px-1 py-1" : "px-2 py-2"].join(" ")}>
+                    <button
+                      type="button"
+                      onClick={() => removeRow(index)}
+                      title={deleteRowLabel}
+                      aria-label={deleteRowLabel}
+                      className={[
+                        "inline-flex items-center justify-center rounded text-slate-400 transition hover:bg-red-50 hover:text-red-600",
+                        compact ? "h-7 w-7" : "h-9 w-9",
+                      ].join(" ")}
+                    >
+                      <TrashIcon />
+                    </button>
+                  </td>
                 </tr>
               );
             })}
             <tr>
               {hideSummaryRows ? (
-                <td colSpan={6} className={compact ? "px-3 py-2" : "px-4 py-4"}>
+                <td colSpan={7} className={compact ? "px-3 py-2" : "px-4 py-4"}>
                   <button
                     type="button"
                     onClick={addRow}
@@ -869,7 +903,7 @@ export function CommonLineItemsTable({
                       {addRowLabel}
                     </button>
                   </td>
-                  <td colSpan={2} className="p-0">
+                  <td colSpan={3} className="p-0">
                     <table className="w-full">
                       <tbody>
                         {[
@@ -946,6 +980,8 @@ export type LineItemsUiContent = {
   total: string;
   itemHeaders: readonly string[];
   unit: string;
+  /** Label for the per-row delete button */
+  deleteRow: string;
 };
 
 export function DocumentLineItemsTable({
@@ -980,6 +1016,7 @@ export function DocumentLineItemsTable({
       totalLabel={ui.total}
       itemHeaders={ui.itemHeaders}
       unitPlaceholder={ui.unit}
+      deleteRowLabel={ui.deleteRow}
       storageKey={storageKey}
       topNotice={topNotice}
       onTotalsChange={onTotalsChange}
@@ -1076,5 +1113,19 @@ export function TaxRateSelect({
         </div>
       ) : null}
     </div>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden="true">
+      <path
+        d="M3.5 5.5h13M8 5.5V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5M5.5 5.5l.7 9.1A1.5 1.5 0 0 0 7.7 16h4.6a1.5 1.5 0 0 0 1.5-1.4l.7-9.1M8.5 8.5v4.5M11.5 8.5v4.5"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

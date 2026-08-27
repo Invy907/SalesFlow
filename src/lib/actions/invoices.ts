@@ -5,6 +5,8 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getActiveOrganization } from "@/lib/db/organizations";
 import { createInvoiceSchema, type CreateInvoiceInput } from "@/lib/validators/document";
 import { computeDocumentTotals } from "@/lib/tax";
+import { mapSalesDocumentDetail } from "@/lib/documents/map-document-detail";
+import type { SalesDocumentDetail } from "@/lib/documents/detail-types";
 
 type ActionResult<T = void> =
   | { ok: true; data: T }
@@ -92,6 +94,49 @@ export async function createInvoice(
 
   revalidatePath("/[lang]/invoices", "page");
   return { ok: true, data: invoice.id };
+}
+
+/**
+ * Read one invoice for the in-list preview, so the list can show the document
+ * without navigating away. Uses the same mapper as the detail page.
+ */
+export async function getInvoicePreview(
+  invoiceId: string,
+): Promise<ActionResult<SalesDocumentDetail>> {
+  const supabase = await getSupabaseServerClient();
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+
+  const { data: invoice, error } = await supabase
+    .from("invoices")
+    .select("*, clients(name), invoice_line_items(*)")
+    .eq("id", invoiceId)
+    .order("line_no", { referencedTable: "invoice_line_items", ascending: true })
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!invoice || invoice.organization_id !== org.organization_id) {
+    return { ok: false, error: "Invoice not found" };
+  }
+
+  const { data: profile } = await supabase
+    .from("company_profiles")
+    .select("company_name_line1, tel, email")
+    .eq("organization_id", org.organization_id)
+    .maybeSingle();
+
+  const detail = mapSalesDocumentDetail(
+    { ...invoice, clients: invoice.clients } as Parameters<typeof mapSalesDocumentDetail>[0],
+    invoice.invoice_line_items as Parameters<typeof mapSalesDocumentDetail>[1],
+    {
+      companyName: (profile?.company_name_line1 as string | null) ?? "",
+      tel: (profile?.tel as string | null) ?? "",
+      email: (profile?.email as string | null) ?? "",
+    },
+    { secondaryDate: (invoice.payment_due as string | null) ?? undefined },
+  );
+
+  return { ok: true, data: detail };
 }
 
 export async function recordPayment(

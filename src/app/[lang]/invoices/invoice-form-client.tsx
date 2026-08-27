@@ -32,6 +32,13 @@ import {
   type DocumentOutputLocale,
 } from "@/lib/documents/output-locale";
 import { getInvoiceContent } from "./content";
+import { getClientsContent } from "../clients/content";
+import {
+  ClientRegistrationModal,
+  type CreatedClientSummary,
+} from "../clients/client-registration-modal";
+import { DocumentLivePreview } from "../documents/document-live-preview";
+import { buildInvoiceDetailUi } from "@/lib/documents/build-detail-ui";
 
 type TabKey = "basic" | "recipient" | "payment" | "tax" | "template";
 type TemplateKey = string;
@@ -70,7 +77,17 @@ export type InvoiceFormInitial = {
   lines: LineItemRow[];
 };
 
-export type InvoiceClientOption = { id: string; name: string };
+/** Includes the registered address/phone so picking a client fills the recipient block. */
+export type InvoiceClientOption = {
+  id: string;
+  name: string;
+  honorific?: string | null;
+  department?: string | null;
+  phone?: string | null;
+  postalCode?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+};
 export type InvoiceBankAccount = { id: string; label: string };
 
 export function InvoiceFormClient({
@@ -100,6 +117,10 @@ export function InvoiceFormClient({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // Clients added from this screen are kept locally so they can be used immediately.
+  const [clientOptions, setClientOptions] = useState<InvoiceClientOption[]>(clients);
+  const [clientModalOpen, setClientModalOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(true);
   const { primaryDate, setPrimaryDate, secondaryDate, setSecondaryDate } = useDocumentDateFields(
     initial.issueDate || ui.issueDateValue,
   );
@@ -118,6 +139,7 @@ export function InvoiceFormClient({
       department: "",
       section: "",
       contact: "",
+      phone: "",
     },
     taxDisplay: initial.taxDisplay === "separate_on_invoice" ? "separate" : initial.taxDisplay,
     taxRounding: initial.taxRounding,
@@ -142,6 +164,46 @@ export function InvoiceFormClient({
 
   const handleRowsChange = useCallback((next: LineItemRow[]) => setRows(next), []);
   const handleTotalsChange = useCallback((next: LineItemTotals) => setLineItemTotals(next), []);
+
+  /**
+   * Picking a client fills the recipient block from what is already registered.
+   * Values the user already typed are kept.
+   */
+  const applyClient = useCallback((option: InvoiceClientOption | null, typedName: string) => {
+    setForm((f) => {
+      if (!option) return { ...f, clientName: typedName, clientId: null };
+      return {
+        ...f,
+        clientName: option.name,
+        clientId: option.id,
+        recipient: {
+          ...f.recipient,
+          postalCode: f.recipient.postalCode || (option.postalCode ?? ""),
+          addressLine1: f.recipient.addressLine1 || (option.addressLine1 ?? ""),
+          addressLine2: f.recipient.addressLine2 || (option.addressLine2 ?? ""),
+          companyName: f.recipient.companyName || option.name,
+          department: f.recipient.department || (option.department ?? ""),
+          phone: f.recipient.phone || (option.phone ?? ""),
+        },
+      };
+    });
+    setErrors((current) => {
+      const next = { ...current };
+      delete next.clientId;
+      return next;
+    });
+  }, []);
+
+  const handleClientCreated = useCallback(
+    (created?: CreatedClientSummary) => {
+      setClientModalOpen(false);
+      if (!created) return;
+      const option: InvoiceClientOption = { ...created };
+      setClientOptions((current) => [option, ...current.filter((c) => c.id !== option.id)]);
+      applyClient(option, option.name);
+    },
+    [applyClient],
+  );
 
   const tabs = useMemo(
     () => TAB_KEYS.map((key, index) => ({ key, label: ui.newTabs[index] })),
@@ -215,8 +277,23 @@ export function InvoiceFormClient({
           <Link href={getSupportHref(lang, "invoice-guide")} className="text-sm text-cyan-600 underline">
             {ui.guideLink}
           </Link>
+          <button
+            type="button"
+            onClick={() => setPreviewOpen((open) => !open)}
+            className="ml-auto rounded border border-slate-300 bg-white px-4 py-2 text-[14px] font-medium text-slate-700 transition hover:bg-slate-50"
+          >
+            {previewOpen ? ui.previewHide : ui.previewShow}
+          </button>
         </div>
 
+        <div
+          className={
+            previewOpen
+              ? "grid gap-8 2xl:grid-cols-[minmax(0,1fr)_620px] 2xl:items-start"
+              : ""
+          }
+        >
+        <div className="min-w-0">
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <div className="mt-8 flex min-w-max gap-4 border-b border-slate-200 text-base text-slate-500 sm:gap-8 sm:text-[18px]">
             {tabs.map((tab) => (
@@ -236,8 +313,7 @@ export function InvoiceFormClient({
           </div>
         </div>
 
-        {activeTab === "basic" && (
-          <>
+        <div className={activeTab === "basic" ? "" : "hidden"}>
             <div className="mt-10 grid gap-8 xl:grid-cols-2">
               <section>
                 <SectionTitle title={ui.invoiceInfo} />
@@ -250,12 +326,18 @@ export function InvoiceFormClient({
                         value={form.clientName}
                         onChange={(e) => {
                           const name = e.target.value;
-                          const match = clients.find((c) => c.name === name);
-                          setForm((f) => ({ ...f, clientName: name, clientId: match?.id ?? null }));
+                          applyClient(clientOptions.find((c) => c.name === name) ?? null, name);
                         }}
                       />
                       {showClientHonorific ? <SharedHonorificField honorific={ui.companyHonorific} /> : null}
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setClientModalOpen(true)}
+                      className="mt-2 rounded border border-slate-300 bg-white px-3 py-1.5 text-[14px] font-medium text-slate-700 transition hover:bg-slate-50"
+                    >
+                      {ui.clientAdd}
+                    </button>
                     <ClientHonorificToggle
                       checked={showClientHonorific}
                       onChange={setShowClientHonorific}
@@ -263,7 +345,7 @@ export function InvoiceFormClient({
                       honorific={ui.companyHonorific}
                     />
                     <datalist id="sf-invoice-client-options">
-                      {clients.map((c) => (
+                      {clientOptions.map((c) => (
                         <option key={c.id} value={c.name} />
                       ))}
                     </datalist>
@@ -336,18 +418,9 @@ export function InvoiceFormClient({
               </section>
             </div>
 
-            <DocumentLineItemsTable
-              ui={ui}
-              storageKey="invoice-new-line-items"
-              onTotalsChange={handleTotalsChange}
-              onRowsChange={handleRowsChange}
-            />
-            <RemarksBlock ui={ui} value={form.remarks} onChange={(v) => set("remarks", v)} simple />
-          </>
-        )}
+        </div>
 
-        {activeTab === "recipient" && (
-          <>
+        <div className={activeTab === "recipient" ? "" : "hidden"}>
             <p className="mt-8 text-sm text-slate-600">{ui.recipientAddressNote}</p>
             <div className="mt-6 grid gap-8 xl:grid-cols-2">
               <section className="space-y-5">
@@ -412,6 +485,14 @@ export function InvoiceFormClient({
                   />
                 </FormField>
 
+                <FormField label={ui.recipientPhone}>
+                  <input
+                    className="field max-w-[280px]"
+                    value={form.recipient.phone}
+                    onChange={(e) => setRecipient("phone", e.target.value)}
+                  />
+                </FormField>
+
                 <FormField label={ui.billingMonthLabel}>
                   <input
                     className="field max-w-[200px]"
@@ -435,18 +516,9 @@ export function InvoiceFormClient({
               </section>
             </div>
 
-            <DocumentLineItemsTable
-              ui={ui}
-              storageKey="invoice-new-line-items"
-              onTotalsChange={handleTotalsChange}
-              onRowsChange={handleRowsChange}
-            />
-            <RemarksBlock ui={ui} value={form.remarks} onChange={(v) => set("remarks", v)} simple />
-          </>
-        )}
+        </div>
 
-        {activeTab === "payment" && (
-          <>
+        <div className={activeTab === "payment" ? "" : "hidden"}>
             <div className="mt-10 space-y-8">
               <section>
                 <SectionTitle title={ui.bankTransferTitle} />
@@ -493,23 +565,10 @@ export function InvoiceFormClient({
               </section>
             </div>
 
-            <DocumentLineItemsTable
-              ui={ui}
-              storageKey="invoice-new-line-items"
-              onTotalsChange={handleTotalsChange}
-              onRowsChange={handleRowsChange}
-            />
 
-            <RemarksBlock
-              ui={ui}
-              value={form.remarks}
-              onChange={(v) => set("remarks", v)}
-            />
-          </>
-        )}
+        </div>
 
-        {activeTab === "tax" && (
-          <>
+        <div className={activeTab === "tax" ? "" : "hidden"}>
             <div className="mt-6">
               <p className="text-sm text-slate-600">
                 {ui.taxSettingsNote}{" "}
@@ -587,19 +646,10 @@ export function InvoiceFormClient({
               </Link>
             </div>
 
-            <DocumentLineItemsTable
-              ui={ui}
-              storageKey="invoice-new-line-items"
-              onTotalsChange={handleTotalsChange}
-              onRowsChange={handleRowsChange}
-            />
 
-            <RemarksBlock ui={ui} value={form.remarks} onChange={(v) => set("remarks", v)} />
-          </>
-        )}
+        </div>
 
-        {activeTab === "template" && (
-          <>
+        <div className={activeTab === "template" ? "" : "hidden"}>
             <div className="mt-10 grid gap-8 xl:grid-cols-[280px_1fr]">
               <div className="flex flex-col items-center gap-3">
                 <button
@@ -654,15 +704,51 @@ export function InvoiceFormClient({
               </div>
             </div>
 
-            <DocumentLineItemsTable
-              ui={ui}
-              storageKey="invoice-new-line-items"
-              onTotalsChange={handleTotalsChange}
-              onRowsChange={handleRowsChange}
+        </div>
+
+        {/* Shared by every tab: remounting per tab would drop what is being typed. */}
+        <DocumentLineItemsTable
+          ui={ui}
+          storageKey="invoice-new-line-items"
+          onTotalsChange={handleTotalsChange}
+          onRowsChange={handleRowsChange}
+        />
+
+        <RemarksBlock ui={ui} value={form.remarks} onChange={(v) => set("remarks", v)} />
+        </div>
+
+        {previewOpen ? (
+          <aside className="min-w-0 2xl:sticky 2xl:top-6">
+            <p className="mb-2 text-[15px] font-semibold text-slate-700">{ui.previewTitle}</p>
+            <DocumentLivePreview
+              ui={buildInvoiceDetailUi(outputLocale, ui)}
+              input={{
+                documentNumber: initial.documentNumber || ui.autoNumber,
+                clientName: form.clientName,
+                showClientHonorific,
+                subject: form.subject,
+                issueDate: toIsoDate(primaryDate),
+                secondaryDate: secondaryDate ? toIsoDate(secondaryDate) : undefined,
+                outputLocale,
+                templateMessage: form.templateMessage,
+                remarks: form.remarks,
+                senderCompanyName: form.senderCompanyName,
+                taxRounding: form.taxRounding,
+                rows,
+              }}
             />
-          </>
-        )}
+          </aside>
+        ) : null}
+        </div>
       </div>
+
+      {clientModalOpen ? (
+        <ClientRegistrationModal
+          ui={getClientsContent(lang).modal}
+          onClose={() => setClientModalOpen(false)}
+          onSaved={handleClientCreated}
+        />
+      ) : null}
 
       {galleryOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">

@@ -56,6 +56,18 @@ function draftFrom(client: ClientRow | null): Draft {
   };
 }
 
+/** Summary handed back so the caller (document form) can select the new client right away. */
+export type CreatedClientSummary = {
+  id: string;
+  name: string;
+  honorific: string | null;
+  department: string | null;
+  phone: string | null;
+  postalCode: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+};
+
 export function ClientRegistrationModal({
   ui,
   client = null,
@@ -65,7 +77,8 @@ export function ClientRegistrationModal({
   ui: ClientModalUi;
   client?: ClientRow | null;
   onClose: () => void;
-  onSaved: () => void;
+  /** Receives the created client on a new registration. */
+  onSaved: (created?: CreatedClientSummary) => void;
 }) {
   const [draft, setDraft] = useState<Draft>(() => draftFrom(client));
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -87,18 +100,37 @@ export function ClientRegistrationModal({
     startTransition(async () => {
       const payload = {
         ...draft,
+        emailCc: draft.emailCc,
         destination: draft.destination,
       };
-      const result = client
-        ? await updateClient(client.id, payload)
-        : await createClient(payload);
 
-      if (result.ok) {
-        onSaved();
-      } else {
+      if (client) {
+        const result = await updateClient(client.id, payload);
+        if (result.ok) {
+          onSaved();
+          return;
+        }
         setErrors(result.fieldErrors ?? {});
         setMessage(result.error);
+        return;
       }
+
+      const result = await createClient(payload);
+      if (result.ok) {
+        onSaved({
+          id: result.data,
+          name: draft.name.trim(),
+          honorific: draft.destination.honorific.trim() || null,
+          department: draft.department.trim() || null,
+          phone: draft.phone.trim() || null,
+          postalCode: draft.destination.postalCode.trim() || null,
+          addressLine1: draft.destination.addressLine1.trim() || null,
+          addressLine2: draft.destination.addressLine2.trim() || null,
+        });
+        return;
+      }
+      setErrors(result.fieldErrors ?? {});
+      setMessage(result.error);
     });
   }
 
