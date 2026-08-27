@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getActiveOrganization } from "@/lib/db/organizations";
 import { createInvoiceSchema, type CreateInvoiceInput } from "@/lib/validators/document";
+import { hasContentLineItem } from "@/lib/validators/document";
 import { computeDocumentTotals } from "@/lib/tax";
 import { mapSalesDocumentDetail } from "@/lib/documents/map-document-detail";
 import type { SalesDocumentDetail } from "@/lib/documents/detail-types";
@@ -22,6 +23,14 @@ export async function createInvoice(
       fieldErrors[field] = msgs?.[0] ?? "Invalid";
     }
     return { ok: false, error: "Validation failed", fieldErrors };
+  }
+
+  if (!hasContentLineItem(parsed.data.lineItems)) {
+    return {
+      ok: false,
+      error: "Validation failed",
+      fieldErrors: { lineItems: "明細を1行以上入力してください" },
+    };
   }
 
   const supabase = await getSupabaseServerClient();

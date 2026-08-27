@@ -159,19 +159,19 @@ export function NewPeriodicInvoiceClient({
     setErrors({});
 
     startTransition(async () => {
-      const lineItems = rows
-        .filter((r) => r.name.trim() !== "" || r.price.trim() !== "")
-        .map((r) => {
-          const taxCategory = taxCategoryFromLabel(r.tax);
-          return {
-            name: r.name,
-            qty: r.qty === "" ? 1 : r.qty,
-            unit: r.unit,
-            unitPrice: r.price === "" ? 0 : r.price,
-            taxCategory,
-            taxRateSnapshot: taxRateSnapshotFor(taxCategory),
-          };
-        });
+      // A row that was added but left empty still becomes a blank line in the document.
+      const lineItems = rows.map((r) => {
+        const taxCategory = taxCategoryFromLabel(r.tax);
+        const blank = isBlankLineRow(r);
+        return {
+          name: blank ? "" : r.name,
+          qty: blank ? 0 : r.qty === "" ? 1 : r.qty,
+          unit: blank ? "" : r.unit,
+          unitPrice: blank ? 0 : r.price === "" ? 0 : r.price,
+          taxCategory,
+          taxRateSnapshot: taxRateSnapshotFor(taxCategory),
+        };
+      });
 
       const input = {
         clientId,
@@ -193,7 +193,7 @@ export function NewPeriodicInvoiceClient({
         taxRounding,
         withholdingType,
         templateKey: schedule?.templateKey ?? defaults.templateKey,
-        outputLocale: normalizeDocumentOutputLocale(schedule?.outputLocale, lang),
+        outputLocale: normalizeDocumentOutputLocale(schedule?.outputLocale),
         showClientHonorific: schedule?.showClientHonorific ?? true,
         remarks,
         lineItems,
@@ -628,5 +628,15 @@ function RadioChoice({
         {label ? <span className="text-[15px] text-slate-700">{label}</span> : children}
       </div>
     </label>
+  );
+}
+
+/** A row with no item name, qty, unit or price. Saved as a blank line. */
+function isBlankLineRow(row: LineItemRow) {
+  return (
+    row.name.trim() === "" &&
+    row.qty.trim() === "" &&
+    row.unit.trim() === "" &&
+    row.price.trim() === ""
   );
 }

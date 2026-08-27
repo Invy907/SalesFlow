@@ -95,7 +95,7 @@ export function EstimateFormClient({
   );
   const [previewModal, setPreviewModal] = useState<TemplateType>(null);
   const [outputLocale, setOutputLocale] = useState<DocumentOutputLocale>(() =>
-    normalizeDocumentOutputLocale(initial.outputLocale, lang),
+    normalizeDocumentOutputLocale(initial.outputLocale),
   );
   const [clientHonorific, setClientHonorific] = useState<ClientHonorific>(
     initial.clientHonorific ?? DEFAULT_CLIENT_HONORIFIC,
@@ -139,19 +139,19 @@ export function EstimateFormClient({
   function handleSave() {
     setError(null);
     startTransition(async () => {
-      const lineItems = rows
-        .filter((r) => r.name.trim() !== "" || r.price.trim() !== "")
-        .map((r) => {
-          const taxCategory = taxCategoryFromLabel(r.tax);
-          return {
-            name: r.name,
-            qty: r.qty === "" ? 1 : Number(r.qty),
-            unit: r.unit,
-            unitPrice: r.price === "" ? 0 : Number(r.price.replace(/,/g, "")),
-            taxCategory,
-            taxRateSnapshot: taxRateSnapshotFor(taxCategory),
-          };
-        });
+      // A row that was added but left empty still becomes a blank line in the document.
+      const lineItems = rows.map((r) => {
+        const taxCategory = taxCategoryFromLabel(r.tax);
+        const blank = isBlankLineRow(r);
+        return {
+          name: blank ? "" : r.name,
+          qty: blank ? 0 : r.qty === "" ? 1 : Number(r.qty),
+          unit: blank ? "" : r.unit,
+          unitPrice: blank ? 0 : r.price === "" ? 0 : Number(r.price.replace(/,/g, "")),
+          taxCategory,
+          taxRateSnapshot: taxRateSnapshotFor(taxCategory),
+        };
+      });
 
       const payload = {
         clientId: form.clientId,
@@ -633,5 +633,15 @@ function FormField({
       </div>
       {children}
     </div>
+  );
+}
+
+/** A row with no item name, qty, unit or price. Saved as a blank line. */
+function isBlankLineRow(row: LineItemRow) {
+  return (
+    row.name.trim() === "" &&
+    row.qty.trim() === "" &&
+    row.unit.trim() === "" &&
+    row.price.trim() === ""
   );
 }

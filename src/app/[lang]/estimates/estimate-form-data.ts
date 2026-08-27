@@ -76,7 +76,7 @@ export async function buildNewEstimateInitial(lang: string): Promise<{
       taxDisplay: defaults?.tax_display_default ?? "separate",
       taxRounding: defaults?.tax_rounding_default ?? "round_down",
       templateKey: defaults?.estimate_template_key ?? "standard",
-      outputLocale: normalizeDocumentOutputLocale(lang),
+      outputLocale: normalizeDocumentOutputLocale(undefined),
       clientHonorific: DEFAULT_CLIENT_HONORIFIC,
       templateMessage: defaults?.estimate_message ?? "",
       remarks: defaults?.estimate_remarks ?? "",

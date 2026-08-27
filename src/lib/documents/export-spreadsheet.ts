@@ -7,6 +7,11 @@ export type SpreadsheetLineItem = {
   unitPrice: number;
 };
 
+/** A row added but left empty. Rendered as a blank line rather than zeros. */
+export function isBlankDocumentLine(line: SpreadsheetLineItem) {
+  return !line.name.trim() && line.qty === 0 && line.unitPrice === 0;
+}
+
 export type SalesDocumentSpreadsheetInput = {
   title: string;
   filenameBase: string;

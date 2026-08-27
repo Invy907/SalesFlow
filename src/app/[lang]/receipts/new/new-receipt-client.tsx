@@ -59,7 +59,7 @@ export function NewReceiptClient() {
   const [selectedTemplate, setSelectedTemplate] = useState<"standard" | "envelope">("standard");
   const [previewModal, setPreviewModal] = useState<TemplateType>(null);
   const [outputLocale, setOutputLocale] = useState<DocumentOutputLocale>(() =>
-    normalizeDocumentOutputLocale(undefined, lang),
+    normalizeDocumentOutputLocale(undefined),
   );
   const [clientHonorific, setClientHonorific] =
     useState<ClientHonorific>(DEFAULT_CLIENT_HONORIFIC);

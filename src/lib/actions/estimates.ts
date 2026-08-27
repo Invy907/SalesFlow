@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getActiveOrganization } from "@/lib/db/organizations";
 import { createEstimateSchema, type CreateEstimateInput } from "@/lib/validators/document";
+import { hasContentLineItem } from "@/lib/validators/document";
 import { maybeImportIssuedEstimateAsAiSource } from "@/lib/actions/ai-estimates";
 import { newShareToken, shareExpiryFromNow } from "@/lib/share-tokens";
 import { computeDocumentTotals } from "@/lib/tax";
@@ -22,6 +23,14 @@ export async function createEstimate(
       fieldErrors[field] = msgs?.[0] ?? "Invalid";
     }
     return { ok: false, error: "Validation failed", fieldErrors };
+  }
+
+  if (!hasContentLineItem(parsed.data.lineItems)) {
+    return {
+      ok: false,
+      error: "Validation failed",
+      fieldErrors: { lineItems: "明細を1行以上入力してください" },
+    };
   }
 
   const supabase = await getSupabaseServerClient();

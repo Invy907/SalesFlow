@@ -53,7 +53,7 @@ export async function buildNewInvoiceInitial(lang: string): Promise<{
       taxRounding: defaults?.tax_rounding_default ?? "round_down",
       withholdingType: defaults?.withholding_default ?? "none",
       templateKey: defaults?.invoice_template_key ?? "standard",
-      outputLocale: normalizeDocumentOutputLocale(lang),
+      outputLocale: normalizeDocumentOutputLocale(undefined),
       clientHonorific: DEFAULT_CLIENT_HONORIFIC,
       templateMessage: defaults?.invoice_message ?? "",
       remarks: defaults?.invoice_remarks ?? "",

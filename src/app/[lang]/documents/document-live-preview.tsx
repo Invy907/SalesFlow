@@ -39,13 +39,11 @@ function toNumber(value: string) {
 }
 
 export function buildLivePreviewDetail(input: LivePreviewInput): SalesDocumentDetail {
-  // 완전히 빈 행은 합계·표에서 제외한다(작성 중에 빈 줄이 잔뜩 보이지 않게).
-  const filled = input.rows.filter(
-    (row) => row.name.trim() !== "" || row.qty.trim() !== "" || row.price.trim() !== "",
-  );
+  // 저장되는 모습 그대로 보여 준다. 비워 둔 행도 빈 줄로 남는다(수정 요청 ⑤).
+  const lines = input.rows;
 
   const totals = computeDocumentTotals(
-    filled.map((row) => ({
+    lines.map((row) => ({
       qty: toNumber(row.qty),
       unitPrice: toNumber(row.price),
       taxCategory: taxCategoryFromLabel(row.tax),
@@ -69,7 +67,7 @@ export function buildLivePreviewDetail(input: LivePreviewInput): SalesDocumentDe
     subtotal: totals.subtotal,
     tax: totals.tax,
     total: totals.total,
-    lines: filled.map((row, index) => ({
+    lines: lines.map((row, index) => ({
       lineNo: index + 1,
       name: row.name,
       qty: toNumber(row.qty),

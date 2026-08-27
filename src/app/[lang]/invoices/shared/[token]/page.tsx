@@ -18,7 +18,7 @@ export default async function SharedInvoicePage({
 }: {
   params: Promise<{ lang: string; token: string }>;
 }) {
-  const { lang, token } = await params;
+  const { token } = await params;
   const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase.rpc("get_shared_document", { _token: token });
 
@@ -36,7 +36,7 @@ export default async function SharedInvoicePage({
   const lines = doc.lines ?? [];
   const recipient = (invoice.recipient_snapshot ?? {}) as Record<string, string>;
   const sender = (invoice.sender_snapshot ?? {}) as Record<string, string>;
-  const outputLocale = normalizeDocumentOutputLocale(invoice.output_locale, lang);
+  const outputLocale = normalizeDocumentOutputLocale(invoice.output_locale);
   const ui = buildInvoiceDetailUi(outputLocale, getInvoiceContent(outputLocale));
 
   const preview: SalesDocumentDetail = {

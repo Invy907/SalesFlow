@@ -3,6 +3,7 @@ import {
   clientHonorificSuffix,
   formatClientNameWithHonorific,
 } from "@/lib/documents/client-honorific";
+import { isBlankDocumentLine } from "@/lib/documents/export-spreadsheet";
 
 const yen = (value: number) => `¥ ${value.toLocaleString("ja-JP")}`;
 
@@ -100,20 +101,23 @@ export function SalesDocumentPreview({
                   </td>
                 </tr>
               ) : (
-                detail.lines.map((line, index) => (
-                  <tr key={`${line.name}-${index}`} className="h-[52px]">
-                    <td className="border-t border-r border-slate-800 px-4">{line.name}</td>
-                    <td className="border-t border-r border-slate-800 px-4 text-right tabular-nums">
-                      {line.qty.toLocaleString("ja-JP")} {line.unit}
-                    </td>
-                    <td className="border-t border-r border-slate-800 px-4 text-right tabular-nums">
-                      {line.unitPrice.toLocaleString("ja-JP")}
-                    </td>
-                    <td className="border-t border-slate-800 px-4 text-right tabular-nums">
-                      {Math.floor(line.qty * line.unitPrice).toLocaleString("ja-JP")}
-                    </td>
-                  </tr>
-                ))
+                detail.lines.map((line, index) => {
+                  const blank = isBlankDocumentLine(line);
+                  return (
+                    <tr key={`${line.name}-${index}`} className="h-[52px]">
+                      <td className="border-t border-r border-slate-800 px-4">{line.name}</td>
+                      <td className="border-t border-r border-slate-800 px-4 text-right tabular-nums">
+                        {blank ? "" : `${line.qty.toLocaleString("ja-JP")} ${line.unit}`.trim()}
+                      </td>
+                      <td className="border-t border-r border-slate-800 px-4 text-right tabular-nums">
+                        {blank ? "" : line.unitPrice.toLocaleString("ja-JP")}
+                      </td>
+                      <td className="border-t border-slate-800 px-4 text-right tabular-nums">
+                        {blank ? "" : Math.floor(line.qty * line.unitPrice).toLocaleString("ja-JP")}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
               <SummaryRow label={ui.subtotal} value={detail.subtotal} />
               <SummaryRow label={ui.tax} value={detail.tax} />

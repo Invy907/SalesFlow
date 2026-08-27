@@ -29,9 +29,13 @@ export const documentOutputLocaleSchema = z.enum(["ko", "ja", "en"]);
 /** 御中 / 様 / no honorific. See lib/documents/client-honorific.ts */
 export const clientHonorificSchema = z.enum(["onchu", "sama", "none"]);
 
+/**
+ * A line the user added but has not filled in yet stays in the document as a blank row,
+ * so `name` may be empty. At least one line must have content (checked below).
+ */
 export const lineItemSchema = z.object({
   itemId: z.string().uuid().optional(),
-  name: z.string().min(1).max(255),
+  name: z.string().max(255),
   qty: z.coerce.number().nonnegative(),
   unit: z.string().max(255).optional(),
   unitPrice: z.coerce.number().int().nonnegative(),
@@ -39,6 +43,17 @@ export const lineItemSchema = z.object({
   taxRateSnapshot: z.coerce.number().nonnegative(),
   withholdingExempt: z.boolean().optional(),
 });
+
+export type ParsedLineItem = z.infer<typeof lineItemSchema>;
+
+export function isBlankLineItem(line: ParsedLineItem) {
+  return line.name.trim() === "" && line.qty === 0 && line.unitPrice === 0;
+}
+
+/** Every added row may be blank, but the document needs at least one real line. */
+export function hasContentLineItem(lines: ParsedLineItem[]) {
+  return lines.some((line) => !isBlankLineItem(line));
+}
 
 export const createEstimateSchema = z.object({
   clientId: z.string().uuid().nullable().optional(),
