@@ -15,6 +15,9 @@ export type GmailConnectionRow = {
   history_id: string | null;
   last_sync_at: string | null;
   last_sync_error: string | null;
+  scopes: string[] | null;
+  last_send_at: string | null;
+  last_send_error: string | null;
   revoked_at: string | null;
 };
 

@@ -915,8 +915,11 @@ export type Database = {
           google_email: string
           history_id: string | null
           id: string
+          last_send_at: string | null
+          last_send_error: string | null
           last_sync_at: string | null
           last_sync_error: string | null
+          scopes: string[] | null
           organization_id: string
           refresh_token_enc: string
           revoked_at: string | null
@@ -930,8 +933,11 @@ export type Database = {
           google_email: string
           history_id?: string | null
           id?: string
+          last_send_at?: string | null
+          last_send_error?: string | null
           last_sync_at?: string | null
           last_sync_error?: string | null
+          scopes?: string[] | null
           organization_id: string
           refresh_token_enc: string
           revoked_at?: string | null
@@ -945,8 +951,11 @@ export type Database = {
           google_email?: string
           history_id?: string | null
           id?: string
+          last_send_at?: string | null
+          last_send_error?: string | null
           last_sync_at?: string | null
           last_sync_error?: string | null
+          scopes?: string[] | null
           organization_id?: string
           refresh_token_enc?: string
           revoked_at?: string | null
@@ -1955,6 +1964,14 @@ export type Database = {
       periodic_invoice_schedules: {
         Row: {
           client_id: string | null
+          created_by: string | null
+          internal_memo: string | null
+          last_error: string | null
+          last_error_at: string | null
+          output_locale: string
+          payment_day_mode: string
+          remarks: string | null
+          show_client_honorific: boolean
           created_at: string
           cycle: Database["public"]["Enums"]["periodic_cycle"]
           day_mode: string
@@ -1983,6 +2000,14 @@ export type Database = {
         }
         Insert: {
           client_id?: string | null
+          created_by?: string | null
+          internal_memo?: string | null
+          last_error?: string | null
+          last_error_at?: string | null
+          output_locale?: string
+          payment_day_mode?: string
+          remarks?: string | null
+          show_client_honorific?: boolean
           created_at?: string
           cycle?: Database["public"]["Enums"]["periodic_cycle"]
           day_mode?: string
@@ -2011,6 +2036,14 @@ export type Database = {
         }
         Update: {
           client_id?: string | null
+          created_by?: string | null
+          internal_memo?: string | null
+          last_error?: string | null
+          last_error_at?: string | null
+          output_locale?: string
+          payment_day_mode?: string
+          remarks?: string | null
+          show_client_honorific?: boolean
           created_at?: string
           cycle?: Database["public"]["Enums"]["periodic_cycle"]
           day_mode?: string

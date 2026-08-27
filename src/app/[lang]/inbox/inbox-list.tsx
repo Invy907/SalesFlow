@@ -156,6 +156,11 @@ export function InboxList({
                     {ui.gmail.syncError}: {gmailConnection.lastSyncError}
                   </p>
                 ) : null}
+                {gmailConnection.lastSendError ? (
+                  <p className="mt-1 text-[13px] text-red-600">
+                    {ui.gmail.lastSendError}: {gmailConnection.lastSendError}
+                  </p>
+                ) : null}
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
@@ -178,6 +183,24 @@ export function InboxList({
             </div>
           </div>
         )}
+
+        {gmailConnection && !gmailConnection.canSend ? (
+          <div className="mb-6 flex flex-col gap-3 rounded border border-amber-200 bg-amber-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[14px] font-semibold text-amber-900">
+                {ui.gmail.sendScopeMissingTitle}
+              </p>
+              <p className="mt-1 text-[13px] text-amber-800">{ui.gmail.sendScopeMissingBody}</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleConnect}
+              className="shrink-0 rounded border border-amber-300 bg-white px-4 py-2 text-[14px] font-semibold text-amber-900 hover:bg-amber-100"
+            >
+              {ui.gmail.reconnect}
+            </button>
+          </div>
+        ) : null}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{ui.title}</h1>

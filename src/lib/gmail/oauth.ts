@@ -4,6 +4,19 @@ import { google } from "googleapis";
 import { encryptSecret, signOAuthState, verifyOAuthState } from "./crypto";
 
 export const GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
+export const GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
+
+/** Inbox sync (readonly) + periodic invoice automatic email (send). */
+export const GMAIL_SCOPES = [GMAIL_READONLY_SCOPE, GMAIL_SEND_SCOPE] as const;
+
+/**
+ * Whether this connection can send mail.
+ * Accounts connected before the send scope was added only have readonly and
+ * must reconnect before automatic emails go out.
+ */
+export function hasGmailSendScope(scopes: readonly string[] | null | undefined) {
+  return Boolean(scopes?.includes(GMAIL_SEND_SCOPE));
+}
 
 export type GmailOAuthState = {
   orgId: string;
@@ -39,7 +52,7 @@ export function buildGmailConnectUrl(origin: string, state: GmailOAuthState) {
   return oauth2.generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
-    scope: [GMAIL_READONLY_SCOPE],
+    scope: [...GMAIL_SCOPES],
     state: oauthState,
   });
 }
@@ -76,6 +89,8 @@ export async function exchangeGmailCode(origin: string, code: string) {
     accessToken: tokens.access_token ?? null,
     expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null,
     historyId: profile.data.historyId ?? null,
+    // Scopes the user actually granted; automatic email is skipped without send.
+    scopes: tokens.scope ? tokens.scope.split(" ").filter(Boolean) : [],
   };
 }
 

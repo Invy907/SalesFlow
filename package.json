@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test src/lib/*.test.ts src/lib/ai/estimates/*.test.ts src/lib/ai/estimates/batch/*.test.ts",
+    "test": "tsx --test src/lib/*.test.ts src/lib/periodic/*.test.ts src/lib/ai/estimates/*.test.ts src/lib/ai/estimates/batch/*.test.ts",
     "ai-estimate:dry-run": "tsx --env-file=.env.local scripts/ai-estimate/cli.ts dry-run",
     "ai-estimate:smoke": "tsx --env-file=.env.local scripts/ai-estimate/cli.ts smoke",
     "ai-estimate:pilot": "tsx --env-file=.env.local scripts/ai-estimate/cli.ts pilot",
