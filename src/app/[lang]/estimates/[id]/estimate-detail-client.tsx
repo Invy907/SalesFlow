@@ -276,7 +276,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
               onClick={() => setIsIssueMenuOpen((prev) => !prev)}
               className="rounded bg-[#14a7bb] px-6 py-3 text-[18px] font-semibold text-white shadow-sm transition hover:bg-[#1096a8]"
             >
-              {ui.issueAction} ▼
+              {ui.exportAction} ▼
             </button>
             <Link
               href={`/${lang}/estimates/${detail.id}/edit`}
