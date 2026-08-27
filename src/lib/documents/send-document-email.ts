@@ -6,6 +6,7 @@ import { hasGmailSendScope } from "@/lib/gmail/oauth";
 import { GmailSendScopeError, sendGmailMessage } from "@/lib/gmail/send";
 import type { GmailConnectionRow } from "@/lib/gmail/client";
 import { normalizeDocumentOutputLocale } from "./output-locale";
+import { buildDocumentEmail } from "./document-email-content";
 
 export type SalesDocumentKind = "estimate" | "invoice";
 
@@ -19,50 +20,6 @@ const SHARE_SEGMENT: Record<SalesDocumentKind, string> = {
   invoice: "invoices",
 };
 
-const DEFAULT_SUBJECT: Record<SalesDocumentKind, Record<string, string>> = {
-  estimate: {
-    ja: "【{document_number}】見積書をお送りします",
-    ko: "[{document_number}] 견적서를 보내드립니다",
-    en: "[{document_number}] Estimate",
-  },
-  invoice: {
-    ja: "【{document_number}】請求書をお送りします",
-    ko: "[{document_number}] 청구서를 보내드립니다",
-    en: "[{document_number}] Invoice",
-  },
-};
-
-const DEFAULT_BODY: Record<SalesDocumentKind, Record<string, string>> = {
-  estimate: {
-    ja:
-      "{client_name} ご担当者様\n\n" +
-      "見積書（{document_number}）をお送りいたします。\n" +
-      "下記のリンクよりご確認ください。\n\n{share_url}\n",
-    ko:
-      "{client_name} 담당자님\n\n" +
-      "견적서({document_number})를 보내드립니다.\n" +
-      "아래 링크에서 확인하실 수 있습니다.\n\n{share_url}\n",
-    en:
-      "Dear {client_name},\n\n" +
-      "Please find your estimate ({document_number}).\n" +
-      "You can view it at the link below.\n\n{share_url}\n",
-  },
-  invoice: {
-    ja:
-      "{client_name} ご担当者様\n\n" +
-      "請求書（{document_number}）をお送りいたします。\n" +
-      "下記のリンクよりご確認ください。\n\n{share_url}\n",
-    ko:
-      "{client_name} 담당자님\n\n" +
-      "청구서({document_number})를 보내드립니다.\n" +
-      "아래 링크에서 확인하실 수 있습니다.\n\n{share_url}\n",
-    en:
-      "Dear {client_name},\n\n" +
-      "Please find your invoice ({document_number}).\n" +
-      "You can view it at the link below.\n\n{share_url}\n",
-  },
-};
-
 type ActionResult<T> =
   | { ok: true; data: T }
   | { ok: false; error: string; fieldErrors?: Record<string, string> };
@@ -73,10 +30,6 @@ function fail(error: string, fieldErrors?: Record<string, string>): ActionResult
 
 function done<T>(data: T): ActionResult<T> {
   return { ok: true, data };
-}
-
-function applyVars(template: string, vars: Record<string, string>) {
-  return template.replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? `{${key}}`);
 }
 
 function isValidEmail(value: string) {
@@ -226,26 +179,47 @@ export async function sendSalesDocumentEmail(
   const outputLocale = normalizeDocumentOutputLocale(row.output_locale);
   const recipient = (row.recipient_snapshot ?? {}) as Record<string, string>;
   const clientName = client?.name ?? recipient.clientName ?? "";
-  const documentNumber = (row.document_number as string) ?? "";
   const shareUrl = buildDocumentShareUrl(params.origin, outputLocale, params.kind, shareToken);
 
-  const subjectTpl =
-    DEFAULT_SUBJECT[params.kind][outputLocale] ?? DEFAULT_SUBJECT[params.kind].ja;
-  const bodyTpl = DEFAULT_BODY[params.kind][outputLocale] ?? DEFAULT_BODY[params.kind].ja;
-  const vars = {
-    client_name: clientName,
-    document_number: documentNumber,
-    share_url: shareUrl,
-  };
-  const subject = applyVars(subjectTpl, vars);
-  const body = applyVars(bodyTpl, vars);
+  // 발신자 표시와 서명에 쓸 회사 정보. 없으면 계정 이메일만 나간다.
+  const { data: profile } = await supabase
+    .from("company_profiles")
+    .select("company_name_line1, tel, email")
+    .eq("organization_id", params.organizationId)
+    .maybeSingle();
+
+  const companyName = ((profile?.company_name_line1 as string | null) ?? "").trim();
+  const companyEmail = ((profile?.email as string | null) ?? "").trim();
+
+  const mail = buildDocumentEmail({
+    kind: params.kind,
+    locale: outputLocale,
+    clientName,
+    documentNumber: (row.document_number as string) ?? "",
+    documentSubject: (row.subject as string | null) ?? null,
+    issueDate: (row.issue_date as string | null) ?? null,
+    secondaryDate:
+      params.kind === "estimate"
+        ? ((row.expiry_date as string | null) ?? null)
+        : ((row.payment_due as string | null) ?? null),
+    total: Number(row.total ?? 0),
+    shareUrl,
+    company: {
+      name: companyName,
+      tel: (profile?.tel as string | null) ?? null,
+      email: companyEmail || null,
+    },
+  });
 
   try {
     const result = await sendGmailMessage(connection, params.origin, {
       to: [recipientEmail],
       cc: cc.length > 0 ? cc : undefined,
-      subject,
-      body,
+      subject: mail.subject,
+      body: mail.text,
+      html: mail.html,
+      fromName: companyName || null,
+      replyTo: companyEmail || null,
     });
 
     await supabase

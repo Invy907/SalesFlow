@@ -5,6 +5,7 @@ import { newShareToken, shareExpiryFromNow } from "@/lib/share-tokens";
 import { hasGmailSendScope } from "@/lib/gmail/oauth";
 import { GmailSendScopeError, sendGmailMessage } from "@/lib/gmail/send";
 import type { GmailConnectionRow } from "@/lib/gmail/client";
+import { renderPlainTextAsHtml } from "@/lib/documents/document-email-content";
 import { applyTemplateVars, emailTemplateVars } from "./template-vars";
 import type { GeneratedInvoice } from "./generate-from-schedule";
 import type { PeriodicScheduleRow } from "./types";
@@ -126,12 +127,25 @@ export async function sendPeriodicInvoiceEmail(
   const subject = applyTemplateVars(schedule.email_subject || fallback.subject, vars);
   const body = applyTemplateVars(schedule.email_body || fallback.body, vars);
 
+  // 발신자 표시와 답장 주소. 평문만 보내면 스팸으로 분류되기 쉬워 HTML 도 함께 보낸다.
+  const { data: profile } = await admin
+    .from("company_profiles")
+    .select("company_name_line1, email")
+    .eq("organization_id", schedule.organization_id)
+    .maybeSingle();
+
+  const companyName = ((profile?.company_name_line1 as string | null) ?? "").trim();
+  const companyEmail = ((profile?.email as string | null) ?? "").trim();
+
   try {
     const result = await sendGmailMessage(connection, origin, {
       to: [to],
       cc: cc.length > 0 ? cc : undefined,
       subject,
       body,
+      html: renderPlainTextAsHtml(body),
+      fromName: companyName || null,
+      replyTo: companyEmail || null,
     });
 
     await admin

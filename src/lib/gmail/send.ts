@@ -1,11 +1,14 @@
 import "server-only";
 
+import { randomUUID } from "crypto";
 import { getGmailClientForConnection, type GmailConnectionRow } from "./client";
 
 /**
  * Gmail 발신.
  * 수신(sync.ts)과 달리 users.messages.send 를 쓰며 gmail.send 스코프가 필요하다.
- * 본문은 UTF-8 평문 한 종류만 보낸다(1차 범위: 공유 링크 안내).
+ *
+ * 평문만 보내면 스팸 필터가 자동 발송 메일로 보기 쉬워, html 이 있으면
+ * 일반 메일 클라이언트와 같은 multipart/alternative 로 조립한다.
  */
 
 export type GmailSendInput = {
@@ -13,8 +16,12 @@ export type GmailSendInput = {
   cc?: string[];
   subject: string;
   body: string;
+  /** 있으면 평문과 함께 multipart/alternative 로 보낸다. */
+  html?: string | null;
   /** From 헤더에 쓸 표시 이름. 없으면 계정 이메일만 나간다. */
   fromName?: string | null;
+  /** 답장을 받을 주소. 보통 회사 대표 메일. */
+  replyTo?: string | null;
 };
 
 export class GmailSendScopeError extends Error {
@@ -34,22 +41,44 @@ function encodeAddress(email: string, name?: string | null) {
   return name ? `${encodeHeaderWord(name)} <${email}>` : email;
 }
 
+/** 본문은 base64 로 감싸 줄바꿈·비 ASCII 가 깨지지 않게 한다. */
+function encodeBodyPart(value: string) {
+  return Buffer.from(value, "utf8").toString("base64").replace(/(.{76})/g, "$1\r\n");
+}
+
 export function buildMimeMessage(input: GmailSendInput & { from: string }) {
   const headers = [
     `From: ${encodeAddress(input.from, input.fromName)}`,
     `To: ${input.to.join(", ")}`,
   ];
   if (input.cc?.length) headers.push(`Cc: ${input.cc.join(", ")}`);
-  headers.push(
-    `Subject: ${encodeHeaderWord(input.subject)}`,
-    "MIME-Version: 1.0",
+  if (input.replyTo) headers.push(`Reply-To: ${input.replyTo}`);
+  headers.push(`Subject: ${encodeHeaderWord(input.subject)}`, "MIME-Version: 1.0");
+
+  if (!input.html) {
+    headers.push('Content-Type: text/plain; charset="UTF-8"', "Content-Transfer-Encoding: base64");
+    return `${headers.join("\r\n")}\r\n\r\n${encodeBodyPart(input.body)}`;
+  }
+
+  const boundary = `sf_${randomUUID().replace(/-/g, "")}`;
+  headers.push(`Content-Type: multipart/alternative; boundary="${boundary}"`);
+
+  // 평문을 먼저 두어 HTML 을 못 읽는 클라이언트도 같은 내용을 보게 한다.
+  const parts = [
+    `--${boundary}`,
     'Content-Type: text/plain; charset="UTF-8"',
     "Content-Transfer-Encoding: base64",
-  );
+    "",
+    encodeBodyPart(input.body),
+    `--${boundary}`,
+    'Content-Type: text/html; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    encodeBodyPart(input.html),
+    `--${boundary}--`,
+  ];
 
-  // 본문은 base64 로 감싸 줄바꿈·비 ASCII 가 깨지지 않게 한다.
-  const body = Buffer.from(input.body, "utf8").toString("base64").replace(/(.{76})/g, "$1\r\n");
-  return `${headers.join("\r\n")}\r\n\r\n${body}`;
+  return `${headers.join("\r\n")}\r\n\r\n${parts.join("\r\n")}`;
 }
 
 function isScopeError(err: unknown) {
