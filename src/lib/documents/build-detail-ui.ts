@@ -16,19 +16,15 @@ type InvoiceContentSlice = {
   tax: string;
   total: string;
   remarks: string;
+  bankTransferTitle: string;
+  registrationNumberLabel: string;
   noLineItems: string;
   companyHonorific?: string;
   previewLead: string;
   backToList: string;
   invoiceAmount: string;
   exportMenuEmail?: string;
-  emailModal?: {
-    title: string;
-    description: string;
-    fieldLabel: string;
-    submit: string;
-    success: string;
-  };
+  emailModal?: SalesDocumentDetailUi["emailModal"];
 };
 
 export function buildInvoiceDetailUi(locale: string, ui: InvoiceContentSlice): SalesDocumentDetailUi {
@@ -49,6 +45,8 @@ export function buildInvoiceDetailUi(locale: string, ui: InvoiceContentSlice): S
     tax: ui.tax,
     total: ui.total,
     remarks: ui.remarks,
+    bankAccountLabel: ui.bankTransferTitle,
+    registrationNumberLabel: ui.registrationNumberLabel,
     noLineItems: ui.noLineItems,
     companyHonorific: ui.companyHonorific,
     previewLead: ui.previewLead,

@@ -24,6 +24,9 @@ export function SalesDocumentDetailClient({
   shellActiveItem,
   listHref,
   clientEmail = "",
+  clientEmailCc = [],
+  senderName = "",
+  replyTo = "",
 }: {
   detail: SalesDocumentDetail;
   ui: SalesDocumentDetailUi;
@@ -31,11 +34,24 @@ export function SalesDocumentDetailClient({
   shellActiveItem: ActiveItem;
   listHref: string;
   clientEmail?: string;
+  clientEmailCc?: string[];
+  senderName?: string;
+  replyTo?: string;
 }) {
   const router = useRouter();
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [email, setEmail] = useState(clientEmail);
+  const [cc, setCc] = useState(clientEmailCc.join(", "));
+  const [mailSenderName, setMailSenderName] = useState(senderName || detail.sender.companyName);
+  const [mailReplyTo, setMailReplyTo] = useState(replyTo || detail.sender.email);
+  const [mailSubject, setMailSubject] = useState(() =>
+    fillMailTemplate(ui.emailModal?.subjectTemplate ?? "", detail),
+  );
+  const [mailBody, setMailBody] = useState(() =>
+    fillMailTemplate(ui.emailModal?.bodyTemplate ?? "", detail),
+  );
+  const [attachment, setAttachment] = useState<File | null>(null);
   const [toast, setToast] = useState("");
   const [pending, startTransition] = useTransition();
   const exportMenuRef = useRef<HTMLDivElement>(null);
@@ -112,7 +128,25 @@ export function SalesDocumentDetailClient({
   function handleSendEmail() {
     if (!isInvoice || !ui.emailModal) return;
     startTransition(async () => {
-      const result = await sendInvoiceEmail(detail.id, email);
+      if (attachment && attachment.size > 5 * 1024 * 1024) {
+        setToast(ui.emailModal!.attachmentTooLarge);
+        return;
+      }
+      const result = await sendInvoiceEmail(detail.id, {
+        recipientEmail: email,
+        cc: cc.split(/[,;\n]/).map((value) => value.trim()).filter(Boolean),
+        senderName: mailSenderName,
+        replyTo: mailReplyTo,
+        subject: mailSubject,
+        body: mailBody,
+        attachment: attachment
+          ? {
+              filename: attachment.name,
+              mimeType: attachment.type || "application/octet-stream",
+              base64: await fileToBase64(attachment),
+            }
+          : null,
+      });
       if (!result.ok) {
         setToast(result.error);
         return;
@@ -225,9 +259,21 @@ export function SalesDocumentDetailClient({
         <InvoiceEmailModal
           ui={ui}
           email={email}
+          cc={cc}
+          senderName={mailSenderName}
+          replyTo={mailReplyTo}
+          subject={mailSubject}
+          body={mailBody}
+          attachment={attachment}
           pending={pending}
           onClose={() => setIsEmailModalOpen(false)}
           onEmailChange={setEmail}
+          onCcChange={setCc}
+          onSenderNameChange={setMailSenderName}
+          onReplyToChange={setMailReplyTo}
+          onSubjectChange={setMailSubject}
+          onBodyChange={setMailBody}
+          onAttachmentChange={setAttachment}
           onSubmit={handleSendEmail}
         />
       ) : null}
@@ -238,16 +284,40 @@ export function SalesDocumentDetailClient({
 function InvoiceEmailModal({
   ui,
   email,
+  cc,
+  senderName,
+  replyTo,
+  subject,
+  body,
+  attachment,
   pending,
   onClose,
   onEmailChange,
+  onCcChange,
+  onSenderNameChange,
+  onReplyToChange,
+  onSubjectChange,
+  onBodyChange,
+  onAttachmentChange,
   onSubmit,
 }: {
   ui: SalesDocumentDetailUi;
   email: string;
+  cc: string;
+  senderName: string;
+  replyTo: string;
+  subject: string;
+  body: string;
+  attachment: File | null;
   pending: boolean;
   onClose: () => void;
   onEmailChange: (value: string) => void;
+  onCcChange: (value: string) => void;
+  onSenderNameChange: (value: string) => void;
+  onReplyToChange: (value: string) => void;
+  onSubjectChange: (value: string) => void;
+  onBodyChange: (value: string) => void;
+  onAttachmentChange: (value: File | null) => void;
   onSubmit: () => void;
 }) {
   if (!ui.emailModal) return null;
@@ -262,18 +332,38 @@ function InvoiceEmailModal({
           }}
         >
           <ModalHeader title={ui.emailModal.title} onClose={onClose} />
-          <div className="px-9 py-10">
+          <div className="max-h-[70vh] space-y-5 overflow-y-auto px-9 py-8">
             <p className="text-[18px] text-slate-800">{ui.emailModal.description}</p>
-            <label className="mt-6 block text-[15px] font-semibold text-slate-700">
-              {ui.emailModal.fieldLabel}
-            </label>
-            <input
-              className="field mt-2"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => onEmailChange(e.target.value)}
-            />
+            <MailField label={ui.emailModal.toLabel}>
+              <input className="field" type="email" required value={email} onChange={(e) => onEmailChange(e.target.value)} />
+            </MailField>
+            <MailField label={ui.emailModal.ccLabel}>
+              <input className="field" value={cc} onChange={(e) => onCcChange(e.target.value)} />
+            </MailField>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <MailField label={ui.emailModal.senderNameLabel}>
+                <input className="field" value={senderName} onChange={(e) => onSenderNameChange(e.target.value)} />
+              </MailField>
+              <MailField label={ui.emailModal.replyToLabel}>
+                <input className="field" type="email" value={replyTo} onChange={(e) => onReplyToChange(e.target.value)} />
+              </MailField>
+            </div>
+            <MailField label={ui.emailModal.subjectLabel}>
+              <input className="field" required maxLength={200} value={subject} onChange={(e) => onSubjectChange(e.target.value)} />
+            </MailField>
+            <MailField label={ui.emailModal.bodyLabel}>
+              <textarea className="field min-h-[180px]" required maxLength={20000} value={body} onChange={(e) => onBodyChange(e.target.value)} />
+            </MailField>
+            <MailField label={ui.emailModal.attachmentLabel}>
+              <input
+                className="block w-full text-[14px] text-slate-700 file:mr-4 file:rounded file:border-0 file:bg-slate-100 file:px-4 file:py-2 file:font-semibold"
+                type="file"
+                onChange={(event) => onAttachmentChange(event.target.files?.[0] ?? null)}
+              />
+              <p className="mt-1 text-[12px] text-slate-500">
+                {attachment ? `${attachment.name} (${Math.ceil(attachment.size / 1024)} KB)` : ui.emailModal.attachmentHint}
+              </p>
+            </MailField>
           </div>
           <div className="flex justify-end gap-3 border-t border-slate-200 px-9 py-5">
             <button
@@ -288,6 +378,31 @@ function InvoiceEmailModal({
       </div>
     </div>
   );
+}
+
+function MailField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block text-[15px] font-semibold text-slate-700">
+      <span className="mb-2 block">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function fillMailTemplate(template: string, detail: SalesDocumentDetail) {
+  return template
+    .replace(/\{client_name\}/g, detail.clientName)
+    .replace(/\{invoice_number\}|\{document_number\}/g, detail.documentNumber);
+}
+
+async function fileToBase64(file: File) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+  return btoa(binary);
 }
 
 function ModalHeader({ title, onClose }: { title: string; onClose: () => void }) {

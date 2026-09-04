@@ -79,6 +79,8 @@ export const createEstimateSchema = z.object({
 });
 
 export const createInvoiceSchema = createEstimateSchema.extend({
+  /** Empty means the normal numbering rule is used. */
+  documentNumber: z.string().trim().max(64).optional(),
   paymentDue: z.coerce.date().nullish(),
   deliveryDate: z.coerce.date().nullish(),
   billingMonth: z.string().optional(),

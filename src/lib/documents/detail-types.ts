@@ -20,12 +20,29 @@ export type SalesDocumentDetail = {
   tax: number;
   total: number;
   lines: SpreadsheetLineItem[];
+  recipient?: {
+    postalCode: string;
+    addressLine1: string;
+    addressLine2: string;
+    department: string;
+    section: string;
+    contact: string;
+    phone: string;
+  };
+  /** Account text frozen when the invoice was saved. */
+  bankAccounts?: string[];
   /** Whether the seal is stamped on this document */
   showSeal: boolean;
   sender: {
     companyName: string;
+    postalCode?: string;
+    addressLine1?: string;
+    addressLine2?: string;
+    addressLine3?: string;
     tel: string;
+    fax?: string;
     email: string;
+    registrationNumber?: string;
     /** Seal image (signed URL). Nothing is stamped without it. */
     sealUrl?: string | null;
   };
@@ -47,6 +64,8 @@ export type SalesDocumentDetailUi = {
   tax: string;
   total: string;
   remarks: string;
+  bankAccountLabel?: string;
+  registrationNumberLabel?: string;
   noLineItems: string;
   companyHonorific?: string;
   previewLead: string;
@@ -64,6 +83,17 @@ export type SalesDocumentDetailUi = {
     fieldLabel: string;
     submit: string;
     success: string;
+    toLabel: string;
+    ccLabel: string;
+    senderNameLabel: string;
+    replyToLabel: string;
+    subjectLabel: string;
+    bodyLabel: string;
+    attachmentLabel: string;
+    attachmentHint: string;
+    attachmentTooLarge: string;
+    subjectTemplate: string;
+    bodyTemplate: string;
   };
   actions: {
     downloaded: string;

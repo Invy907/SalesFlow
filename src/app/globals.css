@@ -105,6 +105,15 @@ select.field-select {
 }
 
 @media print {
+  body:has(.sales-document-print) * {
+    visibility: hidden !important;
+  }
+
+  body:has(.sales-document-print) .sales-document-print,
+  body:has(.sales-document-print) .sales-document-print * {
+    visibility: visible !important;
+  }
+
   .no-print {
     display: none !important;
   }
@@ -114,7 +123,15 @@ select.field-select {
   }
 
   .sales-document-print {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
     padding: 0 !important;
     background: #fff !important;
+  }
+
+  .sales-document-print > div {
+    max-width: none !important;
+    box-shadow: none !important;
   }
 }

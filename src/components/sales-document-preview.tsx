@@ -19,10 +19,13 @@ export function SalesDocumentPreview({
   variant?: "page" | "panel";
 }) {
   const panel = variant === "panel";
+  const recipient = detail.recipient ?? {
+    postalCode: "", addressLine1: "", addressLine2: "", department: "", section: "", contact: "", phone: "",
+  };
   const issueDateLabel = formatDisplayDate(detail.issueDate, detail.outputLocale);
   const secondaryDateLabel = detail.secondaryDate
     ? formatDisplayDate(detail.secondaryDate, detail.outputLocale)
-    : ui.noDate;
+    : "";
 
   return (
     <div
@@ -62,10 +65,22 @@ export function SalesDocumentPreview({
                 detail.clientHonorific !== "none",
               )}
             </p>
+            {[recipient.department, recipient.section, recipient.contact]
+              .filter(Boolean)
+              .map((line) => <p key={line} className="mt-1 text-[14px] text-slate-600">{line}</p>)}
+            {recipient.postalCode ? (
+              <p className="mt-3 text-[14px] text-slate-600">〒{recipient.postalCode}</p>
+            ) : null}
+            {[recipient.addressLine1, recipient.addressLine2]
+              .filter(Boolean)
+              .map((line) => <p key={line} className="text-[14px] text-slate-600">{line}</p>)}
+            {recipient.phone ? (
+              <p className="text-[14px] text-slate-600">TEL: {recipient.phone}</p>
+            ) : null}
             {detail.subject ? (
               <p className="mt-2 text-[14px] text-slate-600">{detail.subject}</p>
             ) : null}
-            {ui.secondaryDateLabel ? (
+            {ui.secondaryDateLabel && secondaryDateLabel ? (
               <p className="mt-1 text-[14px] text-slate-600">
                 {ui.secondaryDateLabel}: {secondaryDateLabel}
               </p>
@@ -88,8 +103,16 @@ export function SalesDocumentPreview({
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <p className="text-[20px] font-semibold">{detail.sender.companyName}</p>
+                {detail.sender.postalCode ? <p className="mt-3">〒{detail.sender.postalCode}</p> : null}
+                {[detail.sender.addressLine1, detail.sender.addressLine2, detail.sender.addressLine3]
+                  .filter(Boolean)
+                  .map((line) => <p key={line}>{line}</p>)}
                 {detail.sender.tel ? <p className="mt-6">TEL: {detail.sender.tel}</p> : null}
+                {detail.sender.fax ? <p>FAX: {detail.sender.fax}</p> : null}
                 {detail.sender.email ? <p>{detail.sender.email}</p> : null}
+                {detail.sender.registrationNumber ? (
+                  <p>{ui.registrationNumberLabel ?? "Registration No."}: {detail.sender.registrationNumber}</p>
+                ) : null}
               </div>
               {detail.showSeal && detail.sender.sealUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -151,6 +174,15 @@ export function SalesDocumentPreview({
             </tbody>
           </table>
         </div>
+
+        {(detail.bankAccounts?.length ?? 0) > 0 && ui.bankAccountLabel ? (
+          <div className="mt-8 border-t border-slate-300 pt-5 text-[14px] text-slate-700">
+            <p className="font-semibold text-slate-900">{ui.bankAccountLabel}</p>
+            {detail.bankAccounts?.map((account) => (
+              <p key={account} className="mt-1 whitespace-pre-wrap">{account}</p>
+            ))}
+          </div>
+        ) : null}
 
         {detail.remarks ? (
           <div className="mt-8 whitespace-pre-wrap text-[15px] text-slate-700">{detail.remarks}</div>

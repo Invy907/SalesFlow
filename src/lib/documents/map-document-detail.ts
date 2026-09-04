@@ -28,6 +28,7 @@ type DocumentRow = {
   tax_amount?: number | string | null;
   total?: number | string | null;
   recipient_snapshot?: unknown;
+  sender_snapshot?: unknown;
   clients?: { name?: string } | null;
   payment_due?: string | null;
   delivery_date?: string | null;
@@ -47,9 +48,15 @@ export function mapSalesDocumentDetail(
   row: DocumentRow,
   lines: LineRow[] | null | undefined,
   sender: SalesDocumentDetail["sender"],
-  options?: { secondaryDate?: string | null },
+  options?: { secondaryDate?: string | null; bankAccounts?: string[] },
 ): SalesDocumentDetail {
   const recipient = (row.recipient_snapshot ?? {}) as Record<string, string>;
+  const senderSnapshot = (row.sender_snapshot ?? {}) as Record<string, unknown>;
+  const snap = (key: string, fallback = "") =>
+    typeof senderSnapshot[key] === "string" ? String(senderSnapshot[key]) : fallback;
+  const snapshotBanks = Array.isArray(senderSnapshot.bankAccounts)
+    ? senderSnapshot.bankAccounts.filter((value): value is string => typeof value === "string")
+    : [];
 
   return {
     id: row.id,
@@ -68,7 +75,28 @@ export function mapSalesDocumentDetail(
     tax: Number(row.tax_amount ?? 0),
     total: Number(row.total ?? 0),
     lines: mapDocumentLines(lines),
+    recipient: {
+      postalCode: recipient.postalCode ?? "",
+      addressLine1: recipient.addressLine1 ?? "",
+      addressLine2: recipient.addressLine2 ?? "",
+      department: recipient.department ?? "",
+      section: recipient.section ?? "",
+      contact: recipient.contact ?? "",
+      phone: recipient.phone ?? "",
+    },
+    bankAccounts: options?.bankAccounts ?? snapshotBanks,
     showSeal: row.show_seal !== false,
-    sender,
+    sender: {
+      ...sender,
+      companyName: snap("companyName", sender.companyName),
+      postalCode: snap("postalCode", sender.postalCode ?? ""),
+      addressLine1: snap("addressLine1", sender.addressLine1 ?? ""),
+      addressLine2: snap("addressLine2", sender.addressLine2 ?? ""),
+      addressLine3: snap("addressLine3", sender.addressLine3 ?? ""),
+      tel: snap("tel", sender.tel),
+      fax: snap("fax", sender.fax ?? ""),
+      email: snap("email", sender.email),
+      registrationNumber: snap("registrationNumber", sender.registrationNumber ?? ""),
+    },
   };
 }

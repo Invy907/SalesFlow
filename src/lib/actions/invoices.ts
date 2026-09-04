@@ -10,6 +10,7 @@ import { mapSalesDocumentDetail } from "@/lib/documents/map-document-detail";
 import { getDocumentSealUrl } from "@/lib/documents/seal-url";
 import type { SalesDocumentDetail } from "@/lib/documents/detail-types";
 import { sendSalesDocumentEmail } from "@/lib/documents/send-document-email";
+import type { DocumentEmailComposeInput } from "@/lib/documents/send-document-email";
 import { getServerSiteUrl } from "@/lib/site-url.server";
 
 type ActionResult<T = void> =
@@ -43,12 +44,33 @@ export async function createInvoice(
   const org = await getActiveOrganization();
   if (!org) return { ok: false, error: "No active organization" };
 
-  const { data: docNum, error: seqErr } = await supabase.rpc("next_document_number", {
-    _org: org.organization_id,
-    _doc_type: "invoice",
-    _issue_date: parsed.data.issueDate.toISOString().slice(0, 10),
-  });
-  if (seqErr) return { ok: false, error: seqErr.message };
+  const requestedNumber = parsed.data.documentNumber?.trim() ?? "";
+  let documentNumber = requestedNumber;
+  if (requestedNumber) {
+    const { data: duplicate, error: duplicateError } = await supabase
+      .from("invoices")
+      .select("id")
+      .eq("organization_id", org.organization_id)
+      .eq("document_number", requestedNumber)
+      .limit(1)
+      .maybeSingle();
+    if (duplicateError) return { ok: false, error: duplicateError.message };
+    if (duplicate) {
+      return {
+        ok: false,
+        error: "Validation failed",
+        fieldErrors: { documentNumber: "この請求書番号はすでに使用されています" },
+      };
+    }
+  } else {
+    const { data: docNum, error: seqErr } = await supabase.rpc("next_document_number", {
+      _org: org.organization_id,
+      _doc_type: "invoice",
+      _issue_date: parsed.data.issueDate.toISOString().slice(0, 10),
+    });
+    if (seqErr) return { ok: false, error: seqErr.message };
+    documentNumber = String(docNum ?? "");
+  }
 
   const totals = computeDocumentTotals(parsed.data.lineItems, parsed.data.taxRounding);
 
@@ -58,7 +80,7 @@ export async function createInvoice(
       organization_id: org.organization_id,
       client_id: parsed.data.clientId ?? null,
       client_destination_id: parsed.data.clientDestinationId ?? null,
-      document_number: docNum,
+      document_number: documentNumber,
       subject: parsed.data.subject ?? null,
       issue_date: parsed.data.issueDate.toISOString().slice(0, 10),
       payment_due: parsed.data.paymentDue?.toISOString().slice(0, 10) ?? null,
@@ -136,23 +158,46 @@ export async function getInvoicePreview(
 
   const { data: profile } = await supabase
     .from("company_profiles")
-    .select("company_name_line1, tel, email, seal_path")
+    .select("company_name_line1, postal_code, address_line1, address_line2, address_line3, tel, fax, email, invoice_registration_number, seal_path")
     .eq("organization_id", org.organization_id)
     .maybeSingle();
+
+  const selectedBankIds = (invoice.bank_account_ids as string[] | null) ?? [];
+  const { data: bankRows } = selectedBankIds.length
+    ? await supabase
+        .from("bank_accounts")
+        .select("id, bank_name, branch_name, account_number, account_holder")
+        .eq("organization_id", org.organization_id)
+        .in("id", selectedBankIds)
+    : { data: [] };
+  const bankAccounts = (bankRows ?? []).map((bank) =>
+    [bank.bank_name, bank.branch_name, bank.account_number, bank.account_holder]
+      .filter(Boolean)
+      .join(" / "),
+  );
 
   const detail = mapSalesDocumentDetail(
     { ...invoice, clients: invoice.clients } as Parameters<typeof mapSalesDocumentDetail>[0],
     invoice.invoice_line_items as Parameters<typeof mapSalesDocumentDetail>[1],
     {
       companyName: (profile?.company_name_line1 as string | null) ?? "",
+      postalCode: (profile?.postal_code as string | null) ?? "",
+      addressLine1: (profile?.address_line1 as string | null) ?? "",
+      addressLine2: (profile?.address_line2 as string | null) ?? "",
+      addressLine3: (profile?.address_line3 as string | null) ?? "",
       tel: (profile?.tel as string | null) ?? "",
+      fax: (profile?.fax as string | null) ?? "",
       email: (profile?.email as string | null) ?? "",
+      registrationNumber: (profile?.invoice_registration_number as string | null) ?? "",
       sealUrl:
         invoice.show_seal !== false
           ? await getDocumentSealUrl(profile?.seal_path as string | null)
           : null,
     },
-    { secondaryDate: (invoice.payment_due as string | null) ?? undefined },
+    {
+      secondaryDate: (invoice.payment_due as string | null) ?? undefined,
+      bankAccounts,
+    },
   );
 
   return { ok: true, data: detail };
@@ -198,7 +243,7 @@ export async function recordPayment(
 
 export async function sendInvoiceEmail(
   invoiceId: string,
-  recipientEmail: string,
+  compose: DocumentEmailComposeInput,
 ): Promise<
   ActionResult<{
     messageId: string;
@@ -223,7 +268,8 @@ export async function sendInvoiceEmail(
     origin,
     kind: "invoice",
     documentId: invoiceId,
-    recipientEmail,
+    recipientEmail: compose.recipientEmail,
+    compose,
   });
 
   if (result.ok) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SalesFlowShell } from "@/components/salesflow-shell";
@@ -83,6 +83,16 @@ export type InvoiceFormInitial = {
   lines: LineItemRow[];
   /** Filled only when duplicating an existing invoice. */
   showSeal?: boolean;
+  sender?: Partial<{
+    postalCode: string;
+    addressLine1: string;
+    addressLine2: string;
+    addressLine3: string;
+    tel: string;
+    fax: string;
+    email: string;
+    registrationNumber: string;
+  }>;
   recipient?: Partial<{
     postalCode: string;
     addressLine1: string;
@@ -107,6 +117,10 @@ export type InvoiceClientOption = {
   addressLine2?: string | null;
 };
 export type InvoiceBankAccount = { id: string; label: string };
+
+const INVOICE_FORM_DRAFT_KEY = "invoice-new-form-v1";
+const INVOICE_LINES_DRAFT_KEY = "invoice-new-line-items";
+const DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function InvoiceFormClient({
   initial,
@@ -144,6 +158,8 @@ export function InvoiceFormClient({
   const [clientModalOpen, setClientModalOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(true);
   const [showSeal, setShowSeal] = useState(initial.showSeal !== false);
+  const draftPersistenceEnabled = initial.lines.length === 0;
+  const [draftReady, setDraftReady] = useState(!draftPersistenceEnabled);
   const { primaryDate, setPrimaryDate, secondaryDate, setSecondaryDate } = useDocumentDateFields(
     initial.issueDate || ui.issueDateValue,
     initial.paymentDue,
@@ -152,6 +168,7 @@ export function InvoiceFormClient({
   const [form, setForm] = useState({
     clientId: initial.clientId,
     clientName: initial.clientName,
+    documentNumber: initial.documentNumber,
     subject: initial.subject,
     senderCompanyName: initial.senderCompanyName,
     billingMonth: initial.billingMonth,
@@ -173,6 +190,73 @@ export function InvoiceFormClient({
     bankAccountIds: initial.bankAccountIds,
   });
 
+  // Keep the entire controlled form while the user visits settings or another page.
+  useEffect(() => {
+    if (!draftPersistenceEnabled || typeof window === "undefined") return;
+    type StoredInvoiceDraft = {
+      savedAt?: number;
+      form?: Partial<typeof form>;
+      primaryDate?: string;
+      secondaryDate?: string;
+      selectedTemplate?: string;
+      outputLocale?: DocumentOutputLocale;
+      clientHonorific?: ClientHonorific;
+      showSeal?: boolean;
+    };
+    let restoredDraft: StoredInvoiceDraft | null = null;
+    try {
+      const raw = window.localStorage.getItem(INVOICE_FORM_DRAFT_KEY);
+      if (raw) {
+        const draft = JSON.parse(raw) as StoredInvoiceDraft;
+        if (draft.savedAt && Date.now() - draft.savedAt <= DRAFT_MAX_AGE_MS) {
+          restoredDraft = draft;
+        } else {
+          window.localStorage.removeItem(INVOICE_FORM_DRAFT_KEY);
+        }
+      }
+    } catch {
+      window.localStorage.removeItem(INVOICE_FORM_DRAFT_KEY);
+    }
+    const frame = window.requestAnimationFrame(() => {
+      const draft = restoredDraft;
+      if (draft?.form) setForm((current) => ({ ...current, ...draft.form }));
+      if (draft?.primaryDate) setPrimaryDate(draft.primaryDate);
+      if (typeof draft?.secondaryDate === "string") setSecondaryDate(draft.secondaryDate);
+      if (draft?.selectedTemplate) setSelectedTemplate(draft.selectedTemplate);
+      if (draft?.outputLocale) setOutputLocale(normalizeDocumentOutputLocale(draft.outputLocale));
+      if (draft?.clientHonorific) setClientHonorific(draft.clientHonorific);
+      if (typeof draft?.showSeal === "boolean") setShowSeal(draft.showSeal);
+      setDraftReady(true);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  // Initial values are intentionally read only once for this new-document session.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!draftPersistenceEnabled || !draftReady || typeof window === "undefined") return;
+    window.localStorage.setItem(INVOICE_FORM_DRAFT_KEY, JSON.stringify({
+      savedAt: Date.now(),
+      form,
+      primaryDate,
+      secondaryDate,
+      selectedTemplate,
+      outputLocale,
+      clientHonorific,
+      showSeal,
+    }));
+  }, [
+    clientHonorific,
+    draftPersistenceEnabled,
+    draftReady,
+    form,
+    outputLocale,
+    primaryDate,
+    secondaryDate,
+    selectedTemplate,
+    showSeal,
+  ]);
+
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
     if (errors[key as string]) {
@@ -191,7 +275,7 @@ export function InvoiceFormClient({
 
   /**
    * Picking a client fills the recipient block from what is already registered.
-   * Values the user already typed are kept.
+   * Switching clients replaces recipient details so data from the previous client cannot leak.
    */
   const applyClient = useCallback((option: InvoiceClientOption | null, typedName: string) => {
     setForm((f) => {
@@ -202,12 +286,14 @@ export function InvoiceFormClient({
         clientId: option.id,
         recipient: {
           ...f.recipient,
-          postalCode: f.recipient.postalCode || (option.postalCode ?? ""),
-          addressLine1: f.recipient.addressLine1 || (option.addressLine1 ?? ""),
-          addressLine2: f.recipient.addressLine2 || (option.addressLine2 ?? ""),
-          companyName: f.recipient.companyName || option.name,
-          department: f.recipient.department || (option.department ?? ""),
-          phone: f.recipient.phone || (option.phone ?? ""),
+          postalCode: option.postalCode ?? "",
+          addressLine1: option.addressLine1 ?? "",
+          addressLine2: option.addressLine2 ?? "",
+          companyName: option.name,
+          department: option.department ?? "",
+          section: "",
+          contact: "",
+          phone: option.phone ?? "",
         },
       };
     });
@@ -255,6 +341,7 @@ export function InvoiceFormClient({
       });
 
       const result = await createInvoice({
+        documentNumber: form.documentNumber.trim() || undefined,
         clientId: form.clientId,
         subject: form.subject,
         issueDate: new Date(toIsoDate(primaryDate)),
@@ -271,7 +358,20 @@ export function InvoiceFormClient({
         remarks: form.remarks,
         bankAccountIds: form.bankAccountIds,
         recipientSnapshot: { ...form.recipient, clientName: form.clientName },
-        senderSnapshot: { companyName: form.senderCompanyName },
+        senderSnapshot: {
+          companyName: form.senderCompanyName,
+          postalCode: initial.sender?.postalCode ?? "",
+          addressLine1: initial.sender?.addressLine1 ?? "",
+          addressLine2: initial.sender?.addressLine2 ?? "",
+          addressLine3: initial.sender?.addressLine3 ?? "",
+          tel: initial.sender?.tel ?? "",
+          fax: initial.sender?.fax ?? "",
+          email: initial.sender?.email ?? "",
+          registrationNumber: initial.sender?.registrationNumber ?? "",
+          bankAccounts: bankAccounts
+            .filter((account) => form.bankAccountIds.includes(account.id))
+            .map((account) => account.label),
+        },
         lineItems,
       });
 
@@ -282,7 +382,8 @@ export function InvoiceFormClient({
       }
 
       if (typeof window !== "undefined") {
-        window.localStorage.removeItem("invoice-new-line-items");
+        window.localStorage.removeItem(INVOICE_LINES_DRAFT_KEY);
+        window.localStorage.removeItem(INVOICE_FORM_DRAFT_KEY);
       }
       router.push(`/${lang}/invoices`);
       router.refresh();
@@ -291,7 +392,7 @@ export function InvoiceFormClient({
 
   return (
     <SalesFlowShell activeItem="invoices">
-      <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-28 lg:px-8 lg:py-10 lg:pb-32">
+      <div className="mx-auto w-full max-w-[1680px] px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-28 lg:px-8 lg:py-10 lg:pb-32">
         <div className="flex flex-wrap items-baseline gap-4">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[30px]">
             {ui.newTitle}
@@ -314,7 +415,7 @@ export function InvoiceFormClient({
         <div
           className={
             previewOpen
-              ? "grid gap-8 2xl:grid-cols-[minmax(0,1fr)_600px] 2xl:items-start"
+              ? "grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(480px,600px)] xl:items-start"
               : ""
           }
         >
@@ -407,10 +508,13 @@ export function InvoiceFormClient({
                       </Link>
                     </p>
                     <input
-                      className="field bg-slate-50 text-slate-500"
-                      readOnly
-                      value={ui.autoNumber}
+                      className="field"
+                      maxLength={64}
+                      placeholder={ui.autoNumber}
+                      value={form.documentNumber}
+                      onChange={(event) => set("documentNumber", event.target.value)}
                     />
+                    {err("documentNumber")}
                   </FormField>
 
                   <FormField label={ui.subject}>
@@ -769,23 +873,24 @@ export function InvoiceFormClient({
         {/* Shared by every tab: remounting per tab would drop what is being typed. */}
         <DocumentLineItemsTable
           ui={ui}
-          storageKey={initial.lines.length > 0 ? undefined : "invoice-new-line-items"}
+          storageKey={initial.lines.length > 0 ? undefined : INVOICE_LINES_DRAFT_KEY}
           initialRows={initial.lines.length > 0 ? initial.lines : undefined}
           onTotalsChange={handleTotalsChange}
           onRowsChange={handleRowsChange}
+          compact={previewOpen}
         />
 
         <RemarksBlock ui={ui} value={form.remarks} onChange={(v) => set("remarks", v)} />
         </div>
 
         {previewOpen ? (
-          <aside className="min-w-0 2xl:sticky 2xl:top-6">
+          <aside className="min-w-0 xl:sticky xl:top-6">
             <DocumentPreviewPanel
               uiLocale={lang}
               onClose={() => setPreviewOpen(false)}
               ui={buildInvoiceDetailUi(outputLocale, getInvoiceContent(outputLocale))}
               input={{
-                documentNumber: initial.documentNumber || ui.autoNumber,
+                documentNumber: form.documentNumber || ui.autoNumber,
                 clientName: form.clientName,
                 clientHonorific,
                 subject: form.subject,
@@ -794,7 +899,19 @@ export function InvoiceFormClient({
                 outputLocale,
                 templateMessage: form.templateMessage,
                 remarks: form.remarks,
+                recipient: form.recipient,
+                bankAccounts: bankAccounts
+                  .filter((account) => form.bankAccountIds.includes(account.id))
+                  .map((account) => account.label),
                 senderCompanyName: form.senderCompanyName,
+                senderPostalCode: initial.sender?.postalCode,
+                senderAddressLine1: initial.sender?.addressLine1,
+                senderAddressLine2: initial.sender?.addressLine2,
+                senderAddressLine3: initial.sender?.addressLine3,
+                senderTel: initial.sender?.tel,
+                senderFax: initial.sender?.fax,
+                senderEmail: initial.sender?.email,
+                senderRegistrationNumber: initial.sender?.registrationNumber,
                 sealUrl,
                 showSeal,
                 taxRounding: form.taxRounding,

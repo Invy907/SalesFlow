@@ -22,6 +22,12 @@ export type GmailSendInput = {
   fromName?: string | null;
   /** 답장을 받을 주소. 보통 회사 대표 메일. */
   replyTo?: string | null;
+  attachment?: {
+    filename: string;
+    mimeType: string;
+    /** Raw file bytes encoded as base64. */
+    base64: string;
+  } | null;
 };
 
 export class GmailSendScopeError extends Error {
@@ -55,27 +61,68 @@ export function buildMimeMessage(input: GmailSendInput & { from: string }) {
   if (input.replyTo) headers.push(`Reply-To: ${input.replyTo}`);
   headers.push(`Subject: ${encodeHeaderWord(input.subject)}`, "MIME-Version: 1.0");
 
-  if (!input.html) {
+  if (!input.attachment && !input.html) {
     headers.push('Content-Type: text/plain; charset="UTF-8"', "Content-Transfer-Encoding: base64");
     return `${headers.join("\r\n")}\r\n\r\n${encodeBodyPart(input.body)}`;
   }
 
-  const boundary = `sf_${randomUUID().replace(/-/g, "")}`;
-  headers.push(`Content-Type: multipart/alternative; boundary="${boundary}"`);
+  const alternativeBoundary = `sf_alt_${randomUUID().replace(/-/g, "")}`;
+
+  if (input.attachment) {
+    const mixedBoundary = `sf_mix_${randomUUID().replace(/-/g, "")}`;
+    headers.push(`Content-Type: multipart/mixed; boundary="${mixedBoundary}"`);
+    const bodyParts = input.html
+      ? [
+          `--${mixedBoundary}`,
+          `Content-Type: multipart/alternative; boundary="${alternativeBoundary}"`,
+          "",
+          `--${alternativeBoundary}`,
+          'Content-Type: text/plain; charset="UTF-8"',
+          "Content-Transfer-Encoding: base64",
+          "",
+          encodeBodyPart(input.body),
+          `--${alternativeBoundary}`,
+          'Content-Type: text/html; charset="UTF-8"',
+          "Content-Transfer-Encoding: base64",
+          "",
+          encodeBodyPart(input.html ?? ""),
+          `--${alternativeBoundary}--`,
+        ]
+      : [
+          `--${mixedBoundary}`,
+          'Content-Type: text/plain; charset="UTF-8"',
+          "Content-Transfer-Encoding: base64",
+          "",
+          encodeBodyPart(input.body),
+        ];
+    const attachmentBase64 = input.attachment.base64.replace(/\s/g, "").replace(/(.{76})/g, "$1\r\n");
+    bodyParts.push(
+      `--${mixedBoundary}`,
+      `Content-Type: ${input.attachment.mimeType || "application/octet-stream"}; name="${encodeHeaderWord(input.attachment.filename)}"`,
+      `Content-Disposition: attachment; filename="${encodeHeaderWord(input.attachment.filename)}"`,
+      "Content-Transfer-Encoding: base64",
+      "",
+      attachmentBase64,
+      `--${mixedBoundary}--`,
+    );
+    return `${headers.join("\r\n")}\r\n\r\n${bodyParts.join("\r\n")}`;
+  }
+
+  headers.push(`Content-Type: multipart/alternative; boundary="${alternativeBoundary}"`);
 
   // 평문을 먼저 두어 HTML 을 못 읽는 클라이언트도 같은 내용을 보게 한다.
   const parts = [
-    `--${boundary}`,
+    `--${alternativeBoundary}`,
     'Content-Type: text/plain; charset="UTF-8"',
     "Content-Transfer-Encoding: base64",
     "",
     encodeBodyPart(input.body),
-    `--${boundary}`,
+    `--${alternativeBoundary}`,
     'Content-Type: text/html; charset="UTF-8"',
     "Content-Transfer-Encoding: base64",
     "",
-    encodeBodyPart(input.html),
-    `--${boundary}--`,
+    encodeBodyPart(input.html ?? ""),
+    `--${alternativeBoundary}--`,
   ];
 
   return `${headers.join("\r\n")}\r\n\r\n${parts.join("\r\n")}`;

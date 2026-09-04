@@ -27,8 +27,16 @@ export type LivePreviewInput = {
   templateMessage: string;
   remarks: string;
   senderCompanyName: string;
+  recipient?: Partial<NonNullable<SalesDocumentDetail["recipient"]>>;
+  bankAccounts?: string[];
+  senderPostalCode?: string;
+  senderAddressLine1?: string;
+  senderAddressLine2?: string;
+  senderAddressLine3?: string;
   senderTel?: string;
+  senderFax?: string;
   senderEmail?: string;
+  senderRegistrationNumber?: string;
   /** Seal image (signed URL) and whether it is stamped on this document */
   sealUrl?: string | null;
   showSeal?: boolean;
@@ -77,11 +85,27 @@ export function buildLivePreviewDetail(input: LivePreviewInput): SalesDocumentDe
       unit: row.unit,
       unitPrice: toNumber(row.price),
     })),
+    recipient: {
+      postalCode: input.recipient?.postalCode ?? "",
+      addressLine1: input.recipient?.addressLine1 ?? "",
+      addressLine2: input.recipient?.addressLine2 ?? "",
+      department: input.recipient?.department ?? "",
+      section: input.recipient?.section ?? "",
+      contact: input.recipient?.contact ?? "",
+      phone: input.recipient?.phone ?? "",
+    },
+    bankAccounts: input.bankAccounts ?? [],
     showSeal: input.showSeal !== false,
     sender: {
       companyName: input.senderCompanyName,
+      postalCode: input.senderPostalCode ?? "",
+      addressLine1: input.senderAddressLine1 ?? "",
+      addressLine2: input.senderAddressLine2 ?? "",
+      addressLine3: input.senderAddressLine3 ?? "",
       tel: input.senderTel ?? "",
+      fax: input.senderFax ?? "",
       email: input.senderEmail ?? "",
+      registrationNumber: input.senderRegistrationNumber ?? "",
       sealUrl: input.sealUrl ?? null,
     },
   };

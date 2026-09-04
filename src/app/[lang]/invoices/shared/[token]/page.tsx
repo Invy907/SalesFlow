@@ -36,7 +36,8 @@ export default async function SharedInvoicePage({
   const invoice = doc.document ?? {};
   const lines = doc.lines ?? [];
   const recipient = (invoice.recipient_snapshot ?? {}) as Record<string, string>;
-  const sender = (invoice.sender_snapshot ?? {}) as Record<string, string>;
+  const sender = (invoice.sender_snapshot ?? {}) as Record<string, unknown>;
+  const senderText = (key: string) => typeof sender[key] === "string" ? String(sender[key]) : "";
   const outputLocale = normalizeDocumentOutputLocale(invoice.output_locale);
   const ui = buildInvoiceDetailUi(outputLocale, getInvoiceContent(outputLocale));
 
@@ -68,11 +69,29 @@ export default async function SharedInvoicePage({
       unit: String(line.unit_snapshot ?? ""),
       unitPrice: Number(line.unit_price_snapshot ?? 0),
     })),
+    recipient: {
+      postalCode: recipient.postalCode ?? "",
+      addressLine1: recipient.addressLine1 ?? "",
+      addressLine2: recipient.addressLine2 ?? "",
+      department: recipient.department ?? "",
+      section: recipient.section ?? "",
+      contact: recipient.contact ?? "",
+      phone: recipient.phone ?? "",
+    },
+    bankAccounts: Array.isArray(sender.bankAccounts)
+      ? sender.bankAccounts.filter((value): value is string => typeof value === "string")
+      : [],
     showSeal: invoice.show_seal !== false,
     sender: {
-      companyName: sender.companyName ?? "",
-      tel: sender.tel ?? "",
-      email: sender.email ?? "",
+      companyName: senderText("companyName"),
+      postalCode: senderText("postalCode"),
+      addressLine1: senderText("addressLine1"),
+      addressLine2: senderText("addressLine2"),
+      addressLine3: senderText("addressLine3"),
+      tel: senderText("tel"),
+      fax: senderText("fax"),
+      email: senderText("email"),
+      registrationNumber: senderText("registrationNumber"),
       sealUrl,
     },
   };

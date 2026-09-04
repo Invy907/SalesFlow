@@ -10,6 +10,18 @@ import { buildDocumentEmail } from "./document-email-content";
 
 export type SalesDocumentKind = "estimate" | "invoice";
 
+export type DocumentEmailComposeInput = {
+  recipientEmail: string;
+  cc?: string[];
+  senderName?: string;
+  replyTo?: string;
+  subject?: string;
+  body?: string;
+  attachment?: { filename: string; mimeType: string; base64: string } | null;
+};
+
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+
 const TABLE: Record<SalesDocumentKind, string> = {
   estimate: "estimates",
   invoice: "invoices",
@@ -95,6 +107,7 @@ export async function sendSalesDocumentEmail(
     kind: SalesDocumentKind;
     documentId: string;
     recipientEmail: string;
+    compose?: Omit<DocumentEmailComposeInput, "recipientEmail">;
   },
 ): Promise<
   ActionResult<{
@@ -138,9 +151,28 @@ export async function sendSalesDocumentEmail(
     await supabase.from("clients").update({ email: recipientEmail }).eq("id", row.client_id);
   }
 
-  const cc = ((client?.email_cc as string[] | null) ?? [])
+  const cc = (params.compose?.cc ?? ((client?.email_cc as string[] | null) ?? []))
     .map((v) => v.trim())
     .filter(Boolean);
+  if (cc.some((address) => !isValidEmail(address))) {
+    return fail("CCのメールアドレスを確認してください", { cc: "形式が正しくありません" });
+  }
+  const replyTo = params.compose?.replyTo?.trim() ?? "";
+  if (replyTo && !isValidEmail(replyTo)) {
+    return fail("返信先メールアドレスを確認してください", { replyTo: "形式が正しくありません" });
+  }
+  const attachment = params.compose?.attachment ?? null;
+  if (attachment) {
+    let bytes = 0;
+    try {
+      bytes = Buffer.from(attachment.base64, "base64").byteLength;
+    } catch {
+      return fail("添付ファイルを読み込めませんでした", { attachment: "形式が正しくありません" });
+    }
+    if (!attachment.filename.trim() || bytes === 0 || bytes > MAX_ATTACHMENT_BYTES) {
+      return fail("添付ファイルは5MB以下にしてください", { attachment: "5MB以下のファイルを選択してください" });
+    }
+  }
 
   const { data: connectionRow } = await supabase
     .from("gmail_connections")
@@ -210,16 +242,39 @@ export async function sendSalesDocumentEmail(
       email: companyEmail || null,
     },
   });
+  const variables: Record<string, string> = {
+    client_name: clientName,
+    invoice_number: String(row.document_number ?? ""),
+    document_number: String(row.document_number ?? ""),
+    share_url: shareUrl,
+  };
+  const fillTemplate = (value: string) =>
+    value.replace(/\{(client_name|invoice_number|document_number|share_url)\}/g, (_, key: string) => variables[key] ?? "");
+  const subject = params.compose?.subject?.trim()
+    ? fillTemplate(params.compose.subject.trim()).slice(0, 200)
+    : mail.subject;
+  const body = params.compose?.body?.trim()
+    ? fillTemplate(params.compose.body.trim()).slice(0, 20_000)
+    : mail.text;
 
   try {
     const result = await sendGmailMessage(connection, params.origin, {
       to: [recipientEmail],
       cc: cc.length > 0 ? cc : undefined,
-      subject: mail.subject,
-      body: mail.text,
-      html: mail.html,
-      fromName: companyName || null,
-      replyTo: companyEmail || null,
+      subject,
+      body,
+      html: params.compose?.body?.trim() ? null : mail.html,
+      fromName: params.compose?.senderName?.trim().slice(0, 100) || companyName || null,
+      replyTo: replyTo || companyEmail || null,
+      attachment: attachment
+        ? {
+            filename: attachment.filename.trim().replace(/[\r\n"]/g, "_").slice(0, 255),
+            mimeType: /^[\w.+-]+\/[\w.+-]+$/.test(attachment.mimeType)
+              ? attachment.mimeType
+              : "application/octet-stream",
+            base64: attachment.base64,
+          }
+        : null,
     });
 
     await supabase
