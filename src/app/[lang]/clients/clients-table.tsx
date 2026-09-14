@@ -1,12 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
 import {
   CsvDownloadLink,
-  ListPageTabs,
   ListPrimaryButton,
   ListSearchBar,
 } from "../list-page-shared";
@@ -122,19 +122,20 @@ export function ClientsTable({
   return (
     <SalesFlowShell activeItem="clients">
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <ListPageTabs
-            tabs={ui.tabs}
-            activeIndex={0}
-            onTabChange={(index) => {
-              if (index === 1) router.push(getClientsHref(lang, "bulk"));
-            }}
-          />
-          <ListPrimaryButton label={ui.createClient} onClick={() => setEditing("new")} />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href={getClientsHref(lang, "bulk")}
+              className="inline-flex items-center justify-center rounded border border-slate-300 bg-white px-5 py-3.5 text-[15px] font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              {ui.tabs[1]}
+            </Link>
+            <ListPrimaryButton label={ui.createClient} onClick={() => setEditing("new")} />
+          </div>
         </div>
 
         <div className="mt-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
           <ListSearchBar
             placeholder={ui.searchPlaceholder}
             searchLabel={ui.search}

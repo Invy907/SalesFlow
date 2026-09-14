@@ -10,16 +10,23 @@ export default async function InboxPage({
   searchParams,
 }: {
   params: Promise<{ lang: string }>;
-  searchParams: Promise<{ page?: string; unread?: string; connected?: string; gmail_error?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    unread?: string;
+    q?: string;
+    connected?: string;
+    gmail_error?: string;
+  }>;
 }) {
   const { lang } = await params;
   const scope = await requireActiveOrg(lang);
   const sp = await searchParams;
   const page = Math.max(1, Number(sp.page ?? "1") || 1);
   const unreadOnly = sp.unread === "1";
+  const query = sp.q?.trim() || undefined;
 
   const [{ messages, total }, gmailConnection] = await Promise.all([
-    getInboxMessages(scope.orgId, { page, pageSize: 30, unreadOnly }),
+    getInboxMessages(scope.orgId, { page, pageSize: 30, unreadOnly, query }),
     getGmailConnection(scope.orgId),
   ]);
 
@@ -38,6 +45,7 @@ export default async function InboxPage({
       page={page}
       pageSize={30}
       unreadOnly={unreadOnly}
+      query={query ?? ""}
       gmailConnection={gmailConnection}
       initialToast={
         sp.connected === "1"

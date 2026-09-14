@@ -45,6 +45,8 @@ const labels = {
     read: "既読",
     unreadOnly: "未読のみ",
     all: "すべて",
+    searchPlaceholder: "件名で検索",
+    search: "検索",
     noSubject: "（件名なし）",
   },
   ko: {
@@ -91,6 +93,8 @@ const labels = {
     read: "읽음",
     unreadOnly: "읽지 않은 것만",
     all: "전체",
+    searchPlaceholder: "제목으로 검색",
+    search: "검색",
     noSubject: "(제목 없음)",
   },
   en: {
@@ -137,6 +141,8 @@ const labels = {
     read: "Read",
     unreadOnly: "Unread only",
     all: "All",
+    searchPlaceholder: "Search by subject",
+    search: "Search",
     noSubject: "(No subject)",
   },
 } as const;

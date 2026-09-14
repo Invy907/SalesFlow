@@ -14,6 +14,7 @@ import {
 } from "@/lib/actions/inbox";
 import { getGmailConnectUrl } from "@/lib/gmail/connect-url";
 import type { GmailConnectionSummary } from "@/lib/db/gmail-connections";
+import { ListPageTabs, ListSearchBar } from "../list-page-shared";
 import { SettingsEmailAlert } from "../settings/settings-shared";
 import { getInboxContent } from "./content";
 
@@ -54,6 +55,7 @@ export function InboxList({
   page,
   pageSize,
   unreadOnly,
+  query,
   gmailConnection,
   initialToast,
 }: {
@@ -62,6 +64,7 @@ export function InboxList({
   page: number;
   pageSize: number;
   unreadOnly: boolean;
+  query: string;
   gmailConnection: GmailConnectionSummary | null;
   initialToast: string | null;
 }) {
@@ -70,6 +73,7 @@ export function InboxList({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [toast, setToast] = useState("");
+  const [search, setSearch] = useState(query);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   useEffect(() => {
@@ -88,10 +92,12 @@ export function InboxList({
     return () => window.clearTimeout(timer);
   }, [toast]);
 
-  function navigate(next: { page?: number; unread?: boolean }) {
+  function navigate(next: { page?: number; unread?: boolean; q?: string }) {
     const params = new URLSearchParams();
     const unread = next.unread ?? unreadOnly;
+    const q = next.q ?? search;
     if (unread) params.set("unread", "1");
+    if (q) params.set("q", q);
     const p = next.page ?? 1;
     if (p > 1) params.set("page", String(p));
     const qs = params.toString();
@@ -214,31 +220,30 @@ export function InboxList({
           </Link>
         </div>
 
-        <div className="mt-6 flex flex-wrap items-center gap-2">
-          {[
-            { label: ui.all, active: !unreadOnly, unread: false },
-            { label: ui.unreadOnly, active: unreadOnly, unread: true },
-          ].map((filter) => (
-            <button
-              key={filter.label}
-              type="button"
-              onClick={() => navigate({ unread: filter.unread, page: 1 })}
-              className={[
-                "rounded px-4 py-2 text-[14px] font-semibold transition",
-                filter.active
-                  ? "bg-[#14a7bb] text-white"
-                  : "border border-slate-300 text-slate-600 hover:bg-slate-50",
-              ].join(" ")}
-            >
-              {filter.label}
-            </button>
-          ))}
+        <div className="mt-6">
+          <ListPageTabs
+            tabs={[ui.all, ui.unreadOnly]}
+            activeIndex={unreadOnly ? 1 : 0}
+            onTabChange={(index) => navigate({ unread: index === 1, page: 1 })}
+          />
+        </div>
+
+        <div className="mt-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <ListSearchBar
+            placeholder={ui.searchPlaceholder}
+            searchLabel={ui.search}
+            defaultValue={query}
+            onSearch={(q) => {
+              setSearch(q);
+              navigate({ q, page: 1 });
+            }}
+          />
           {rows.some((r) => !r.isRead) ? (
             <button
               type="button"
               onClick={handleMarkAllRead}
               disabled={pending}
-              className="ml-auto rounded border border-slate-300 px-4 py-2 text-[14px] font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+              className="rounded border border-slate-300 px-4 py-2 text-[14px] font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60"
             >
               {ui.markAllRead}
             </button>

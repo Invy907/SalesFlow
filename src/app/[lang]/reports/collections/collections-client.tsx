@@ -66,10 +66,10 @@ export function CollectionsClient({ report }: { report: CollectionsReport }) {
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">
                     {page.headers[0]}
                   </th>
-                  {page.headers.slice(1).map((header) => (
+                  {page.headers.slice(1).map((header, index) => (
                     <th key={header} className="px-4 py-3 text-right font-semibold text-slate-700">
                       {header}
-                      <ReportsInfoIcon />
+                      <ReportsInfoIcon hint={page.columnHints?.[index + 1]} />
                     </th>
                   ))}
                 </tr>

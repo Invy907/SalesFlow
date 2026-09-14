@@ -10,7 +10,6 @@ import { deleteItem } from "@/lib/actions/items";
 import { TAX_CATEGORY_TO_LABEL } from "@/lib/tax";
 import type { TaxCategory } from "@/lib/tax";
 import { getItemsContent, getItemsHref } from "./content";
-import { ItemsNavTabs } from "./items-shared";
 
 export type ItemRow = {
   id: string;
@@ -89,17 +88,23 @@ export function ItemsTable({
   return (
     <SalesFlowShell activeItem="items">
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <ItemsNavTabs active="list" />
-          <Link
-            href={getItemsHref(lang, "new")}
-            className="inline-flex shrink-0 items-center justify-center rounded bg-[#f59b45] px-6 py-3.5 text-[16px] font-semibold text-white transition hover:bg-[#ef8d32]"
-          >
-            {ui.createItem}
-          </Link>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href={getItemsHref(lang, "bulk")}
+              className="inline-flex items-center justify-center rounded border border-slate-300 bg-white px-5 py-3.5 text-[15px] font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              {ui.tabs[1]}
+            </Link>
+            <Link
+              href={getItemsHref(lang, "new")}
+              className="inline-flex shrink-0 items-center justify-center rounded bg-[#f59b45] px-6 py-3.5 text-[16px] font-semibold text-white transition hover:bg-[#ef8d32]"
+            >
+              {ui.createItem}
+            </Link>
+          </div>
         </div>
-
-        <h1 className="mt-8 text-[30px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
         <p className="mt-3 max-w-[900px] text-[15px] leading-7 text-slate-600">
           {ui.intro}
           <LearnMoreLink label={ui.learnMore} />

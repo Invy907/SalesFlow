@@ -12,6 +12,7 @@ import {
   formatClientNameWithHonorific,
 } from "@/lib/documents/client-honorific";
 import { sendInvoiceEmail } from "@/lib/actions/invoices";
+import { formatSalesDocumentStatus } from "@/lib/document-status";
 
 type ExportAction = "download" | "excel" | "print" | "email";
 
@@ -180,6 +181,14 @@ export function SalesDocumentDetailClient({
   return (
     <SalesFlowShell activeItem={shellActiveItem}>
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+        <div className="no-print mb-4">
+          <Link
+            href={listHref}
+            className="text-[16px] font-semibold text-cyan-600 hover:text-cyan-700"
+          >
+            ← {ui.backToList}
+          </Link>
+        </div>
         <div className="no-print mt-2 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <h1 className="text-[34px] font-bold tracking-tight text-slate-900">{ui.detailTitle}</h1>
 
@@ -229,20 +238,16 @@ export function SalesDocumentDetailClient({
             </>
           ) : null}
           <div className="text-slate-700">{ui.status}</div>
-          <div>{detail.status}</div>
+          <div>
+            {formatSalesDocumentStatus(
+              detail.outputLocale as "ja" | "ko" | "en",
+              detail.status,
+            )}
+          </div>
         </div>
 
         <div className="mt-12">
           <SalesDocumentPreview detail={detail} ui={documentUi} />
-        </div>
-
-        <div className="no-print mt-8">
-          <Link
-            href={listHref}
-            className="text-[16px] font-semibold text-cyan-600 hover:text-cyan-700"
-          >
-            ← {ui.backToList}
-          </Link>
         </div>
       </div>
 

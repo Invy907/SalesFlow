@@ -13,6 +13,7 @@ import {
   shareEstimate,
 } from "@/lib/actions/estimates";
 import { importEstimateAsAiSource } from "@/lib/actions/ai-estimates";
+import { formatSalesDocumentStatus } from "@/lib/document-status";
 import { getEstimateContent } from "../content";
 import { EstimateDocumentPreview } from "../estimate-document-preview";
 import { downloadSalesDocumentXlsx } from "@/lib/documents/export-spreadsheet";
@@ -249,9 +250,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
   const statusLabel =
     detail.status === "confirmed"
       ? ui.statusPending
-      : detail.status === "draft"
-        ? ui.statusDraft
-        : detail.status;
+      : formatSalesDocumentStatus(lang, detail.status);
 
   const aiButtonLabel =
     lang === "ko" ? "AI 자료로 등록" : lang === "en" ? "Add to AI library" : "AI資料に登録";
@@ -259,6 +258,14 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
   return (
     <SalesFlowShell activeItem="estimates">
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+        <div className="no-print mb-4">
+          <Link
+            href={`/${lang}/estimates`}
+            className="text-[16px] font-semibold text-cyan-600 hover:text-cyan-700"
+          >
+            ← {ui.backToList}
+          </Link>
+        </div>
         <div className="no-print mt-2 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <h1 className="text-[34px] font-bold tracking-tight text-slate-900">{ui.detailTitle}</h1>
 
@@ -397,14 +404,6 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
           />
         </div>
 
-        <div className="no-print mt-8">
-          <Link
-            href={`/${lang}/estimates`}
-            className="text-[16px] font-semibold text-cyan-600 hover:text-cyan-700"
-          >
-            ← {ui.backToList}
-          </Link>
-        </div>
       </div>
 
       {modal ? (

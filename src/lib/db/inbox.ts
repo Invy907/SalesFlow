@@ -2,10 +2,10 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function getInboxMessages(
   orgId: string,
-  opts: { page?: number; pageSize?: number; unreadOnly?: boolean } = {},
+  opts: { page?: number; pageSize?: number; unreadOnly?: boolean; query?: string } = {},
 ) {
   const supabase = await getSupabaseServerClient();
-  const { page = 1, pageSize = 30, unreadOnly } = opts;
+  const { page = 1, pageSize = 30, unreadOnly, query } = opts;
 
   let q = supabase
     .from("inbox_messages")
@@ -14,6 +14,8 @@ export async function getInboxMessages(
     .order("created_at", { ascending: false });
 
   if (unreadOnly) q = q.is("read_at", null);
+  const trimmedQuery = query?.trim();
+  if (trimmedQuery) q = q.ilike("subject", `%${trimmedQuery}%`);
 
   const start = (page - 1) * pageSize;
   q = q.range(start, start + pageSize - 1);

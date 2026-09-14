@@ -136,7 +136,7 @@ export function ClientRegistrationModal({
 
   return (
     <ModalShell
-      title={ui.title}
+      title={client ? ui.editTitle : ui.title}
       onClose={onClose}
       footer={
         <>

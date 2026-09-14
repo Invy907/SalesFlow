@@ -86,6 +86,7 @@ const labels = {
     },
     modal: {
       title: "取引先/送り先を新規登録",
+      editTitle: "取引先/送り先を編集",
       clientName: "取引先名",
       required: "必須",
       nameSuffix: "様",
@@ -213,6 +214,7 @@ const labels = {
     },
     modal: {
       title: "거래처/배송지 신규 등록",
+      editTitle: "거래처/배송지 편집",
       clientName: "거래처명",
       required: "필수",
       nameSuffix: "",
@@ -340,6 +342,7 @@ const labels = {
     },
     modal: {
       title: "Register New Client / Destination",
+      editTitle: "Edit Client / Destination",
       clientName: "Client Name",
       required: "Required",
       nameSuffix: "",

@@ -42,9 +42,13 @@ export function ReportsLearnMoreLink({ label }: { label: string }) {
   );
 }
 
-export function ReportsInfoIcon() {
+export function ReportsInfoIcon({ hint }: { hint?: string }) {
+  if (!hint) return null;
   return (
-    <span className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-300 text-[10px] font-bold text-white">
+    <span
+      title={hint}
+      className="ml-1 inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-slate-300 text-[10px] font-bold text-white"
+    >
       ?
     </span>
   );

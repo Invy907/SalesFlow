@@ -7,6 +7,7 @@ import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
 import { ListPageTabs } from "../list-page-shared";
 import { deleteEstimate } from "@/lib/actions/estimates";
+import { formatSalesDocumentStatus } from "@/lib/document-status";
 import { getEstimateContent } from "./content";
 
 export type EstimateListRow = {
@@ -66,7 +67,9 @@ export function EstimatesList({
   }
 
   const statusLabel = (status: string) =>
-    status === "confirmed" ? ui.statusPending : status === "draft" ? ui.statusDraft : status;
+    status === "confirmed"
+      ? ui.statusPending
+      : formatSalesDocumentStatus(lang, status);
 
   return (
     <SalesFlowShell activeItem="estimates">
