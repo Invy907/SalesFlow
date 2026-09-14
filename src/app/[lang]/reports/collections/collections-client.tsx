@@ -59,8 +59,8 @@ export function CollectionsClient({ report }: { report: CollectionsReport }) {
         </div>
 
         <div className="mt-8 rounded border border-slate-200 bg-white">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] border-collapse text-[14px]">
+          <div className="overflow-x-auto sm:overflow-visible">
+            <table className="w-full border-collapse text-[14px]">
               <thead>
                 <tr className="border-b border-slate-200 bg-[#f8fafc]">
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">

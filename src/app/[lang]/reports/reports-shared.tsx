@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/language-context";
 import { appHrefs } from "@/lib/app-hrefs";
@@ -49,27 +50,54 @@ export function ReportsInfoIcon({
   hint?: string;
   align?: "start" | "end";
 }) {
+  const anchorRef = useRef<HTMLSpanElement>(null);
+  const [tooltip, setTooltip] = useState<{ top: number; left: number; width: number } | null>(
+    null,
+  );
+
+  const showTooltip = useCallback(() => {
+    const el = anchorRef.current;
+    if (!el || !hint) return;
+    const rect = el.getBoundingClientRect();
+    const margin = 12;
+    const maxWidth = Math.min(320, window.innerWidth - margin * 2);
+    let left = align === "end" ? rect.right - maxWidth : rect.left;
+    left = Math.max(margin, Math.min(left, window.innerWidth - maxWidth - margin));
+    setTooltip({ top: rect.bottom + 6, left, width: maxWidth });
+  }, [align, hint]);
+
+  const hideTooltip = useCallback(() => setTooltip(null), []);
+
   if (!hint) return null;
-  const tooltipAlign = align === "end" ? "right-0" : "left-0";
+
   return (
-    <span className="group relative ml-1 inline-flex align-middle">
+    <>
       <span
+        ref={anchorRef}
         tabIndex={0}
-        className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-slate-400 text-[10px] font-bold leading-none text-white outline-none focus-visible:ring-2 focus-visible:ring-[#14a7bb]"
-        aria-label={hint}
+        className="ml-1 inline-flex align-middle"
+        onMouseEnter={showTooltip}
+        onMouseLeave={hideTooltip}
+        onFocus={showTooltip}
+        onBlur={hideTooltip}
       >
-        ?
+        <span
+          className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-slate-400 text-[10px] font-bold leading-none text-white outline-none focus-visible:ring-2 focus-visible:ring-[#14a7bb]"
+          aria-label={hint}
+        >
+          ?
+        </span>
       </span>
-      <span
-        role="tooltip"
-        className={[
-          "pointer-events-none absolute top-[calc(100%+6px)] z-[200] hidden max-w-[min(20rem,calc(100vw-2rem))] whitespace-normal rounded border border-slate-200 bg-white px-3 py-2 text-left text-[12px] font-normal leading-snug text-slate-700 shadow-lg group-hover:block group-focus-within:block",
-          tooltipAlign,
-        ].join(" ")}
-      >
-        {hint}
-      </span>
-    </span>
+      {tooltip ? (
+        <span
+          role="tooltip"
+          style={{ top: tooltip.top, left: tooltip.left, width: tooltip.width }}
+          className="pointer-events-none fixed z-[300] whitespace-normal rounded border border-slate-200 bg-white px-3 py-2 text-left text-[12px] font-normal leading-snug text-slate-700 shadow-lg"
+        >
+          {hint}
+        </span>
+      ) : null}
+    </>
   );
 }
 
