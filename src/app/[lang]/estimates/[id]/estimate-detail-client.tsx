@@ -60,6 +60,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
   const router = useRouter();
 
   const [isIssueMenuOpen, setIsIssueMenuOpen] = useState(false);
+  const [isConvertMenuOpen, setIsConvertMenuOpen] = useState(false);
   const [modal, setModal] = useState<ModalType>(null);
   const [email, setEmail] = useState(detail.clientEmail);
   const [memo, setMemo] = useState(detail.internalMemo);
@@ -79,11 +80,13 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
     function handleOutsideClick(event: MouseEvent) {
       if (issueMenuRef.current && !issueMenuRef.current.contains(event.target as Node)) {
         setIsIssueMenuOpen(false);
+        setIsConvertMenuOpen(false);
       }
     }
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setIsIssueMenuOpen(false);
+        setIsConvertMenuOpen(false);
         setModal(null);
       }
     }
@@ -280,7 +283,10 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
             </button>
             <button
               type="button"
-              onClick={() => setIsIssueMenuOpen((prev) => !prev)}
+              onClick={() => {
+                setIsIssueMenuOpen((prev) => !prev);
+                setIsConvertMenuOpen(false);
+              }}
               className="rounded bg-[#0A4D34] px-6 py-3 text-[18px] font-semibold text-white shadow-sm transition hover:bg-[#083D29]"
             >
               {ui.exportAction} ▼
@@ -291,24 +297,16 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
             >
               {ui.editAction}
             </Link>
-            <Link
-              href={`/${lang}/delivery-notes/new?fromEstimate=${detail.id}`}
+            <button
+              type="button"
+              onClick={() => {
+                setIsConvertMenuOpen((prev) => !prev);
+                setIsIssueMenuOpen(false);
+              }}
               className="rounded border border-slate-300 bg-white px-6 py-3 text-[18px] font-semibold text-slate-700 transition hover:bg-slate-50"
             >
-              {lang === "ko" ? "납품서로 변환" : lang === "en" ? "Convert to delivery note" : "納品書に変換"}
-            </Link>
-            <Link
-              href={`/${lang}/invoices/new?fromEstimate=${detail.id}`}
-              className="rounded border border-slate-300 bg-white px-6 py-3 text-[18px] font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              {lang === "ko" ? "청구서로 변환" : lang === "en" ? "Convert to invoice" : "請求書に変換"}
-            </Link>
-            <Link
-              href={`/${lang}/orders?fromEstimate=${detail.id}&openCreate=1`}
-              className="rounded border border-slate-300 bg-white px-6 py-3 text-[18px] font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              {lang === "ko" ? "수주정보로 변환" : lang === "en" ? "Convert to order" : "受注情報に変換"}
-            </Link>
+              {lang === "ko" ? "변환" : lang === "en" ? "Convert" : "変換"} ▼
+            </button>
             {detail.status === "draft" ? (
               <button
                 type="button"
@@ -338,6 +336,23 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
                 />
                 <IssueMenuItem label={ui.issueMenu.print} onClick={() => handleIssueAction("print")} />
                 <IssueMenuItem label={ui.issueMenu.share} onClick={() => handleIssueAction("share")} />
+              </div>
+            ) : null}
+
+            {isConvertMenuOpen ? (
+              <div className="absolute right-0 top-[72px] z-30 w-[260px] rounded-lg border border-slate-200 bg-white p-2 shadow-[0_12px_35px_rgba(15,23,42,0.18)]">
+                <ConvertMenuItem
+                  label={lang === "ko" ? "납품서로 변환" : lang === "en" ? "Convert to delivery note" : "納品書に変換"}
+                  href={`/${lang}/delivery-notes/new?fromEstimate=${detail.id}`}
+                />
+                <ConvertMenuItem
+                  label={lang === "ko" ? "청구서로 변환" : lang === "en" ? "Convert to invoice" : "請求書に変換"}
+                  href={`/${lang}/invoices/new?fromEstimate=${detail.id}`}
+                />
+                <ConvertMenuItem
+                  label={lang === "ko" ? "수주정보로 변환" : lang === "en" ? "Convert to order" : "受注情報に変換"}
+                  href={`/${lang}/orders?fromEstimate=${detail.id}&openCreate=1`}
+                />
               </div>
             ) : null}
           </div>
@@ -495,6 +510,17 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
         </div>
       ) : null}
     </SalesFlowShell>
+  );
+}
+
+function ConvertMenuItem({ label, href }: { label: string; href: string }) {
+  return (
+    <Link
+      href={href}
+      className="block w-full rounded px-3 py-3 text-left text-[16px] text-slate-800 transition hover:bg-slate-50"
+    >
+      {label}
+    </Link>
   );
 }
 
