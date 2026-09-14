@@ -100,3 +100,4 @@ export const createReceiptSchema = createEstimateSchema.extend({
 export type LineItemInput = z.infer<typeof lineItemSchema>;
 export type CreateEstimateInput = z.infer<typeof createEstimateSchema>;
 export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>;
+export type CreateDeliveryNoteInput = z.infer<typeof createDeliveryNoteSchema>;

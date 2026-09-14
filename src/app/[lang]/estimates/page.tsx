@@ -10,12 +10,18 @@ const TAB_FILTERS = [
   { statusIn: undefined, trashed: true },
 ] as const;
 
+function parseFlag(value: string | undefined): boolean | undefined {
+  if (value === "1") return true;
+  if (value === "0") return false;
+  return undefined;
+}
+
 export default async function EstimatesPage({
   params,
   searchParams,
 }: {
   params: Promise<{ lang: string }>;
-  searchParams: Promise<{ tab?: string; q?: string; page?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; page?: string; issueFlag?: string; orderFlag?: string }>;
 }) {
   const { lang } = await params;
   const scope = await requireActiveOrg(lang);
@@ -24,10 +30,14 @@ export default async function EstimatesPage({
   const page = Math.max(1, Number(sp.page ?? "1") || 1);
   const query = sp.q?.trim() || undefined;
   const filter = TAB_FILTERS[tab];
+  const issueFlag = parseFlag(sp.issueFlag);
+  const orderFlag = parseFlag(sp.orderFlag);
 
   const { estimates, total } = await getEstimates(scope.orgId, {
     statusIn: filter.statusIn ? [...filter.statusIn] : undefined,
     trashed: filter.trashed,
+    issueFlag,
+    orderFlag,
     query,
     page,
     pageSize: 30,
@@ -41,6 +51,8 @@ export default async function EstimatesPage({
     issueDate: (e.issue_date as string) ?? "",
     total: Number(e.total ?? 0),
     status: (e.status as string) ?? "draft",
+    issued: Boolean(e.issue_marked_at),
+    ordered: Boolean(e.ordered_at),
   }));
 
   return (
@@ -51,6 +63,8 @@ export default async function EstimatesPage({
       pageSize={30}
       activeTab={tab}
       query={query ?? ""}
+      issueFlag={issueFlag}
+      orderFlag={orderFlag}
     />
   );
 }

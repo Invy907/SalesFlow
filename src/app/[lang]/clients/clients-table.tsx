@@ -217,6 +217,12 @@ export function ClientsTable({
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex flex-wrap items-center gap-3 text-[14px]">
+                        <Link
+                          href={getClientsHref(lang, "detail", client.id)}
+                          className="text-[#0A4D34] hover:underline"
+                        >
+                          {ui.detail.viewDetail}
+                        </Link>
                         <button
                           type="button"
                           onClick={() => setEditing(client)}

@@ -20,6 +20,15 @@ const labels = {
     showDocument: "文書の表示",
     listToggle: "一覧 / 非表示",
     honorific: "様",
+    detail: {
+      backToList: "取引先一覧に戻る",
+      viewDetail: "詳細",
+      documentsTitle: "文書一覧",
+      showProcessed: "処理済みも表示",
+      noDocuments: "文書がありません。",
+      docTypeLabels: { estimate: "見積書", invoice: "請求書", delivery_note: "納品書", receipt: "領収書" } as Record<string, string>,
+      columns: ["種類", "書類番号", "件名", "発行日", "状態"],
+    },
     bulk: {
       title: "取引先の一括登録・更新(CSVアップロード)",
       intro:
@@ -148,6 +157,15 @@ const labels = {
     showDocument: "문서 표시",
     listToggle: "목록 / 숨기기",
     honorific: "귀중",
+    detail: {
+      backToList: "거래처 목록으로",
+      viewDetail: "상세",
+      documentsTitle: "문서 목록",
+      showProcessed: "처리완료도 표시",
+      noDocuments: "문서가 없습니다.",
+      docTypeLabels: { estimate: "견적서", invoice: "청구서", delivery_note: "납품서", receipt: "영수증" } as Record<string, string>,
+      columns: ["종류", "문서번호", "건명", "발행일", "상태"],
+    },
     bulk: {
       title: "거래처 일괄 등록·업데이트(CSV 업로드)",
       intro:
@@ -276,6 +294,15 @@ const labels = {
     showDocument: "Show Document",
     listToggle: "List / Hidden",
     honorific: "",
+    detail: {
+      backToList: "Back to clients",
+      viewDetail: "Details",
+      documentsTitle: "Documents",
+      showProcessed: "Show processed too",
+      noDocuments: "No documents yet.",
+      docTypeLabels: { estimate: "Estimate", invoice: "Invoice", delivery_note: "Delivery note", receipt: "Receipt" } as Record<string, string>,
+      columns: ["Type", "Document No.", "Subject", "Issue date", "Status"],
+    },
     bulk: {
       title: "Bulk Client Registration / Update (CSV Upload)",
       intro:
@@ -391,7 +418,9 @@ export function getClientsContent(lang: AppLocale) {
   return labels[lang];
 }
 
-export function getClientsHref(_lang: AppLocale, page: "list" | "bulk" = "list") {
+export function getClientsHref(_lang: AppLocale, page: "list" | "bulk" | "detail" = "list", id?: string) {
   const base = "/clients";
-  return page === "bulk" ? `${base}/bulk` : base;
+  if (page === "bulk") return `${base}/bulk`;
+  if (page === "detail" && id) return `${base}/${id}`;
+  return base;
 }

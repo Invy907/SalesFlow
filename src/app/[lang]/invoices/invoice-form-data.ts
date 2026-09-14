@@ -9,6 +9,7 @@ import type { InvoiceClientOption, InvoiceFormInitial } from "./invoice-form-cli
 import { normalizeDocumentOutputLocale } from "@/lib/documents/output-locale";
 import { getDocumentSealUrl } from "@/lib/documents/seal-url";
 import { getInvoiceById } from "@/lib/db/invoices";
+import { getEstimateById } from "@/lib/db/estimates";
 import { normalizeClientHonorific } from "@/lib/documents/client-honorific";
 import { TAX_CATEGORY_TO_LABEL, type TaxCategory } from "@/lib/tax";
 import type { LineItemRow } from "./../documents/new-document-shared";
@@ -55,7 +56,44 @@ async function buildCopyInitial(orgId: string, invoiceId: string) {
   };
 }
 
-export async function buildNewInvoiceInitial(lang: string, copyFromId?: string): Promise<{
+/** 見積書からの変換(?fromEstimate=<id>). 청구서 전용 필드(입금 등)는 제외. */
+async function buildFromEstimateInitial(orgId: string, estimateId: string) {
+  const source = await getEstimateById(estimateId).catch(() => null);
+  if (!source || source.organization_id !== orgId) return null;
+
+  const recipient = (source.recipient_snapshot ?? {}) as Record<string, string>;
+  const lines: LineItemRow[] = (
+    (source.estimate_line_items ?? []) as Array<Record<string, unknown>>
+  ).map((line) => ({
+    name: (line.name_snapshot as string) ?? "",
+    qty: line.qty === null || line.qty === undefined ? "" : String(line.qty),
+    unit: (line.unit_snapshot as string) ?? "",
+    price:
+      line.unit_price_snapshot === null || line.unit_price_snapshot === undefined
+        ? ""
+        : String(line.unit_price_snapshot),
+    tax: TAX_CATEGORY_TO_LABEL[line.tax_category as TaxCategory] ?? "10%",
+  }));
+
+  return {
+    clientId: (source.client_id as string | null) ?? null,
+    clientName: (source.clients?.name as string) ?? recipient.clientName ?? "",
+    subject: (source.subject as string) ?? "",
+    clientHonorific: normalizeClientHonorific(source.client_honorific),
+    showSeal: source.show_seal !== false,
+    outputLocale: normalizeDocumentOutputLocale(source.output_locale),
+    templateMessage: (source.template_message as string) ?? "",
+    remarks: (source.remarks as string) ?? "",
+    recipient,
+    lines,
+  };
+}
+
+export async function buildNewInvoiceInitial(
+  lang: string,
+  copyFromId?: string,
+  fromEstimateId?: string,
+): Promise<{
   initial: InvoiceFormInitial;
   clients: ClientOption[];
   bankAccounts: BankAccountOption[];
@@ -69,7 +107,11 @@ export async function buildNewInvoiceInitial(lang: string, copyFromId?: string):
     getBankAccounts(scope.orgId),
   ]);
 
-  const copy = copyFromId ? await buildCopyInitial(scope.orgId, copyFromId) : null;
+  const copy = copyFromId
+    ? await buildCopyInitial(scope.orgId, copyFromId)
+    : fromEstimateId
+      ? await buildFromEstimateInitial(scope.orgId, fromEstimateId)
+      : null;
 
   const today = new Date();
   const issueDate = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, "0")}/${String(

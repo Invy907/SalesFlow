@@ -291,6 +291,24 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
             >
               {ui.editAction}
             </Link>
+            <Link
+              href={`/${lang}/delivery-notes/new?fromEstimate=${detail.id}`}
+              className="rounded border border-slate-300 bg-white px-6 py-3 text-[18px] font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              {lang === "ko" ? "납품서로 변환" : lang === "en" ? "Convert to delivery note" : "納品書に変換"}
+            </Link>
+            <Link
+              href={`/${lang}/invoices/new?fromEstimate=${detail.id}`}
+              className="rounded border border-slate-300 bg-white px-6 py-3 text-[18px] font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              {lang === "ko" ? "청구서로 변환" : lang === "en" ? "Convert to invoice" : "請求書に変換"}
+            </Link>
+            <Link
+              href={`/${lang}/orders?fromEstimate=${detail.id}&openCreate=1`}
+              className="rounded border border-slate-300 bg-white px-6 py-3 text-[18px] font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              {lang === "ko" ? "수주정보로 변환" : lang === "en" ? "Convert to order" : "受注情報に変換"}
+            </Link>
             {detail.status === "draft" ? (
               <button
                 type="button"

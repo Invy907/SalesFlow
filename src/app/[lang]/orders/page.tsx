@@ -5,28 +5,69 @@ import {
   getOrderStatuses,
   getOrders,
 } from "@/lib/db/orders";
-import { OrdersClient, type OrderDetail, type OrderRow, type OrderStatusOption } from "./orders-client";
+import { getClientOptions } from "@/lib/db/clients";
+import { getEstimateById } from "@/lib/db/estimates";
+import { TAX_CATEGORY_TO_LABEL, type TaxCategory } from "@/lib/tax";
+import {
+  OrdersClient,
+  type OrderCreateInitial,
+  type OrderDetail,
+  type OrderRow,
+  type OrderStatusOption,
+} from "./orders-client";
 
 export const dynamic = "force-dynamic";
 
 const TRASH = "trash";
+
+/** 見積書からの変換(?fromEstimate=<id>&openCreate=1). */
+async function buildOrderInitialFromEstimate(
+  orgId: string,
+  estimateId: string,
+): Promise<OrderCreateInitial | null> {
+  const source = await getEstimateById(estimateId).catch(() => null);
+  if (!source || source.organization_id !== orgId) return null;
+
+  return {
+    sourceEstimateId: estimateId,
+    clientId: (source.client_id as string | null) ?? null,
+    clientName: (source.clients?.name as string) ?? "",
+    subject: (source.subject as string) ?? "",
+    lines: ((source.estimate_line_items ?? []) as Array<Record<string, unknown>>).map((line) => ({
+      name: (line.name_snapshot as string) ?? "",
+      qty: line.qty === null || line.qty === undefined ? "" : String(line.qty),
+      unit: (line.unit_snapshot as string) ?? "",
+      price:
+        line.unit_price_snapshot === null || line.unit_price_snapshot === undefined
+          ? ""
+          : String(line.unit_price_snapshot),
+      tax: TAX_CATEGORY_TO_LABEL[line.tax_category as TaxCategory] ?? "10%",
+    })),
+  };
+}
 
 export default async function OrdersPage({
   params,
   searchParams,
 }: {
   params: Promise<{ lang: string }>;
-  searchParams: Promise<{ status?: string; q?: string; orderId?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; orderId?: string; fromEstimate?: string; openCreate?: string }>;
 }) {
   const { lang } = await params;
   const scope = await requireActiveOrg(lang);
   const sp = await searchParams;
   const query = sp.q?.trim() || undefined;
 
-  const [statuses, counts] = await Promise.all([
+  const [statuses, counts, clients] = await Promise.all([
     getOrderStatuses(scope.orgId),
     getOrderCounts(scope.orgId),
+    getClientOptions(scope.orgId),
   ]);
+
+  const createInitial =
+    sp.openCreate === "1" && sp.fromEstimate
+      ? await buildOrderInitialFromEstimate(scope.orgId, sp.fromEstimate)
+      : null;
 
   const options: OrderStatusOption[] = statuses.map((s) => ({
     id: s.id as string,
@@ -100,6 +141,8 @@ export default async function OrdersPage({
       rows={rows}
       detail={detail}
       query={query ?? ""}
+      clients={clients}
+      createInitial={createInitial}
     />
   );
 }

@@ -4,10 +4,19 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
-import { CreateOrderModal } from "./create-order-modal";
+import { CreateOrderModal, type OrderLineItemInitial } from "./create-order-modal";
 import { getOrdersContent } from "./content";
 import { OrderSubNav } from "./order-sub-nav";
 import { StatusAddInlineForm } from "./status-add-inline-form";
+import type { ClientOptionRow } from "@/lib/db/clients";
+
+export type OrderCreateInitial = {
+  sourceEstimateId?: string | null;
+  clientId?: string | null;
+  clientName?: string;
+  subject?: string;
+  lines?: OrderLineItemInitial[];
+};
 
 export type OrderStatusOption = {
   id: string;
@@ -42,6 +51,8 @@ export function OrdersClient({
   rows,
   detail,
   query,
+  clients,
+  createInitial,
 }: {
   statuses: OrderStatusOption[];
   trashCount: number;
@@ -50,12 +61,14 @@ export function OrdersClient({
   rows: OrderRow[];
   detail: OrderDetail | null;
   query: string;
+  clients: ClientOptionRow[];
+  createInitial?: OrderCreateInitial | null;
 }) {
   const { lang } = useLanguage();
   const ui = getOrdersContent(lang);
   const router = useRouter();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(Boolean(createInitial));
   const [isAddingStatus, setIsAddingStatus] = useState(false);
   const [newStatusName, setNewStatusName] = useState("");
   const [search, setSearch] = useState(query);
@@ -256,7 +269,9 @@ export function OrdersClient({
         <CreateOrderModal
           ui={ui.modal}
           lang={lang}
-          statuses={statuses.filter((s) => s.systemKey !== "trash").map((s) => s.name)}
+          statuses={statuses.filter((s) => s.systemKey !== "trash").map((s) => ({ id: s.id, name: s.name }))}
+          clients={clients}
+          initial={createInitial ?? undefined}
           statusFormLabels={{
             statusPlaceholder: ui.statusPlaceholder,
             cancel: ui.cancel,
@@ -265,6 +280,10 @@ export function OrdersClient({
           }}
           onClose={() => setIsModalOpen(false)}
           onAddCustomStatus={() => undefined}
+          onCreated={(orderId) => {
+            setIsModalOpen(false);
+            navigate({ orderId });
+          }}
         />
       ) : null}
     </SalesFlowShell>

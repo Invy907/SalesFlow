@@ -8,6 +8,10 @@ export interface DocumentFilter {
   status?: DocumentStatus;
   statusIn?: DocumentStatus[];
   trashed?: boolean;
+  /** 見積書 전용: 発行 배지. true=発行済만, false=未発行만 */
+  issueFlag?: boolean;
+  /** 見積書 전용: 受注 배지. true=受注済만, false=未受注만 */
+  orderFlag?: boolean;
   from?: string;
   to?: string;
   query?: string;
@@ -17,7 +21,7 @@ export interface DocumentFilter {
 
 export async function getEstimates(orgId: string, filter: DocumentFilter = {}) {
   const supabase = await getSupabaseServerClient();
-  const { clientId, status, statusIn, trashed, from, to, query, page = 1, pageSize = 30 } = filter;
+  const { clientId, status, statusIn, trashed, issueFlag, orderFlag, from, to, query, page = 1, pageSize = 30 } = filter;
 
   let q = supabase
     .from("estimates")
@@ -34,6 +38,8 @@ export async function getEstimates(orgId: string, filter: DocumentFilter = {}) {
   if (clientId) q = q.eq("client_id", clientId);
   if (status) q = q.eq("status", status);
   if (statusIn?.length) q = q.in("status", statusIn);
+  if (issueFlag !== undefined) q = issueFlag ? q.not("issue_marked_at", "is", null) : q.is("issue_marked_at", null);
+  if (orderFlag !== undefined) q = orderFlag ? q.not("ordered_at", "is", null) : q.is("ordered_at", null);
   if (from) q = q.gte("issue_date", from);
   if (to) q = q.lte("issue_date", to);
   if (query) q = q.or(`document_number.ilike.%${query}%,subject.ilike.%${query}%`);

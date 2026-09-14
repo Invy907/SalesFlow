@@ -761,6 +761,7 @@ export type Database = {
           id: string
           internal_memo: string | null
           issue_date: string
+          issue_marked_at: string | null
           ordered_at: string | null
           ordered_order_id: string | null
           organization_id: string
@@ -795,6 +796,7 @@ export type Database = {
           id?: string
           internal_memo?: string | null
           issue_date: string
+          issue_marked_at?: string | null
           ordered_at?: string | null
           ordered_order_id?: string | null
           organization_id: string
@@ -829,6 +831,7 @@ export type Database = {
           id?: string
           internal_memo?: string | null
           issue_date?: string
+          issue_marked_at?: string | null
           ordered_at?: string | null
           ordered_order_id?: string | null
           organization_id?: string

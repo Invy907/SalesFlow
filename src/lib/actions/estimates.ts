@@ -10,10 +10,23 @@ import { newShareToken, shareExpiryFromNow } from "@/lib/share-tokens";
 import { computeDocumentTotals } from "@/lib/tax";
 import { sendSalesDocumentEmail } from "@/lib/documents/send-document-email";
 import { getServerSiteUrl } from "@/lib/site-url.server";
+import { getEstimateById } from "@/lib/db/estimates";
+import { createInvoice } from "@/lib/actions/invoices";
+import { createDeliveryNote } from "@/lib/actions/delivery-notes";
+import { createOrder } from "@/lib/actions/orders";
+import type { LineItemInput } from "@/lib/validators/document";
 
 type ActionResult<T = void> =
   | { ok: true; data: T }
   | { ok: false; error: string; fieldErrors?: Record<string, string> };
+
+const DOCUMENT_STATUSES = ["draft", "issued", "sent", "confirmed", "overdue"] as const;
+type EstimateStatus = (typeof DOCUMENT_STATUSES)[number];
+
+function uniqueValidIds(ids: string[]): string[] {
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return [...new Set(ids)].filter((id) => typeof id === "string" && UUID_RE.test(id));
+}
 
 export async function createEstimate(
   formData: CreateEstimateInput,
@@ -190,6 +203,346 @@ export async function issueEstimate(estimateId: string): Promise<ActionResult> {
   await maybeImportIssuedEstimateAsAiSource(estimateId);
   revalidatePath("/[lang]/estimates", "page");
   return { ok: true, data: undefined };
+}
+
+/** 発行 배지(依頼1) 토글. status와 무관한 독립 축. */
+export async function toggleEstimateIssueFlag(estimateId: string): Promise<ActionResult<boolean>> {
+  const supabase = await getSupabaseServerClient();
+  const { data: current, error: readErr } = await supabase
+    .from("estimates")
+    .select("issue_marked_at")
+    .eq("id", estimateId)
+    .maybeSingle();
+  if (readErr) return { ok: false, error: readErr.message };
+  if (!current) return { ok: false, error: "見積書が見つかりません" };
+
+  const next = current.issue_marked_at ? null : new Date().toISOString();
+  const { error } = await supabase.from("estimates").update({ issue_marked_at: next }).eq("id", estimateId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/[lang]/estimates", "page");
+  return { ok: true, data: Boolean(next) };
+}
+
+/** 受注 배지(依頼1) 토글. 수동 토글은 ordered_order_id 는 건드리지 않는다(실제 연결은 변환 액션만). */
+export async function toggleEstimateOrderFlag(estimateId: string): Promise<ActionResult<boolean>> {
+  const supabase = await getSupabaseServerClient();
+  const { data: current, error: readErr } = await supabase
+    .from("estimates")
+    .select("ordered_at")
+    .eq("id", estimateId)
+    .maybeSingle();
+  if (readErr) return { ok: false, error: readErr.message };
+  if (!current) return { ok: false, error: "見積書が見つかりません" };
+
+  const next = current.ordered_at ? null : new Date().toISOString();
+  const { error } = await supabase.from("estimates").update({ ordered_at: next }).eq("id", estimateId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/[lang]/estimates", "page");
+  return { ok: true, data: Boolean(next) };
+}
+
+async function markEstimateOrdered(estimateId: string, orderId?: string) {
+  const supabase = await getSupabaseServerClient();
+  if (orderId) {
+    await supabase
+      .from("estimates")
+      .update({ ordered_at: new Date().toISOString(), ordered_order_id: orderId })
+      .eq("id", estimateId);
+  } else {
+    await supabase.from("estimates").update({ ordered_at: new Date().toISOString() }).eq("id", estimateId);
+  }
+}
+
+export async function bulkSetEstimatesStatus(
+  ids: string[],
+  status: EstimateStatus,
+): Promise<ActionResult<{ updated: number }>> {
+  const validIds = uniqueValidIds(ids);
+  if (validIds.length === 0) return { ok: false, error: "見積書が選択されていません" };
+  if (!DOCUMENT_STATUSES.includes(status)) return { ok: false, error: "ステータスの指定が正しくありません" };
+
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+
+  const supabase = await getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("estimates")
+    .update({ status })
+    .in("id", validIds)
+    .eq("organization_id", org.organization_id)
+    .select("id");
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/[lang]/estimates", "page");
+  return { ok: true, data: { updated: data?.length ?? 0 } };
+}
+
+/** 依頼2: 체크박스 일괄 "処理済みにする". status を confirmed 로. */
+export async function bulkMarkEstimatesProcessed(ids: string[]) {
+  return bulkSetEstimatesStatus(ids, "confirmed");
+}
+
+/**
+ * 依頼2: "未処理に戻す". 発行 배지(issue_marked_at)가 있으면 issued로, 없으면 draft로
+ * 되돌린다(대상들의 발행 배지 상태가 다를 수 있어 건별로 계산한다).
+ */
+export async function bulkUnmarkEstimatesProcessed(ids: string[]): Promise<ActionResult<{ updated: number }>> {
+  const validIds = uniqueValidIds(ids);
+  if (validIds.length === 0) return { ok: false, error: "見積書が選択されていません" };
+
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+
+  const supabase = await getSupabaseServerClient();
+  const { data: rows, error: readErr } = await supabase
+    .from("estimates")
+    .select("id, issue_marked_at")
+    .in("id", validIds)
+    .eq("organization_id", org.organization_id);
+  if (readErr) return { ok: false, error: readErr.message };
+
+  let updated = 0;
+  for (const row of rows ?? []) {
+    const { error } = await supabase
+      .from("estimates")
+      .update({ status: row.issue_marked_at ? "issued" : "draft" })
+      .eq("id", row.id);
+    if (!error) updated += 1;
+  }
+
+  revalidatePath("/[lang]/estimates", "page");
+  return { ok: true, data: { updated } };
+}
+
+export async function bulkIssueEstimates(ids: string[]): Promise<ActionResult<{ updated: number }>> {
+  const validIds = uniqueValidIds(ids);
+  if (validIds.length === 0) return { ok: false, error: "見積書が選択されていません" };
+
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+
+  const supabase = await getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("estimates")
+    .update({ status: "issued" })
+    .in("id", validIds)
+    .eq("organization_id", org.organization_id)
+    .select("id");
+  if (error) return { ok: false, error: error.message };
+
+  for (const row of data ?? []) {
+    await maybeImportIssuedEstimateAsAiSource(row.id as string);
+  }
+
+  revalidatePath("/[lang]/estimates", "page");
+  return { ok: true, data: { updated: data?.length ?? 0 } };
+}
+
+type EstimateForConversion = {
+  client_id: string | null;
+  client_destination_id: string | null;
+  subject: string | null;
+  tax_display: string | null;
+  tax_rounding: string | null;
+  withholding_type: string | null;
+  template_key: string | null;
+  output_locale: string | null;
+  client_honorific: string | null;
+  show_seal: boolean | null;
+  template_message: string | null;
+  remarks: string | null;
+  recipient_snapshot: Record<string, unknown> | null;
+  sender_snapshot: Record<string, unknown> | null;
+  estimate_line_items: Array<{
+    item_id: string | null;
+    name_snapshot: string | null;
+    qty: number;
+    unit_snapshot: string | null;
+    unit_price_snapshot: number;
+    tax_category: string;
+    tax_rate_snapshot: number;
+    withholding_exempt_snapshot: boolean | null;
+  }>;
+};
+
+async function loadEstimateForConversion(
+  estimateId: string,
+  orgId: string,
+): Promise<EstimateForConversion | null> {
+  const supabase = await getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("estimates")
+    .select(
+      "client_id, client_destination_id, subject, tax_display, tax_rounding, withholding_type, template_key, output_locale, client_honorific, show_seal, template_message, remarks, recipient_snapshot, sender_snapshot, estimate_line_items(*)",
+    )
+    .eq("id", estimateId)
+    .eq("organization_id", orgId)
+    .is("deleted_at", null)
+    .order("line_no", { referencedTable: "estimate_line_items", ascending: true })
+    .maybeSingle();
+  if (error || !data) return null;
+  return data as unknown as EstimateForConversion;
+}
+
+function estimateLinesToInput(est: EstimateForConversion): LineItemInput[] {
+  return (est.estimate_line_items ?? []).map((l) => ({
+    itemId: l.item_id ?? undefined,
+    name: l.name_snapshot ?? "",
+    qty: l.qty,
+    unit: l.unit_snapshot ?? undefined,
+    unitPrice: l.unit_price_snapshot,
+    taxCategory: l.tax_category as LineItemInput["taxCategory"],
+    taxRateSnapshot: l.tax_rate_snapshot,
+    withholdingExempt: l.withholding_exempt_snapshot ?? undefined,
+  }));
+}
+
+function todayDate() {
+  return new Date();
+}
+
+/** 見積書 → 納品書/請求書/受注情報 변환 공용. 성공한 건마다 受注 배지를 자동 전환한다. */
+async function convertEstimates(
+  ids: string[],
+  orgId: string,
+  create: (est: EstimateForConversion, estimateId: string) => Promise<ActionResult<string>>,
+): Promise<{ createdIds: string[]; failed: number }> {
+  const createdIds: string[] = [];
+  let failed = 0;
+  for (const id of uniqueValidIds(ids)) {
+    const est = await loadEstimateForConversion(id, orgId);
+    if (!est) {
+      failed += 1;
+      continue;
+    }
+    const result = await create(est, id);
+    if (result.ok) {
+      createdIds.push(result.data);
+    } else {
+      failed += 1;
+    }
+  }
+  return { createdIds, failed };
+}
+
+export async function bulkConvertEstimatesToDeliveryNotes(
+  ids: string[],
+): Promise<ActionResult<{ createdIds: string[]; failed: number }>> {
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+
+  const result = await convertEstimates(ids, org.organization_id, async (est, estimateId) => {
+    const created = await createDeliveryNote({
+      clientId: est.client_id,
+      clientDestinationId: est.client_destination_id,
+      subject: est.subject ?? undefined,
+      issueDate: todayDate(),
+      taxDisplay: (est.tax_display ?? "separate") as CreateEstimateInput["taxDisplay"],
+      taxRounding: (est.tax_rounding ?? "round_down") as CreateEstimateInput["taxRounding"],
+      withholdingType: (est.withholding_type ?? "none") as CreateEstimateInput["withholdingType"],
+      templateKey: est.template_key ?? "standard",
+      outputLocale: (est.output_locale ?? "ja") as CreateEstimateInput["outputLocale"],
+      clientHonorific: (est.client_honorific ?? "onchu") as CreateEstimateInput["clientHonorific"],
+      showSeal: est.show_seal ?? true,
+      templateMessage: est.template_message ?? undefined,
+      remarks: est.remarks ?? undefined,
+      recipientSnapshot: (est.recipient_snapshot as Record<string, string>) ?? undefined,
+      senderSnapshot: (est.sender_snapshot as Record<string, string>) ?? undefined,
+      lineItems: estimateLinesToInput(est),
+    });
+    if (created.ok) await markEstimateOrdered(estimateId);
+    return created;
+  });
+  revalidatePath("/[lang]/estimates", "page");
+  revalidatePath("/[lang]/delivery-notes", "page");
+  return { ok: true, data: result };
+}
+
+export async function bulkConvertEstimatesToInvoices(
+  ids: string[],
+): Promise<ActionResult<{ createdIds: string[]; failed: number }>> {
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+
+  const result = await convertEstimates(ids, org.organization_id, async (est, estimateId) => {
+    const created = await createInvoice({
+      clientId: est.client_id,
+      clientDestinationId: est.client_destination_id,
+      subject: est.subject ?? undefined,
+      issueDate: todayDate(),
+      taxDisplay: (est.tax_display ?? "separate") as CreateEstimateInput["taxDisplay"],
+      taxRounding: (est.tax_rounding ?? "round_down") as CreateEstimateInput["taxRounding"],
+      withholdingType: (est.withholding_type ?? "none") as CreateEstimateInput["withholdingType"],
+      templateKey: est.template_key ?? "standard",
+      outputLocale: (est.output_locale ?? "ja") as CreateEstimateInput["outputLocale"],
+      clientHonorific: (est.client_honorific ?? "onchu") as CreateEstimateInput["clientHonorific"],
+      showSeal: est.show_seal ?? true,
+      templateMessage: est.template_message ?? undefined,
+      remarks: est.remarks ?? undefined,
+      recipientSnapshot: (est.recipient_snapshot as Record<string, string>) ?? undefined,
+      senderSnapshot: (est.sender_snapshot as Record<string, string>) ?? undefined,
+      lineItems: estimateLinesToInput(est),
+    });
+    if (created.ok) await markEstimateOrdered(estimateId);
+    return created;
+  });
+  revalidatePath("/[lang]/estimates", "page");
+  revalidatePath("/[lang]/invoices", "page");
+  return { ok: true, data: result };
+}
+
+export async function bulkConvertEstimatesToOrders(
+  ids: string[],
+): Promise<ActionResult<{ createdIds: string[]; failed: number }>> {
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+
+  const result = await convertEstimates(ids, org.organization_id, async (est, estimateId) => {
+    const created = await createOrder({
+      clientId: est.client_id,
+      subject: est.subject ?? undefined,
+      orderDate: todayDate(),
+      sourceEstimateId: estimateId,
+      lineItems: estimateLinesToInput(est),
+    });
+    if (created.ok) await markEstimateOrdered(estimateId, created.data);
+    return created;
+  });
+  revalidatePath("/[lang]/estimates", "page");
+  revalidatePath("/[lang]/orders", "page");
+  return { ok: true, data: result };
+}
+
+export async function bulkDuplicateEstimates(
+  ids: string[],
+): Promise<ActionResult<{ createdIds: string[]; failed: number }>> {
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+
+  const result = await convertEstimates(ids, org.organization_id, async (est) => {
+    return createEstimate({
+      clientId: est.client_id,
+      clientDestinationId: est.client_destination_id,
+      subject: est.subject ?? undefined,
+      issueDate: todayDate(),
+      taxDisplay: (est.tax_display ?? "separate") as CreateEstimateInput["taxDisplay"],
+      taxRounding: (est.tax_rounding ?? "round_down") as CreateEstimateInput["taxRounding"],
+      withholdingType: (est.withholding_type ?? "none") as CreateEstimateInput["withholdingType"],
+      templateKey: est.template_key ?? "standard",
+      outputLocale: (est.output_locale ?? "ja") as CreateEstimateInput["outputLocale"],
+      clientHonorific: (est.client_honorific ?? "onchu") as CreateEstimateInput["clientHonorific"],
+      showSeal: est.show_seal ?? true,
+      templateMessage: est.template_message ?? undefined,
+      remarks: est.remarks ?? undefined,
+      recipientSnapshot: (est.recipient_snapshot as Record<string, string>) ?? undefined,
+      senderSnapshot: (est.sender_snapshot as Record<string, string>) ?? undefined,
+      lineItems: estimateLinesToInput(est),
+    });
+  });
+  revalidatePath("/[lang]/estimates", "page");
+  return { ok: true, data: result };
 }
 
 export async function shareEstimate(

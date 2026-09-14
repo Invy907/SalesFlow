@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
 import { appHrefs } from "@/lib/app-hrefs";
@@ -12,7 +13,6 @@ import {
   DocumentLineItemsTable,
   EMPTY_LINE_ITEM_TOTALS,
   HonorificField as SharedHonorificField,
-  SenderDetailFields,
   toIsoDate,
   useDocumentDateFields,
   type LineItemRow,
@@ -21,6 +21,7 @@ import {
 import {
   clientHonorificSuffix,
   DEFAULT_CLIENT_HONORIFIC,
+  normalizeClientHonorific,
   type ClientHonorific,
 } from "@/lib/documents/client-honorific";
 import { DeliveryNotePreview, DeliveryNoteThumbnail } from "../../documents/document-previews";
@@ -34,13 +35,37 @@ import { DocumentPreviewPanel } from "../../documents/document-live-preview";
 import { buildDeliveryNoteDetailUi } from "@/lib/documents/build-detail-ui";
 import { getDocumentPreviewPanelLabels } from "@/lib/documents/preview-panel-labels";
 import type { TaxRounding } from "@/lib/tax";
+import { taxCategoryFromLabel } from "@/lib/tax";
+import { createDeliveryNote } from "@/lib/actions/delivery-notes";
+import type { ClientOptionRow } from "@/lib/db/clients";
 
 type TabKey = "basic" | "recipient" | "tax" | "template";
 type TemplateType = "standard" | "envelope" | null;
 
 const TAX_ROUNDING_ORDER: TaxRounding[] = ["round_down", "round_up", "round_half"];
 
+type RecipientState = {
+  postalCode: string;
+  addressLine1: string;
+  addressLine2: string;
+  companyName: string;
+  department: string;
+  contact: string;
+  phone: string;
+};
+
+const EMPTY_RECIPIENT: RecipientState = {
+  postalCode: "",
+  addressLine1: "",
+  addressLine2: "",
+  companyName: "",
+  department: "",
+  contact: "",
+  phone: "",
+};
+
 type PreviewForm = {
+  clientId: string | null;
   clientName: string;
   documentNumber: string;
   subject: string;
@@ -48,37 +73,99 @@ type PreviewForm = {
   templateMessage: string;
   remarks: string;
   taxRounding: TaxRounding;
+  recipient: RecipientState;
 };
 
-export function NewDeliveryNoteClient() {
+export type DeliveryNoteFormInitial = {
+  clientId?: string | null;
+  clientName?: string;
+  subject?: string;
+  clientHonorific?: ClientHonorific;
+  showSeal?: boolean;
+  outputLocale?: DocumentOutputLocale;
+  templateMessage?: string;
+  remarks?: string;
+  recipient?: Partial<{
+    postalCode: string;
+    addressLine1: string;
+    addressLine2: string;
+    companyName: string;
+    department: string;
+    contact: string;
+    phone: string;
+  }>;
+  lines?: LineItemRow[];
+};
+
+function isBlankLineRow(row: LineItemRow) {
+  return !row.name && !row.qty && !row.unit && !row.price;
+}
+
+export function NewDeliveryNoteClient({
+  clients = [],
+  initial,
+}: {
+  clients?: ClientOptionRow[];
+  initial?: DeliveryNoteFormInitial;
+}) {
   const { lang } = useLanguage();
   const ui = getDeliveryNoteContent(lang);
   const previewLabels = getDocumentPreviewPanelLabels(lang);
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>("basic");
   const [selectedTemplate, setSelectedTemplate] = useState<"standard" | "envelope">("standard");
   const [previewModal, setPreviewModal] = useState<TemplateType>(null);
   const [outputLocale, setOutputLocale] = useState<DocumentOutputLocale>(() =>
-    normalizeDocumentOutputLocale(undefined),
+    normalizeDocumentOutputLocale(initial?.outputLocale),
   );
-  const [clientHonorific, setClientHonorific] =
-    useState<ClientHonorific>(DEFAULT_CLIENT_HONORIFIC);
+  const [clientHonorific, setClientHonorific] = useState<ClientHonorific>(
+    initial?.clientHonorific ? normalizeClientHonorific(initial.clientHonorific) : DEFAULT_CLIENT_HONORIFIC,
+  );
   const [lineItemTotals, setLineItemTotals] = useState<LineItemTotals>(EMPTY_LINE_ITEM_TOTALS);
-  const [rows, setRows] = useState<LineItemRow[]>([]);
+  const [rows, setRows] = useState<LineItemRow[]>(initial?.lines?.length ? initial.lines : []);
   const { primaryDate, setPrimaryDate, secondaryDate, setSecondaryDate } = useDocumentDateFields(ui.issueDateValue);
 
   // 프리뷰에 그대로 반영해야 하는 입력만 상태로 들고 있는다.
   const [form, setForm] = useState<PreviewForm>({
-    clientName: "",
+    clientId: initial?.clientId ?? null,
+    clientName: initial?.clientName ?? "",
     documentNumber: ui.deliveryNumberValue,
-    subject: "",
+    subject: initial?.subject ?? "",
     senderCompanyName: ui.companyValue,
-    templateMessage: "",
-    remarks: "",
+    templateMessage: initial?.templateMessage ?? "",
+    remarks: initial?.remarks ?? "",
     taxRounding: "round_down",
+    recipient: { ...EMPTY_RECIPIENT, ...(initial?.recipient ?? {}) },
   });
   const set = <K extends keyof PreviewForm>(key: K, value: PreviewForm[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
+  const setRecipient = (key: keyof RecipientState, value: string) =>
+    setForm((f) => ({ ...f, recipient: { ...f.recipient, [key]: value } }));
+
+  /** 거래처를 고르면 등록해 둔 우편번호·주소·전화·부서를 송부처에 채운다. */
+  const applyClient = useCallback((option: ClientOptionRow | null, typedName: string) => {
+    setForm((f) => {
+      if (!option) return { ...f, clientName: typedName, clientId: null };
+      return {
+        ...f,
+        clientName: option.name,
+        clientId: option.id,
+        recipient: {
+          ...f.recipient,
+          postalCode: option.postalCode ?? "",
+          addressLine1: option.addressLine1 ?? "",
+          addressLine2: option.addressLine2 ?? "",
+          companyName: option.name,
+          department: option.department ?? "",
+          contact: "",
+          phone: option.phone ?? "",
+        },
+      };
+    });
+  }, []);
 
   const handleRowsChange = useCallback((next: LineItemRow[]) => setRows(next), []);
   const handleTotalsChange = useCallback((next: LineItemTotals) => setLineItemTotals(next), []);
@@ -87,6 +174,7 @@ export function NewDeliveryNoteClient() {
     <DocumentLineItemsTable
       ui={ui}
       storageKey="delivery-note-new-line-items"
+      initialRows={rows.length ? rows : undefined}
       onTotalsChange={handleTotalsChange}
       onRowsChange={handleRowsChange}
     />
@@ -98,6 +186,49 @@ export function NewDeliveryNoteClient() {
       label,
     })
   );
+
+  function handleSave() {
+    setError(null);
+    startTransition(async () => {
+      const lineItems = rows.map((r) => {
+        const taxCategory = taxCategoryFromLabel(r.tax);
+        return isBlankLineRow(r)
+          ? { name: "", qty: 0, unit: "", unitPrice: 0, taxCategory, taxRateSnapshot: 0 }
+          : {
+              name: r.name,
+              qty: r.qty === "" ? 1 : Number(r.qty),
+              unit: r.unit,
+              unitPrice: r.price === "" ? 0 : Number(r.price),
+              taxCategory,
+              taxRateSnapshot: 0,
+            };
+      });
+
+      const result = await createDeliveryNote({
+        clientId: form.clientId,
+        subject: form.subject,
+        issueDate: new Date(toIsoDate(primaryDate)),
+        deliveryDate: secondaryDate ? new Date(toIsoDate(secondaryDate)) : null,
+        taxDisplay: "separate",
+        taxRounding: form.taxRounding,
+        withholdingType: "none",
+        templateKey: "standard",
+        outputLocale,
+        clientHonorific,
+        showSeal: initial?.showSeal ?? true,
+        templateMessage: form.templateMessage,
+        remarks: form.remarks,
+        recipientSnapshot: form.recipient,
+        lineItems,
+      });
+
+      if (result.ok) {
+        router.push(`/${lang}/delivery-notes/${result.data}`);
+      } else {
+        setError(result.error);
+      }
+    });
+  }
 
   return (
     <SalesFlowShell
@@ -116,6 +247,8 @@ export function NewDeliveryNoteClient() {
             {previewOpen ? previewLabels.hide : previewLabels.show}
           </button>
         </div>
+
+        {error ? <p className="mt-4 text-[14px] text-red-600">{error}</p> : null}
 
         <div
           className={
@@ -152,8 +285,12 @@ export function NewDeliveryNoteClient() {
                     <div className="flex gap-2">
                       <input
                         className="field flex-1"
+                        list="delivery-note-client-options"
                         value={form.clientName}
-                        onChange={(e) => set("clientName", e.target.value)}
+                        onChange={(e) => {
+                          const name = e.target.value;
+                          applyClient(clients.find((c) => c.name === name) ?? null, name);
+                        }}
                       />
                       {clientHonorific !== "none" ? (
                       <SharedHonorificField
@@ -161,6 +298,11 @@ export function NewDeliveryNoteClient() {
                       />
                     ) : null}
                     </div>
+                    <datalist id="delivery-note-client-options">
+                      {clients.map((c) => (
+                        <option key={c.id} value={c.name} />
+                      ))}
+                    </datalist>
                     <ClientHonorificSelect
                       value={clientHonorific}
                       onChange={setClientHonorific}
@@ -222,7 +364,6 @@ export function NewDeliveryNoteClient() {
                     <input className="field mt-2" />
                     <input className="field mt-2" />
                   </FormField>
-                  <SenderDetailFields storagePrefix="deliverySender" buttonLabel={ui.detailLink} />
                 </div>
               </section>
             </div>
@@ -240,24 +381,45 @@ export function NewDeliveryNoteClient() {
                   <input
                     className="field w-full max-w-[180px]"
                     placeholder={ui.postalCodePlaceholder}
+                    value={form.recipient.postalCode}
+                    onChange={(e) => setRecipient("postalCode", e.target.value)}
                   />
-                  <button className="rounded border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700">
-                    {ui.postalCodeLookup}
-                  </button>
                 </div>
               </FormField>
 
               <FormField label={ui.address}>
-                <input className="field" />
-                <input className="field mt-2" />
+                <input
+                  className="field"
+                  value={form.recipient.addressLine1}
+                  onChange={(e) => setRecipient("addressLine1", e.target.value)}
+                />
+                <input
+                  className="field mt-2"
+                  value={form.recipient.addressLine2}
+                  onChange={(e) => setRecipient("addressLine2", e.target.value)}
+                />
               </FormField>
 
               <FormField label={ui.recipientName}>
-                <input className="field" placeholder={ui.companyNamePlaceholder} />
-                <input className="field mt-2" placeholder={ui.departmentPlaceholder} />
-                <input className="field mt-2" placeholder={ui.namePlaceholder} />
+                <input
+                  className="field"
+                  placeholder={ui.companyNamePlaceholder}
+                  value={form.recipient.companyName}
+                  onChange={(e) => setRecipient("companyName", e.target.value)}
+                />
+                <input
+                  className="field mt-2"
+                  placeholder={ui.departmentPlaceholder}
+                  value={form.recipient.department}
+                  onChange={(e) => setRecipient("department", e.target.value)}
+                />
                 <div className="mt-2 flex gap-2">
-                  <input className="field flex-1" placeholder={ui.contactPlaceholder} />
+                  <input
+                    className="field flex-1"
+                    placeholder={ui.contactPlaceholder}
+                    value={form.recipient.contact}
+                    onChange={(e) => setRecipient("contact", e.target.value)}
+                  />
                   {clientHonorific !== "none" ? (
                       <SharedHonorificField
                         honorific={clientHonorificSuffix(clientHonorific, outputLocale)}
@@ -269,6 +431,14 @@ export function NewDeliveryNoteClient() {
                   onChange={setClientHonorific}
                   uiLocale={lang}
                   outputLocale={outputLocale}
+                />
+              </FormField>
+
+              <FormField label="TEL">
+                <input
+                  className="field max-w-[280px]"
+                  value={form.recipient.phone}
+                  onChange={(e) => setRecipient("phone", e.target.value)}
                 />
               </FormField>
             </div>
@@ -346,9 +516,9 @@ export function NewDeliveryNoteClient() {
                   {ui.documentRemarks}
                 </label>
                 <div className="flex items-center gap-2">
-                  <button className="text-[#0A4D34] underline">
+                  <Link href={appHrefs.settingsDocumentDefaults} className="text-[#0A4D34] underline">
                     {ui.documentSettings} ↗
-                  </button>
+                  </Link>
                   <span className="text-slate-400">20以内 0/1000</span>
                 </div>
               </div>
@@ -506,6 +676,8 @@ export function NewDeliveryNoteClient() {
         totalLabel={ui.total}
         saveLabel={ui.save}
         totals={lineItemTotals}
+        onSave={handleSave}
+        pending={pending}
       />
     </SalesFlowShell>
   );

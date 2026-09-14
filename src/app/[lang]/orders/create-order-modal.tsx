@@ -1,18 +1,26 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import type { AppLocale } from "@/contexts/language-context";
 import {
   DocumentLineItemsTable,
   EMPTY_LINE_ITEM_TOTALS,
   formatDocumentAmount,
+  toIsoDate,
+  type LineItemRow,
   type LineItemTotals,
 } from "../documents/new-document-shared";
 import { DateFieldInput } from "../estimates/date-field-input";
 import { getEstimateContent } from "../estimates/content";
 import type { getOrdersContent } from "./content";
 import { StatusAddInlineForm } from "./status-add-inline-form";
+import { createOrder } from "@/lib/actions/orders";
+import { taxCategoryFromLabel } from "@/lib/tax";
+import type { ClientOptionRow } from "@/lib/db/clients";
+
+export type OrderLineItemInitial = LineItemRow;
+export type OrderStatusSelectOption = { id: string; name: string };
 
 type ModalUi = ReturnType<typeof getOrdersContent>["modal"];
 type StatusFormLabels = Pick<
@@ -30,37 +38,51 @@ function toDateInputValue(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
-function toOrderNumber(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}${month}${day}-001`;
+function isBlankLineRow(row: LineItemRow) {
+  return !row.name && !row.qty && !row.unit && !row.price;
 }
 
 export function CreateOrderModal({
   ui,
   lang,
   statuses,
+  clients,
+  initial,
   statusFormLabels,
   onClose,
   onAddCustomStatus,
+  onCreated,
 }: {
   ui: ModalUi;
   lang: AppLocale;
-  statuses: readonly string[];
+  statuses: OrderStatusSelectOption[];
+  clients: ClientOptionRow[];
+  initial?: {
+    sourceEstimateId?: string | null;
+    clientId?: string | null;
+    clientName?: string;
+    subject?: string;
+    lines?: LineItemRow[];
+  };
   statusFormLabels: StatusFormLabels;
   onClose: () => void;
   onAddCustomStatus: (name: string) => void;
+  onCreated: (orderId: string) => void;
 }) {
   const lineItemsUi = getEstimateContent(lang);
   const [orderDate, setOrderDate] = useState(() => toDateInputValue());
   const [deliveryDate, setDeliveryDate] = useState("");
-  const [orderTime, setOrderTime] = useState("");
-  const [orderNumber] = useState(() => toOrderNumber());
-  const [status, setStatus] = useState(statuses[0] ?? "");
+  const [clientId, setClientId] = useState<string | null>(initial?.clientId ?? null);
+  const [clientName, setClientName] = useState(initial?.clientName ?? "");
+  const [subject, setSubject] = useState(initial?.subject ?? "");
+  const [comment, setComment] = useState("");
+  const [status, setStatus] = useState(statuses[0]?.id ?? "");
   const [totals, setTotals] = useState<LineItemTotals>(EMPTY_LINE_ITEM_TOTALS);
+  const [rows, setRows] = useState<LineItemRow[]>(initial?.lines?.length ? initial.lines : []);
   const [isAddingStatus, setIsAddingStatus] = useState(false);
   const [newStatusName, setNewStatusName] = useState("");
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   function cancelAddStatus() {
     setIsAddingStatus(false);
@@ -69,13 +91,48 @@ export function CreateOrderModal({
 
   function confirmAddStatus() {
     const trimmed = newStatusName.trim();
-    if (!trimmed || statuses.includes(trimmed)) {
+    if (!trimmed || statuses.some((s) => s.name === trimmed)) {
       return;
     }
 
     onAddCustomStatus(trimmed);
-    setStatus(trimmed);
     cancelAddStatus();
+  }
+
+  function handleSave() {
+    setError(null);
+    startTransition(async () => {
+      const lineItems = rows
+        .filter((r) => !isBlankLineRow(r))
+        .map((r) => {
+          const taxCategory = taxCategoryFromLabel(r.tax);
+          return {
+            name: r.name,
+            qty: r.qty === "" ? 1 : Number(r.qty),
+            unit: r.unit,
+            unitPrice: r.price === "" ? 0 : Number(r.price),
+            taxCategory,
+            taxRateSnapshot: 0,
+          };
+        });
+
+      const result = await createOrder({
+        clientId,
+        subject,
+        orderDate: new Date(toIsoDate(orderDate)),
+        deliveryDate: deliveryDate ? new Date(toIsoDate(deliveryDate)) : null,
+        statusId: status || null,
+        comment,
+        sourceEstimateId: initial?.sourceEstimateId ?? null,
+        lineItems,
+      });
+
+      if (result.ok) {
+        onCreated(result.data);
+      } else {
+        setError(result.error);
+      }
+    });
   }
 
   return (
@@ -96,7 +153,22 @@ export function CreateOrderModal({
         <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-5 py-3">
           <div className="min-w-0 space-y-2.5">
             <CompactFormField label={ui.client} required={ui.required}>
-              <input className={compactFieldClass} />
+              <input
+                className={compactFieldClass}
+                list="order-client-options"
+                value={clientName}
+                onChange={(e) => {
+                  const name = e.target.value;
+                  const match = clients.find((c) => c.name === name);
+                  setClientName(name);
+                  setClientId(match ? match.id : null);
+                }}
+              />
+              <datalist id="order-client-options">
+                {clients.map((c) => (
+                  <option key={c.id} value={c.name} />
+                ))}
+              </datalist>
             </CompactFormField>
 
             <div className="grid gap-2.5 sm:grid-cols-3">
@@ -111,20 +183,13 @@ export function CreateOrderModal({
                 </div>
               </CompactFormField>
               <CompactFormField label={ui.time}>
-                <input
-                  className={compactFieldClass}
-                  value={orderTime}
-                  onChange={(event) => setOrderTime(event.target.value)}
-                />
+                <input className={compactFieldClass} />
               </CompactFormField>
             </div>
 
             <div className="grid gap-2.5 sm:grid-cols-2">
-              <CompactFormField label={ui.orderNumber}>
-                <input className={compactFieldClass} defaultValue={orderNumber} />
-              </CompactFormField>
               <CompactFormField label={ui.subject}>
-                <input className={compactFieldClass} />
+                <input className={compactFieldClass} value={subject} onChange={(e) => setSubject(e.target.value)} />
               </CompactFormField>
             </div>
 
@@ -137,8 +202,8 @@ export function CreateOrderModal({
                     onChange={(event) => setStatus(event.target.value)}
                   >
                     {statuses.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
+                      <option key={item.id} value={item.id}>
+                        {item.name}
                       </option>
                     ))}
                   </select>
@@ -170,6 +235,8 @@ export function CreateOrderModal({
               <textarea
                 className={`${compactFieldClass} min-h-[72px] resize-none`}
                 placeholder={ui.commentPlaceholder}
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
               />
             </div>
           </div>
@@ -178,11 +245,15 @@ export function CreateOrderModal({
             <DocumentLineItemsTable
               ui={lineItemsUi}
               storageKey="orders-create-modal-line-items-v3"
+              initialRows={rows.length ? rows : undefined}
               onTotalsChange={setTotals}
+              onRowsChange={setRows}
               compact
               initialRowCount={5}
             />
           </div>
+
+          {error ? <p className="mt-2 text-[13px] text-red-600">{error}</p> : null}
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-2.5">
@@ -202,7 +273,9 @@ export function CreateOrderModal({
           </div>
           <button
             type="button"
-            className="rounded bg-[#0A4D34] px-7 py-2 text-[14px] font-semibold text-white transition hover:bg-[#083D29]"
+            onClick={handleSave}
+            disabled={pending}
+            className="rounded bg-[#0A4D34] px-7 py-2 text-[14px] font-semibold text-white transition hover:bg-[#083D29] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {ui.save}
           </button>
