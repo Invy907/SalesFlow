@@ -23,8 +23,8 @@ export default function ForgotPasswordPage() {
     return (
       <div className="w-full max-w-[420px]">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-10 flex flex-col items-center text-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-cyan-50 flex items-center justify-center">
-            <CheckCircle2 size={26} className="text-cyan-500" />
+          <div className="w-14 h-14 rounded-full bg-[#E8F5EF] flex items-center justify-center">
+            <CheckCircle2 size={26} className="text-[#1A7A57]" />
           </div>
           <h2 className="text-xl font-bold text-slate-900">メールを送信しました</h2>
           <p className="text-sm text-slate-500 leading-relaxed">
@@ -34,7 +34,7 @@ export default function ForgotPasswordPage() {
           </p>
           <Link
             href={`/${lang}/auth/sign-in`}
-            className="mt-2 inline-flex items-center gap-1.5 text-sm text-cyan-600 hover:underline font-medium"
+            className="mt-2 inline-flex items-center gap-1.5 text-sm text-[#0A4D34] hover:underline font-medium"
           >
             <ArrowLeft size={14} />
             サインインに戻る
@@ -52,7 +52,7 @@ export default function ForgotPasswordPage() {
       footer={
         <Link
           href={`/${lang}/auth/sign-in`}
-          className="inline-flex items-center gap-1.5 text-slate-500 hover:text-cyan-600 hover:underline"
+          className="inline-flex items-center gap-1.5 text-slate-500 hover:text-[#0A4D34] hover:underline"
         >
           <ArrowLeft size={14} />
           サインインに戻る

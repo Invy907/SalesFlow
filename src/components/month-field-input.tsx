@@ -138,9 +138,9 @@ export function MonthFieldInput({ value, onChange, className = "field w-[120px] 
               className={[
                 "rounded-lg px-2 py-2.5 text-sm font-medium transition",
                 isSelected
-                  ? "bg-[#14a7bb] text-white shadow-sm"
-                  : "text-slate-700 hover:bg-cyan-50 hover:text-cyan-700",
-                isCurrentMonth && !isSelected ? "ring-1 ring-cyan-300" : "",
+                  ? "bg-[#0A4D34] text-white shadow-sm"
+                  : "text-slate-700 hover:bg-[#E8F5EF] hover:text-[#083D29]",
+                isCurrentMonth && !isSelected ? "ring-1 ring-[#6BBF9E]" : "",
               ].join(" ")}
             >
               {label}
@@ -159,7 +159,7 @@ export function MonthFieldInput({ value, onChange, className = "field w-[120px] 
         className={[
           className,
           "cursor-pointer text-left transition",
-          isOpen ? "border-cyan-400 shadow-[0_0_0_3px_rgba(34,184,207,0.14)]" : "",
+          isOpen ? "border-[#3AA87A] shadow-[0_0_0_3px_rgba(34,184,207,0.14)]" : "",
         ].join(" ")}
       >
         {value}

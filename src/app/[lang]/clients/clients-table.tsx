@@ -123,7 +123,7 @@ export function ClientsTable({
     <SalesFlowShell activeItem="clients">
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
+          <h1 className="text-[32px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
           <div className="flex flex-wrap items-center gap-3">
             <Link
               href={getClientsHref(lang, "bulk")}
@@ -150,7 +150,7 @@ export function ClientsTable({
           <label className="flex items-center gap-2 text-[14px] text-slate-600">
             <input
               type="checkbox"
-              className="h-4 w-4 accent-cyan-600"
+              className="h-4 w-4 accent-[#0A4D34]"
               checked={favoritesOnly}
               onChange={(e) => navigate({ fav: e.target.checked, page: 1 })}
             />
@@ -186,7 +186,7 @@ export function ClientsTable({
                       <button
                         type="button"
                         onClick={() => setEditing(client)}
-                        className="font-medium text-[#14a7bb] hover:underline"
+                        className="font-medium text-[#0A4D34] hover:underline"
                       >
                         {client.name}
                         {ui.honorific ? ` ${ui.honorific}` : ""}
@@ -220,7 +220,7 @@ export function ClientsTable({
                         <button
                           type="button"
                           onClick={() => setEditing(client)}
-                          className="text-[#14a7bb] hover:underline"
+                          className="text-[#0A4D34] hover:underline"
                         >
                           {ui.edit}
                         </button>

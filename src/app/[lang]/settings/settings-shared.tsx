@@ -4,49 +4,24 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/language-context";
 import { appHrefs } from "@/lib/app-hrefs";
+import { SubNavBand } from "../list-page-shared";
 import { getSettingsContent, getSettingsTabHref, type SettingsTabKey } from "./content";
 
 export function SettingsSubNav({ active }: { active: SettingsTabKey }) {
   const { lang } = useLanguage();
   const ui = getSettingsContent(lang);
 
-  return (
-    <div className="border-b border-slate-200 bg-[#eef3f8]">
-      <div className="mx-auto max-w-[1260px] overflow-x-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex min-w-max gap-1 py-3">
-          {ui.tabKeys.map((key, index) => {
-            const isActive = key === active;
-            const href = getSettingsTabHref(lang, key);
-            const label = ui.tabs[index];
-            const isImplemented = href !== "#";
+  const tabs = ui.tabKeys.map((key, index) => {
+    const href = getSettingsTabHref(lang, key);
+    return {
+      key,
+      label: ui.tabs[index],
+      href,
+      disabled: href === "#",
+    };
+  });
 
-            const className = [
-              "whitespace-nowrap rounded px-4 py-2.5 text-[15px] font-medium transition",
-              isActive
-                ? "bg-[#14a7bb] text-white shadow-sm"
-                : isImplemented
-                  ? "text-slate-600 hover:bg-white/70 hover:text-slate-900"
-                  : "text-slate-400 hover:bg-white/50",
-            ].join(" ");
-
-            if (!isImplemented) {
-              return (
-                <span key={key} className={className} aria-disabled="true">
-                  {label}
-                </span>
-              );
-            }
-
-            return (
-              <Link key={key} href={href} className={className}>
-                {label}
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
+  return <SubNavBand tabs={tabs} activeKey={active} />;
 }
 
 export function SettingsSectionHeader({ title }: { title: string }) {
@@ -74,7 +49,7 @@ export function SettingsFormField({
         <div className="flex items-center gap-2 text-[16px] font-semibold text-slate-800">
           <span>{label}</span>
           {required ? (
-            <span className="rounded bg-[#f59b45] px-2 py-0.5 text-xs font-bold text-white">
+            <span className="rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">
               {required}
             </span>
           ) : null}
@@ -109,7 +84,7 @@ export function SettingsInfoTable({
                 <td className="px-5 py-4 text-right">
                   <a
                     href={row.action.href ?? "#"}
-                    className="inline-flex items-center gap-1 text-[#14a7bb] hover:underline"
+                    className="inline-flex items-center gap-1 text-[#0A4D34] hover:underline"
                   >
                     {row.action.label}
                     <ExternalLinkIcon />
@@ -179,11 +154,11 @@ export function SettingsTemplateBlock({
     <div className="grid gap-8 border-b border-slate-200 py-8 xl:grid-cols-[220px_1fr]">
       <div>
         <p className="mb-3 text-[16px] font-semibold text-slate-800">{templateLabel}</p>
-        <div className="overflow-hidden rounded border border-cyan-400 bg-white">
+        <div className="overflow-hidden rounded border border-[#3AA87A] bg-white">
           <div className="h-[280px] overflow-hidden bg-linear-to-b from-white to-slate-50 px-2 pt-2">
             {preview}
           </div>
-          <div className="bg-[#14a7bb] py-2.5 text-center text-[15px] font-semibold text-white">
+          <div className="bg-[#0A4D34] py-2.5 text-center text-[15px] font-semibold text-white">
             {standardLabel}
           </div>
         </div>
@@ -199,7 +174,7 @@ export function SettingsTemplateBlock({
         <h3 className="text-[20px] font-bold text-slate-900">{customizeTitle}</h3>
         <p className="mt-3 text-[15px] leading-7 text-slate-600">
           {customizeDesc}{" "}
-          <Link href={appHrefs.settingsDocumentDefaults} className="text-[#14a7bb] hover:underline">
+          <Link href={appHrefs.settingsDocumentDefaults} className="text-[#0A4D34] hover:underline">
             {customizeLink}
           </Link>
         </p>
@@ -229,7 +204,7 @@ export function SettingsSaveBar({
             type="button"
             onClick={onSave}
             disabled={!onSave || pending}
-            className="w-full max-w-[280px] rounded bg-[#14a7bb] px-10 py-4 text-[17px] font-semibold text-white transition hover:bg-[#1096a8] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[280px]"
+            className="w-full max-w-[280px] rounded bg-[#0A4D34] px-10 py-4 text-[17px] font-semibold text-white transition hover:bg-[#083D29] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[280px]"
           >
             {pending ? "..." : label}
           </button>
@@ -325,7 +300,7 @@ export function SettingsIntegrationRow({
             {linkText ? (
               <>
                 {" "}
-                <Link href={linkHref} className="text-[#14a7bb] hover:underline">
+                <Link href={linkHref} className="text-[#0A4D34] hover:underline">
                   ({linkText})
                 </Link>
               </>
@@ -335,7 +310,7 @@ export function SettingsIntegrationRow({
           {helpText && helpLink ? (
             <p className="mt-2 text-[13px] text-slate-500">
               {helpText}
-              <Link href={helpHref} className="text-[#14a7bb] hover:underline">
+              <Link href={helpHref} className="text-[#0A4D34] hover:underline">
                 {helpLink}
               </Link>
               {helpSuffix}
@@ -386,7 +361,7 @@ export function SettingsFeatureRow({
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-[16px] font-semibold text-slate-800">{title}</p>
           {enabled ? (
-            <span className="text-[14px] font-medium text-[#14a7bb]">✓ {enabledLabel}</span>
+            <span className="text-[14px] font-medium text-[#0A4D34]">✓ {enabledLabel}</span>
           ) : null}
         </div>
         <p className="mt-2 text-[14px] leading-7 text-slate-600">
@@ -394,7 +369,7 @@ export function SettingsFeatureRow({
           {linkText ? (
             <>
               {" "}
-              <Link href={linkHref} className="inline-flex items-center gap-1 text-[#14a7bb] hover:underline">
+              <Link href={linkHref} className="inline-flex items-center gap-1 text-[#0A4D34] hover:underline">
                 {linkText}
                 <ExternalLinkIcon />
               </Link>
@@ -420,7 +395,7 @@ export function SettingsEmptyState({ message }: { message: string }) {
 
 function IntegrationIconPlaceholder() {
   return (
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[#14a7bb] text-white">
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[#0A4D34] text-white">
       <svg viewBox="0 0 20 20" aria-hidden="true" className="h-5 w-5 fill-current">
         <path d="M11 3a1 1 0 1 0 0 2h2.59l-6.3 6.29a1 1 0 0 0 1.42 1.42L15 6.41V9a1 1 0 1 0 2 0V4a1 1 0 0 0-1-1h-5Z" />
         <path d="M5 5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-3a1 1 0 1 0-2 0v3H5V7h3a1 1 0 1 0 0-2H5Z" />

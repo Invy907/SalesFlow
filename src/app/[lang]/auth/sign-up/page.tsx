@@ -39,7 +39,7 @@ export default function SignUpPage() {
           </p>
           <Link
             href={`/${lang}/auth/sign-in`}
-            className="mt-2 text-sm text-cyan-600 hover:underline font-medium"
+            className="mt-2 text-sm text-[#0A4D34] hover:underline font-medium"
           >
             サインインページへ
           </Link>
@@ -56,7 +56,7 @@ export default function SignUpPage() {
       footer={
         <p>
           すでにアカウントをお持ちの方は{" "}
-          <Link href={`/${lang}/auth/sign-in`} className="text-cyan-600 hover:underline font-medium">
+          <Link href={`/${lang}/auth/sign-in`} className="text-[#0A4D34] hover:underline font-medium">
             サインイン
           </Link>
         </p>
@@ -106,8 +106,8 @@ export default function SignUpPage() {
         {/* 利用規約 */}
         <p className="text-xs text-slate-400 leading-relaxed">
           登録することで、
-          <Link href={appHrefs.support} className="text-cyan-600 hover:underline">利用規約</Link>および
-          <Link href={appHrefs.support} className="text-cyan-600 hover:underline">プライバシーポリシー</Link>に同意したものとみなされます。
+          <Link href={appHrefs.support} className="text-[#0A4D34] hover:underline">利用規約</Link>および
+          <Link href={appHrefs.support} className="text-[#0A4D34] hover:underline">プライバシーポリシー</Link>に同意したものとみなされます。
         </p>
 
         <AuthSubmitButton pending={pending}>

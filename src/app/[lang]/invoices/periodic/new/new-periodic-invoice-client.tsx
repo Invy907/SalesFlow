@@ -226,7 +226,7 @@ export function NewPeriodicInvoiceClient({
           <h1 className="text-[28px] font-bold tracking-tight text-slate-900">
             {isEdit ? ui.periodicEditTitle : ui.periodicTitle}
           </h1>
-          <Link href={appHrefs.supportInvoiceGuide} className="inline-flex items-center gap-1 text-[14px] text-cyan-600 hover:underline">
+          <Link href={appHrefs.supportInvoiceGuide} className="inline-flex items-center gap-1 text-[14px] text-[#0A4D34] hover:underline">
             {ui.periodicNewAbout}
             <span aria-hidden="true">↗</span>
           </Link>
@@ -241,7 +241,7 @@ export function NewPeriodicInvoiceClient({
               className={[
                 "border-b-[3px] px-4 pb-3",
                 activeTab === tab.key
-                  ? "border-cyan-500 font-semibold text-slate-900"
+                  ? "border-[#1A7A57] font-semibold text-slate-900"
                   : "border-transparent",
               ].join(" ")}
             >
@@ -432,7 +432,7 @@ export function NewPeriodicInvoiceClient({
                   {err("paymentDay")}
                 </FormField>
 
-                <Link href={appHrefs.settingsDocumentDefaults} className="inline-block text-sm text-cyan-600 underline">
+                <Link href={appHrefs.settingsDocumentDefaults} className="inline-block text-sm text-[#0A4D34] underline">
                   {ui.separateDateLink}
                 </Link>
               </div>
@@ -443,7 +443,7 @@ export function NewPeriodicInvoiceClient({
         <div className={activeTab === "tax" ? "" : "hidden"}>
           <p className="mt-8 text-sm text-slate-600">
             {ui.taxSettingsNote}{" "}
-            <Link href={appHrefs.settingsDocumentDefaults} className="text-cyan-600 underline">
+            <Link href={appHrefs.settingsDocumentDefaults} className="text-[#0A4D34] underline">
               {ui.taxSettingsLink} ↗
             </Link>
           </p>
@@ -459,7 +459,7 @@ export function NewPeriodicInvoiceClient({
                       name="periodicTaxDisplay"
                       checked={taxDisplay === TAX_DISPLAY_ORDER[index]}
                       onChange={() => setTaxDisplay(TAX_DISPLAY_ORDER[index])}
-                      className="h-4 w-4 accent-cyan-600"
+                      className="h-4 w-4 accent-[#0A4D34]"
                     />
                     {label}
                   </label>
@@ -478,7 +478,7 @@ export function NewPeriodicInvoiceClient({
                       name="periodicTaxRounding"
                       checked={taxRounding === TAX_ROUNDING_ORDER[index]}
                       onChange={() => setTaxRounding(TAX_ROUNDING_ORDER[index])}
-                      className="h-4 w-4 accent-cyan-600"
+                      className="h-4 w-4 accent-[#0A4D34]"
                     />
                     {label}
                   </label>
@@ -489,7 +489,7 @@ export function NewPeriodicInvoiceClient({
             <section>
               <SectionTitle title={ui.withholdingTitle} />
               <p className="mt-2">
-                <Link href={appHrefs.supportInvoiceGuide} className="text-sm text-cyan-600 underline">
+                <Link href={appHrefs.supportInvoiceGuide} className="text-sm text-[#0A4D34] underline">
                   {ui.withholdingLink} ↗
                 </Link>
               </p>
@@ -501,7 +501,7 @@ export function NewPeriodicInvoiceClient({
                       name="periodicWithholding"
                       checked={withholdingType === WITHHOLDING_ORDER[index]}
                       onChange={() => setWithholdingType(WITHHOLDING_ORDER[index])}
-                      className="h-4 w-4 accent-cyan-600"
+                      className="h-4 w-4 accent-[#0A4D34]"
                     />
                     {label}
                   </label>
@@ -551,7 +551,7 @@ export function NewPeriodicInvoiceClient({
                 type="checkbox"
                 checked={emailEnabled}
                 onChange={(event) => setEmailEnabled(event.target.checked)}
-                className="h-4 w-4 accent-cyan-600"
+                className="h-4 w-4 accent-[#0A4D34]"
               />
               {ui.periodicEmailEnable}
             </label>
@@ -614,7 +614,7 @@ function RadioChoice({
     <label
       className={[
         "flex cursor-pointer items-start gap-3 rounded-lg border px-4 py-3 transition",
-        checked ? "border-cyan-500 bg-cyan-50/60" : "border-slate-200 bg-white hover:bg-slate-50",
+        checked ? "border-[#1A7A57] bg-[#E8F5EF]/60" : "border-slate-200 bg-white hover:bg-slate-50",
       ].join(" ")}
     >
       <input
@@ -622,7 +622,7 @@ function RadioChoice({
         name={name}
         checked={checked}
         onChange={onSelect}
-        className="mt-1 h-4 w-4 accent-cyan-600"
+        className="mt-1 h-4 w-4 accent-[#0A4D34]"
       />
       <div className="min-w-0 flex-1">
         {label ? <span className="text-[15px] text-slate-700">{label}</span> : children}

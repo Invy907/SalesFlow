@@ -132,7 +132,7 @@ export default function ItemsBulkPage() {
                 type="button"
                 disabled={!selectedFile || pending}
                 onClick={handleUpload}
-                className="rounded bg-[#14a7bb] px-8 py-3 text-[15px] font-semibold text-white transition hover:bg-[#1096a8] disabled:cursor-not-allowed disabled:bg-slate-300"
+                className="rounded bg-[#0A4D34] px-8 py-3 text-[15px] font-semibold text-white transition hover:bg-[#083D29] disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 {bulk.upload}
               </button>

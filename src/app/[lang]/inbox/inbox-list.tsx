@@ -44,7 +44,7 @@ function formatReceivedAt(lang: AppLocale, iso: string) {
 }
 
 const kindStyles: Record<string, string> = {
-  received_document: "bg-cyan-50 text-[#14a7bb] ring-cyan-100",
+  received_document: "bg-[#E8F5EF] text-[#0A4D34] ring-[#C5E6D8]",
   system: "bg-slate-100 text-slate-600 ring-slate-200",
   announcement: "bg-amber-50 text-amber-800 ring-amber-200",
 };
@@ -212,7 +212,7 @@ export function InboxList({
           <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
           <Link
             href={appHrefs.support}
-            className="inline-flex items-center gap-1.5 text-[14px] text-[#14a7bb] hover:underline"
+            className="inline-flex items-center gap-1.5 text-[14px] text-[#0A4D34] hover:underline"
           >
             <HelpCircleIcon />
             {ui.helpLink}
@@ -298,7 +298,7 @@ export function InboxList({
                       <span
                         className={[
                           "text-[13px]",
-                          row.isRead ? "text-slate-400" : "font-semibold text-[#14a7bb]",
+                          row.isRead ? "text-slate-400" : "font-semibold text-[#0A4D34]",
                         ].join(" ")}
                       >
                         {row.isRead ? ui.read : ui.unread}

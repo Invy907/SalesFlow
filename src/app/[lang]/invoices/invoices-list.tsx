@@ -5,7 +5,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
-import { ListPageTabs } from "../list-page-shared";
+import { ListPageTabs, ListSearchBar } from "../list-page-shared";
+import { pageContainerClass } from "@/components/page-container";
 import { deleteInvoice, getInvoicePreview } from "@/lib/actions/invoices";
 import { SalesDocumentPreview } from "@/components/sales-document-preview";
 import { buildInvoiceDetailUi } from "@/lib/documents/build-detail-ui";
@@ -101,16 +102,16 @@ export function InvoicesList({
     <SalesFlowShell activeItem="invoices">
       <InvoiceSubNav active="invoices" />
 
-      <div className="mx-auto min-h-[calc(100vh-130px)] w-full max-w-[1260px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <div className={`min-h-[calc(100vh-130px)] ${pageContainerClass()}`}>
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <h1 className="text-[28px] font-bold tracking-tight text-slate-900">
+            <h1 className="text-[32px] font-bold tracking-tight text-slate-900">
               {ui.tabTitles[activeTab]}
             </h1>
             {!isTrashTab ? (
               <Link
                 href={`/${lang}/invoices/new`}
-                className="inline-flex items-center justify-center rounded bg-[#f59b45] px-6 py-4 text-lg font-semibold text-white transition hover:bg-[#ef8d32]"
+                className="inline-flex items-center justify-center rounded bg-[#0A4D34] px-5 py-3 text-[15px] font-semibold text-white transition hover:bg-[#083D29]"
               >
                 {ui.createInvoice}
               </Link>
@@ -142,24 +143,15 @@ export function InvoicesList({
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-end">
-            <div className="flex w-full max-w-[720px] rounded border border-slate-300 bg-white">
-              <input
-                className="min-w-0 flex-1 px-4 py-3 text-[15px] text-slate-700 outline-none placeholder:text-slate-300"
-                placeholder={ui.searchPlaceholder}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") navigate({ q: search.trim(), page: 1 });
-                }}
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate({ q: search.trim(), page: 1 })}
-              className="rounded border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700"
-            >
-              {ui.searchButton}
-            </button>
+            <ListSearchBar
+              placeholder={ui.searchPlaceholder}
+              searchLabel={ui.searchButton}
+              defaultValue={search}
+              onSearch={(q) => {
+                setSearch(q);
+                navigate({ q, page: 1 });
+              }}
+            />
           </div>
 
           <ListPageTabs
@@ -192,7 +184,7 @@ export function InvoicesList({
                   {rows.map((row) => (
                     <tr key={row.id} className="border-b border-slate-100">
                       <td className="px-4 py-4 font-medium">
-                        <Link href={`/${lang}/invoices/${row.id}`} className="text-[#14a7bb] hover:underline">
+                        <Link href={`/${lang}/invoices/${row.id}`} className="text-[#0A4D34] hover:underline">
                           {row.documentNumber}
                         </Link>
                       </td>
@@ -208,7 +200,7 @@ export function InvoicesList({
                           <button
                             type="button"
                             onClick={() => togglePreview(row)}
-                            className="text-[#14a7bb] hover:underline"
+                            className="text-[#0A4D34] hover:underline"
                           >
                             {previewId === row.id ? ui.previewHide : ui.previewShow}
                           </button>
@@ -244,7 +236,7 @@ export function InvoicesList({
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-[16px] font-semibold text-slate-800">{ui.previewTitle}</h2>
                 <div className="flex items-center gap-3 text-[14px]">
-                  <Link href={`/${lang}/invoices/${previewId}`} className="text-[#14a7bb] hover:underline">
+                  <Link href={`/${lang}/invoices/${previewId}`} className="text-[#0A4D34] hover:underline">
                     {ui.previewOpenDetail}
                   </Link>
                   <Link

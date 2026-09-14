@@ -132,7 +132,7 @@ export function NewDeliveryNoteClient() {
                 className={[
                   "shrink-0 whitespace-nowrap border-b-[3px] px-3 pb-3 sm:px-4",
                   activeTab === tab.key
-                    ? "border-cyan-500 font-semibold text-slate-900"
+                    ? "border-[#1A7A57] font-semibold text-slate-900"
                     : "border-transparent",
                 ].join(" ")}
               >
@@ -188,7 +188,7 @@ export function NewDeliveryNoteClient() {
                   />
 
                   <FormField label={ui.deliveryNumber} required={ui.required}>
-                    <p className="mb-2 text-sm text-cyan-600">{ui.deliveryHint}</p>
+                    <p className="mb-2 text-sm text-[#0A4D34]">{ui.deliveryHint}</p>
                     <input
                       className="field"
                       value={form.documentNumber}
@@ -298,7 +298,7 @@ export function NewDeliveryNoteClient() {
                         type="radio"
                         name="taxDisplay"
                         defaultChecked={index === 0}
-                        className="h-4 w-4 accent-cyan-600"
+                        className="h-4 w-4 accent-[#0A4D34]"
                       />
                       {label}
                     </label>
@@ -320,7 +320,7 @@ export function NewDeliveryNoteClient() {
                         name="taxRounding"
                         checked={form.taxRounding === TAX_ROUNDING_ORDER[index]}
                         onChange={() => set("taxRounding", TAX_ROUNDING_ORDER[index])}
-                        className="h-4 w-4 accent-cyan-600"
+                        className="h-4 w-4 accent-[#0A4D34]"
                       />
                       {label}
                     </label>
@@ -342,11 +342,11 @@ export function NewDeliveryNoteClient() {
               />
               <div className="mt-2 flex items-center justify-between text-sm text-slate-500">
                 <label className="flex cursor-pointer items-center gap-2">
-                  <input type="checkbox" className="h-4 w-4 accent-cyan-600" />
+                  <input type="checkbox" className="h-4 w-4 accent-[#0A4D34]" />
                   {ui.documentRemarks}
                 </label>
                 <div className="flex items-center gap-2">
-                  <button className="text-cyan-600 underline">
+                  <button className="text-[#0A4D34] underline">
                     {ui.documentSettings} ↗
                   </button>
                   <span className="text-slate-400">20以内 0/1000</span>
@@ -370,12 +370,12 @@ export function NewDeliveryNoteClient() {
                     clientHonorific={clientHonorific}
                   />
                 </button>
-                <div className="rounded bg-[#14a7bb] px-6 py-2 text-[14px] font-semibold text-white">
+                <div className="rounded bg-[#0A4D34] px-6 py-2 text-[14px] font-semibold text-white">
                   {selectedTemplate === "standard" ? ui.templateStandard : ui.templateEnvelope}
                 </div>
                 <button
                   onClick={() => setPreviewModal(selectedTemplate)}
-                  className="text-[14px] text-cyan-600 underline"
+                  className="text-[14px] text-[#0A4D34] underline"
                 >
                   {ui.templateChangeButton}
                 </button>
@@ -385,7 +385,7 @@ export function NewDeliveryNoteClient() {
                 <SectionTitle title={ui.templateTitle} />
                 <p className="mt-2 text-sm text-slate-600">
                   {ui.templateNote}{" "}
-                  <Link href={appHrefs.settingsDocumentDefaults} className="text-cyan-600 underline">→ {ui.templateSettingsLink}</Link>
+                  <Link href={appHrefs.settingsDocumentDefaults} className="text-[#0A4D34] underline">→ {ui.templateSettingsLink}</Link>
                 </p>
 
                 <div className="mt-6 space-y-5">
@@ -491,7 +491,7 @@ export function NewDeliveryNoteClient() {
                   setSelectedTemplate(previewModal);
                   setPreviewModal(null);
                 }}
-                className="rounded bg-[#14a7bb] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#1096a8]"
+                className="rounded bg-[#0A4D34] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#083D29]"
               >
                 {ui.templateModalSelect}
               </button>
@@ -556,7 +556,7 @@ function FormField({
       <div className="mb-2 flex items-center gap-2 text-[16px] font-semibold text-slate-800">
         <span>{label}</span>
         {required ? (
-          <span className="rounded bg-[#f59b45] px-2 py-0.5 text-xs font-bold text-white">
+          <span className="rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">
             {required}
           </span>
         ) : null}

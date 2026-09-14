@@ -167,7 +167,7 @@ export function DateFieldInput({
 
   const calendarPanel = isOpen ? (
     <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-40 mx-auto w-full max-w-[min(320px,calc(100vw-2rem))] overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_28px_80px_rgba(15,23,42,0.18)] sm:right-auto sm:mx-0">
-      <div className="bg-linear-to-r from-slate-950 via-slate-900 to-cyan-700 px-5 py-4 text-white">
+      <div className="bg-linear-to-r from-slate-950 via-slate-900 to-[#083D29] px-5 py-4 text-white">
         <div className="flex items-center justify-between gap-3">
           <button
             type="button"
@@ -181,7 +181,7 @@ export function DateFieldInput({
           </button>
 
           <div className="text-center">
-            <p className="text-xs tracking-[0.24em] text-cyan-100">{ui.header}</p>
+            <p className="text-xs tracking-[0.24em] text-[#C5E6D8]">{ui.header}</p>
             <p className="mt-1 text-lg font-semibold">{formatMonthLabel(viewDate, lang)}</p>
           </div>
 
@@ -225,9 +225,9 @@ export function DateFieldInput({
                   isSelected
                     ? "bg-slate-950 text-white shadow-[0_10px_24px_rgba(15,23,42,0.22)]"
                     : isCurrentMonth
-                      ? "text-slate-700 hover:bg-cyan-50 hover:text-cyan-700"
+                      ? "text-slate-700 hover:bg-[#E8F5EF] hover:text-[#083D29]"
                       : "text-slate-300 hover:bg-slate-50",
-                  isToday && !isSelected ? "ring-1 ring-cyan-300" : "",
+                  isToday && !isSelected ? "ring-1 ring-[#6BBF9E]" : "",
                 ].join(" ")}
               >
                 {date.getDate()}
@@ -250,7 +250,7 @@ export function DateFieldInput({
           <button
             type="button"
             onClick={() => selectDate(today)}
-            className="rounded-full bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-100"
+            className="rounded-full bg-[#E8F5EF] px-4 py-2 text-sm font-semibold text-[#083D29] transition hover:bg-[#C5E6D8]"
           >
             {ui.today}
           </button>
@@ -270,12 +270,12 @@ export function DateFieldInput({
           }}
           className={[
             "group flex w-full items-center justify-between rounded-2xl border px-5 py-4 text-left transition",
-            "bg-linear-to-br from-white via-slate-50 to-cyan-50/60",
+            "bg-linear-to-br from-white via-slate-50 to-[#E8F5EF]/60",
             "shadow-[0_14px_35px_rgba(15,23,42,0.06)]",
             inactive && !isOpen ? "opacity-60" : "",
             isOpen
-              ? "border-cyan-400 shadow-[0_20px_45px_rgba(34,184,207,0.16)]"
-              : "border-slate-200 hover:border-cyan-300 hover:shadow-[0_18px_40px_rgba(34,184,207,0.12)]",
+              ? "border-[#3AA87A] shadow-[0_20px_45px_rgba(34,184,207,0.16)]"
+              : "border-slate-200 hover:border-[#6BBF9E] hover:shadow-[0_18px_40px_rgba(34,184,207,0.12)]",
           ].join(" ")}
         >
           <div className="min-w-0">
@@ -293,8 +293,8 @@ export function DateFieldInput({
             className={[
               "flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition",
               isOpen
-                ? "bg-cyan-500 text-white shadow-[0_12px_24px_rgba(6,182,212,0.28)]"
-                : "bg-white text-slate-500 ring-1 ring-slate-200 group-hover:bg-cyan-500 group-hover:text-white group-hover:ring-cyan-500",
+                ? "bg-[#1A7A57] text-white shadow-[0_12px_24px_rgba(6,182,212,0.28)]"
+                : "bg-white text-slate-500 ring-1 ring-slate-200 group-hover:bg-[#1A7A57] group-hover:text-white group-hover:ring-[#1A7A57]",
             ].join(" ")}
           >
             <CalendarIcon className="h-5 w-5" />
@@ -316,7 +316,7 @@ export function DateFieldInput({
         className={[
           "field flex w-full items-center gap-3 text-left text-[16px] transition",
           inactive && !isOpen ? "opacity-60" : "",
-          isOpen ? "border-cyan-400 shadow-[0_0_0_3px_rgba(34,184,207,0.14)]" : "",
+          isOpen ? "border-[#3AA87A] shadow-[0_0_0_3px_rgba(34,184,207,0.14)]" : "",
         ].join(" ")}
       >
         <CalendarIcon className="h-5 w-5 shrink-0 text-slate-400" />

@@ -52,7 +52,7 @@ export function AiEstimateLibraryClient({ sources, priceStats }: { sources: AiEs
                 <tbody>
                   {sources.map((source) => (
                     <tr key={source.id} className="border-t border-slate-100 hover:bg-slate-50/70">
-                      <td className="px-5 py-4"><Link href={`/${lang}/estimates/ai-library/${source.id}`} className="font-semibold text-cyan-700 hover:underline">{source.title}</Link>{source.original_file_name ? <p className="mt-1 text-xs text-slate-400">{source.original_file_name}</p> : null}{source.error_message ? <p className="mt-1 text-xs text-red-600">{source.error_message}</p> : null}</td>
+                      <td className="px-5 py-4"><Link href={`/${lang}/estimates/ai-library/${source.id}`} className="font-semibold text-[#083D29] hover:underline">{source.title}</Link>{source.original_file_name ? <p className="mt-1 text-xs text-slate-400">{source.original_file_name}</p> : null}{source.error_message ? <p className="mt-1 text-xs text-red-600">{source.error_message}</p> : null}</td>
                       <td className="px-5 py-4 text-slate-600">{source.source_type === "upload" ? ui.uploadType : ui.estimateType}</td>
                       <td className="px-5 py-4"><AiSourceStatusBadge status={source.status} lang={lang} /></td>
                       <td className="px-5 py-4 text-slate-500">{new Intl.DateTimeFormat(lang, { dateStyle: "medium" }).format(new Date(source.created_at))}</td>

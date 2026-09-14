@@ -43,8 +43,8 @@ function FeatureCards({ compact }: { compact?: boolean }) {
           <span
             className={
               compact
-                ? "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/15 to-teal-500/20 text-cyan-700"
-                : "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/15 to-teal-500/20 text-cyan-700"
+                ? "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1A7A57]/15 to-teal-500/20 text-[#083D29]"
+                : "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1A7A57]/15 to-teal-500/20 text-[#083D29]"
             }
             aria-hidden
           >
@@ -71,9 +71,9 @@ function BrandMark({ lang }: { lang: string }) {
   return (
     <Link
       href={`/${lang}`}
-      className="inline-flex items-center gap-3 rounded-xl outline-offset-4 transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-600"
+      className="inline-flex items-center gap-3 rounded-xl outline-offset-4 transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#0A4D34]"
     >
-      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-teal-500 shadow-md shadow-cyan-500/25">
+      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#1A7A57] to-teal-500 shadow-md shadow-[#1A7A57]/25">
         <Image
           src="/salesflow-sf-mark.svg"
           alt=""

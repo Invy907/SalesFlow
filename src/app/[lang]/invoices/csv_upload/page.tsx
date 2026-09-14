@@ -33,7 +33,7 @@ export default function InvoicesCsvUploadPage() {
               {ui.csvUploadDesc}
             </p>
             <p className="text-[15px] text-slate-600">
-              <Link href={appHrefs.support} className="text-cyan-600 underline">
+              <Link href={appHrefs.support} className="text-[#0A4D34] underline">
                 {ui.csvUploadTemplateLink}
               </Link>
               {ui.csvUploadTemplateDesc}
@@ -51,11 +51,11 @@ export default function InvoicesCsvUploadPage() {
                 <span className="text-[14px] text-slate-400">{ui.csvUploadNoFile}</span>
               </div>
               <label className="flex cursor-pointer items-center gap-2 text-[14px] text-slate-700">
-                <input type="checkbox" className="h-4 w-4 accent-cyan-600" />
+                <input type="checkbox" className="h-4 w-4 accent-[#0A4D34]" />
                 {ui.csvUploadMailCheck}
               </label>
               <div>
-                <button className="rounded bg-[#14a7bb] px-8 py-3 text-[15px] font-semibold text-white transition hover:bg-[#1096a8]">
+                <button className="rounded bg-[#0A4D34] px-8 py-3 text-[15px] font-semibold text-white transition hover:bg-[#083D29]">
                   {ui.csvUploadButton}
                 </button>
               </div>
@@ -65,7 +65,7 @@ export default function InvoicesCsvUploadPage() {
               <p className="font-semibold text-slate-700">{ui.csvUploadTaxNote}</p>
               <p>
                 {ui.csvUploadTaxDesc}{" "}
-                <Link href={appHrefs.supportInvoiceGuide} className="text-cyan-600 underline">
+                <Link href={appHrefs.supportInvoiceGuide} className="text-[#0A4D34] underline">
                   {ui.csvUploadTaxDescLink} ↗
                 </Link>
               </p>
@@ -92,7 +92,7 @@ export default function InvoicesCsvUploadPage() {
                   <td className="border border-slate-300 px-4 py-4 text-slate-700">
                     <p className="font-medium">{ui.csvTemplateUtf8Label}</p>
                     <p className="mt-1">
-                      <span className="text-cyan-600 underline">
+                      <span className="text-[#0A4D34] underline">
                         {ui.csvTemplateUtf8Link}
                       </span>
                     </p>
@@ -105,7 +105,7 @@ export default function InvoicesCsvUploadPage() {
                   <td className="border border-slate-300 px-4 py-4 text-slate-700">
                     <p className="font-medium">{ui.csvTemplateShiftJisLabel}</p>
                     <p className="mt-1">
-                      <span className="text-cyan-600 underline">
+                      <span className="text-[#0A4D34] underline">
                         {ui.csvTemplateShiftJisLink}
                       </span>
                     </p>

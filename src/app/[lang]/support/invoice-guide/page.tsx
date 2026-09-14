@@ -27,14 +27,14 @@ export default function InvoiceGuidePage() {
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
         <Link
           href={getSupportHref(lang, "top")}
-          className="inline-flex items-center gap-1 text-sm text-slate-500 transition hover:text-cyan-600"
+          className="inline-flex items-center gap-1 text-sm text-slate-500 transition hover:text-[#0A4D34]"
         >
           ← {ui.backToSupport}
         </Link>
 
         <div className="mt-4 flex flex-wrap items-baseline gap-4">
           <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
-          <span className="rounded bg-cyan-600 px-2 py-0.5 text-xs font-bold text-white">
+          <span className="rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">
             Guide
           </span>
         </div>
@@ -51,7 +51,7 @@ export default function InvoiceGuidePage() {
                   className={[
                     "shrink-0 whitespace-nowrap border-b-[3px] px-3 pb-3 transition sm:px-4",
                     activeTab === tab.key
-                      ? "border-cyan-500 font-semibold text-slate-900"
+                      ? "border-[#1A7A57] font-semibold text-slate-900"
                       : "border-transparent hover:text-slate-700",
                   ].join(" ")}
                 >
@@ -101,7 +101,7 @@ export default function InvoiceGuidePage() {
                 <ol className="space-y-2 text-[14px] leading-6 text-slate-700">
                   {ui.legalItems.map((item, index) => (
                     <li key={item} className="flex gap-2">
-                      <span className="shrink-0 font-semibold text-cyan-700">{index + 1}.</span>
+                      <span className="shrink-0 font-semibold text-[#083D29]">{index + 1}.</span>
                       <span>{item}</span>
                     </li>
                   ))}
@@ -111,7 +111,7 @@ export default function InvoiceGuidePage() {
                   href={ui.ntaLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm text-cyan-600 hover:underline"
+                  className="inline-flex items-center gap-1 text-sm text-[#0A4D34] hover:underline"
                 >
                   {ui.legalLink}
                   <ExternalLinkIcon />
@@ -136,16 +136,16 @@ export default function InvoiceGuidePage() {
                         onClick={() => setActiveTab(tab.key)}
                         className={[
                           "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left transition",
-                          current ? "bg-cyan-50 font-medium text-cyan-800" : "hover:bg-slate-50",
+                          current ? "bg-[#E8F5EF] font-medium text-[#062E1F]" : "hover:bg-slate-50",
                         ].join(" ")}
                       >
                         <span
                           className={[
                             "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
                             done
-                              ? "bg-cyan-600 text-white"
+                              ? "bg-[#0A4D34] text-white"
                               : current
-                                ? "border-2 border-cyan-500 text-cyan-700"
+                                ? "border-2 border-[#1A7A57] text-[#083D29]"
                                 : "border border-slate-300 text-slate-400",
                           ].join(" ")}
                         >
@@ -161,7 +161,7 @@ export default function InvoiceGuidePage() {
 
             <Link
               href="/invoices/new"
-              className="flex w-full items-center justify-center rounded-lg bg-[#14a7bb] px-5 py-3.5 text-[15px] font-semibold text-white transition hover:bg-[#1096a8]"
+              className="flex w-full items-center justify-center rounded-lg bg-[#0A4D34] px-5 py-3.5 text-[15px] font-semibold text-white transition hover:bg-[#083D29]"
             >
               {ui.createInvoice}
             </Link>
@@ -186,7 +186,7 @@ function TipCard({
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="text-[16px] font-semibold text-slate-900">{label}</h3>
         {required ? (
-          <span className="rounded bg-[#f59b45] px-2 py-0.5 text-xs font-bold text-white">
+          <span className="rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">
             {required}
           </span>
         ) : null}

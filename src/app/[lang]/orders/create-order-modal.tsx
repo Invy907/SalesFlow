@@ -146,7 +146,7 @@ export function CreateOrderModal({
                     <button
                       type="button"
                       onClick={() => setIsAddingStatus(true)}
-                      className="shrink-0 text-[13px] font-medium text-[#14a7bb] hover:underline"
+                      className="shrink-0 text-[13px] font-medium text-[#0A4D34] hover:underline"
                     >
                       + {statusFormLabels.addStatus}
                     </button>
@@ -202,7 +202,7 @@ export function CreateOrderModal({
           </div>
           <button
             type="button"
-            className="rounded bg-[#14a7bb] px-7 py-2 text-[14px] font-semibold text-white transition hover:bg-[#1096a8]"
+            className="rounded bg-[#0A4D34] px-7 py-2 text-[14px] font-semibold text-white transition hover:bg-[#083D29]"
           >
             {ui.save}
           </button>
@@ -226,7 +226,7 @@ function CompactFormField({
       <div className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-slate-800">
         <span>{label}</span>
         {required ? (
-          <span className="rounded bg-[#f59b45] px-1.5 py-0.5 text-[10px] font-bold text-white">{required}</span>
+          <span className="rounded bg-[#0A4D34] px-1.5 py-0.5 text-[10px] font-bold text-white">{required}</span>
         ) : null}
       </div>
       {children}

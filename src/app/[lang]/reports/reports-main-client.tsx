@@ -22,7 +22,7 @@ const yen = (v: number) => `¥${Math.round(v).toLocaleString("ja-JP")}`;
 const SERIES = [
   { key: "previous", bar: "bg-slate-400", dot: "bg-slate-400" },
   { key: "unpaid", bar: "bg-[#f59b45]", dot: "bg-[#f59b45]" },
-  { key: "paid", bar: "bg-[#14a7bb]", dot: "bg-[#14a7bb]" },
+  { key: "paid", bar: "bg-[#0A4D34]", dot: "bg-[#0A4D34]" },
 ] as const;
 
 export function ReportsMainClient({
@@ -74,9 +74,9 @@ export function ReportsMainClient({
 
   return (
     <SalesFlowShell activeItem="reports">
+      <ReportsSubNav active="main" />
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
-        <ReportsSubNav active="main" />
-        <h1 className="mt-8 text-[30px] font-bold tracking-tight text-slate-900">{main.title}</h1>
+        <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{main.title}</h1>
 
         <div className="mt-6 rounded border border-slate-200 bg-[#f8fafc] px-5 py-4">
           <div className="flex flex-wrap items-end gap-4">
@@ -109,7 +109,7 @@ export function ReportsMainClient({
             <button
               type="button"
               onClick={applyFilter}
-              className="rounded bg-[#14a7bb] px-5 py-3 text-[14px] font-semibold text-white hover:bg-[#1096a8]"
+              className="rounded bg-[#0A4D34] px-5 py-3 text-[14px] font-semibold text-white hover:bg-[#083D29]"
             >
               {main.filter}
             </button>

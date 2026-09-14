@@ -32,7 +32,7 @@ export function AuthCard({
       {!isSignIn && (
         <div className="mb-8 flex justify-center">
           <Link href={`/${lang}`} className="group flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-500 shadow-sm transition-colors group-hover:bg-cyan-600">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#1A7A57] shadow-sm transition-colors group-hover:bg-[#0A4D34]">
               <Image
                 src="/salesflow-sf-mark.svg"
                 alt="SalesFlow"
@@ -160,8 +160,8 @@ export function AuthSubmitButton({ children, pending, premium }: AuthSubmitButto
       aria-busy={pending}
       className={
         premium
-          ? "flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 via-cyan-500 to-teal-500 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25 transition-all duration-200 hover:from-cyan-600 hover:via-cyan-600 hover:to-teal-600 hover:shadow-cyan-500/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600 disabled:cursor-not-allowed disabled:from-cyan-300 disabled:via-cyan-300 disabled:to-teal-300 disabled:shadow-none"
-          : "flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 text-sm font-semibold text-white transition-colors hover:bg-cyan-600 disabled:bg-cyan-300"
+          ? "flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1A7A57] via-[#1A7A57] to-teal-500 text-sm font-semibold text-white shadow-lg shadow-[#1A7A57]/25 transition-all duration-200 hover:from-[#0A4D34] hover:via-[#0A4D34] hover:to-teal-600 hover:shadow-[#1A7A57]/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A4D34] disabled:cursor-not-allowed disabled:from-[#6BBF9E] disabled:via-[#6BBF9E] disabled:to-teal-300 disabled:shadow-none"
+          : "flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#1A7A57] text-sm font-semibold text-white transition-colors hover:bg-[#0A4D34] disabled:bg-[#6BBF9E]"
       }
     >
       {pending && (

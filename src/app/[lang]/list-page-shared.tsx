@@ -39,7 +39,7 @@ export function ListPageTabs({
           className={[
             "border-b-[3px] px-1 pb-3 transition",
             index === activeIndex
-              ? "border-cyan-500 font-medium text-slate-900"
+              ? "border-[#1A7A57] font-medium text-slate-900"
               : "border-transparent text-slate-500 hover:text-slate-700",
             onTabChange ? "cursor-pointer" : "cursor-default",
           ].join(" ")}
@@ -47,6 +47,59 @@ export function ListPageTabs({
           {tab}
         </button>
       ))}
+      </div>
+    </div>
+  );
+}
+
+export type SubNavTab = {
+  key: string;
+  label: string;
+  href: string;
+  disabled?: boolean;
+};
+
+/** 설정/청구서/수주관리/레포트 서브탭 공용 밴드 — 연한 그레이 배경 + 필 모양 활성 탭. */
+export function SubNavBand({
+  tabs,
+  activeKey,
+  extra,
+}: {
+  tabs: SubNavTab[];
+  activeKey: string;
+  extra?: ReactNode;
+}) {
+  return (
+    <div className="border-b border-slate-200 bg-slate-100">
+      <div className="mx-auto flex w-full max-w-[1260px] flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-0 sm:px-6 lg:px-8">
+        <div className="-mx-4 flex min-w-0 gap-1 overflow-x-auto px-4 sm:mx-0 sm:min-w-max sm:px-0">
+          {tabs.map((tab) => {
+            const isActive = tab.key === activeKey;
+            const className = [
+              "whitespace-nowrap rounded px-4 py-2.5 text-[15px] font-medium transition",
+              isActive
+                ? "bg-[#0A4D34] text-white shadow-sm"
+                : tab.disabled
+                  ? "text-slate-400 hover:bg-white/50"
+                  : "text-slate-600 hover:bg-white/70 hover:text-slate-900",
+            ].join(" ");
+
+            if (tab.disabled) {
+              return (
+                <span key={tab.key} className={className} aria-disabled="true">
+                  {tab.label}
+                </span>
+              );
+            }
+
+            return (
+              <Link key={tab.key} href={tab.href} className={className}>
+                {tab.label}
+              </Link>
+            );
+          })}
+        </div>
+        {extra ? <div className="shrink-0 sm:ml-auto">{extra}</div> : null}
       </div>
     </div>
   );
@@ -63,7 +116,7 @@ export function ListPrimaryButton({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex w-full shrink-0 items-center justify-center rounded bg-[#f59b45] px-6 py-3.5 text-[16px] font-semibold text-white transition hover:bg-[#ef8d32] sm:w-auto"
+      className="inline-flex w-full shrink-0 items-center justify-center rounded bg-[#0A4D34] px-5 py-3 text-[15px] font-semibold text-white transition hover:bg-[#083D29] sm:w-auto"
     >
       {label}
     </button>
@@ -119,7 +172,7 @@ export function CsvDownloadLink({
       type="button"
       onClick={onDownload}
       disabled={!onDownload}
-      className="inline-flex items-center gap-1 text-[14px] text-[#14a7bb] hover:underline disabled:cursor-default disabled:text-slate-400 disabled:no-underline"
+      className="inline-flex items-center gap-1 text-[14px] text-[#0A4D34] hover:underline disabled:cursor-default disabled:text-slate-400 disabled:no-underline"
     >
       <DownloadIcon />
       {label}
@@ -130,7 +183,7 @@ export function CsvDownloadLink({
 
 export function LearnMoreLink({ label, href = appHrefs.supportInvoiceGuide }: { label: string; href?: string }) {
   return (
-    <Link href={href} className="inline-flex items-center gap-1 text-[#14a7bb] hover:underline">
+    <Link href={href} className="inline-flex items-center gap-1 text-[#0A4D34] hover:underline">
       ({label})
       <ExternalLinkIcon />
     </Link>
@@ -170,7 +223,7 @@ export function BulkInfoTable({ rows }: { rows: Array<{ label: string; value: Re
 
 export function RequiredBadge({ label }: { label: string }) {
   return (
-    <span className="rounded bg-[#f59b45] px-2 py-0.5 text-xs font-bold text-white">{label}</span>
+    <span className="rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">{label}</span>
   );
 }
 

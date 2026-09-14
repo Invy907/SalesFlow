@@ -28,8 +28,8 @@ const toneStyles = {
     pill: "bg-amber-50 text-amber-800 ring-amber-200",
   },
   cyan: {
-    dot: "bg-[#14a7bb]",
-    pill: "bg-cyan-50 text-cyan-800 ring-cyan-200",
+    dot: "bg-[#0A4D34]",
+    pill: "bg-[#E8F5EF] text-[#062E1F] ring-[#9DD4BD]",
   },
   slate: {
     dot: "bg-slate-400",
@@ -40,7 +40,7 @@ const toneStyles = {
 const kpiToneStyles: Record<KpiTone, string> = {
   neutral: "text-slate-900",
   warn: "text-amber-700",
-  info: "text-[#14a7bb]",
+  info: "text-[#0A4D34]",
 };
 
 const yen = (v: number) => `¥${Math.round(v).toLocaleString("ja-JP")}`;
@@ -132,7 +132,7 @@ export function HomeClient({ dashboard }: { dashboard: Dashboard }) {
               </p>
               <h1 className="mt-1 text-[28px] font-bold tracking-tight text-slate-900">
                 {greeting},{" "}
-                <span className="text-[#14a7bb]">{userName || ui.userName}</span>
+                <span className="text-[#0A4D34]">{userName || ui.userName}</span>
                 {ui.greeting.suffix}
               </h1>
             </div>
@@ -141,7 +141,7 @@ export function HomeClient({ dashboard }: { dashboard: Dashboard }) {
               <button
                 type="button"
                 onClick={() => setMenuOpen((open) => !open)}
-                className="inline-flex items-center gap-2 rounded bg-[#14a7bb] px-5 py-3 text-[15px] font-semibold text-white shadow-sm transition hover:bg-[#1096a8]"
+                className="inline-flex items-center gap-2 rounded bg-[#0A4D34] px-5 py-3 text-[15px] font-semibold text-white shadow-sm transition hover:bg-[#083D29]"
               >
                 <PlusIcon />
                 {ui.newButton}
@@ -157,7 +157,7 @@ export function HomeClient({ dashboard }: { dashboard: Dashboard }) {
                       key={item.label}
                       href={item.href}
                       onClick={() => setMenuOpen(false)}
-                      className="flex items-center justify-between px-4 py-3 text-[14px] font-medium text-slate-700 transition hover:bg-slate-50 hover:text-[#14a7bb]"
+                      className="flex items-center justify-between px-4 py-3 text-[14px] font-medium text-slate-700 transition hover:bg-slate-50 hover:text-[#0A4D34]"
                     >
                       <span>{item.label}</span>
                       <span aria-hidden="true" className="text-slate-300">
@@ -197,7 +197,7 @@ export function HomeClient({ dashboard }: { dashboard: Dashboard }) {
                 </div>
                 <Link
                   href="/invoices"
-                  className="text-sm font-semibold text-[#14a7bb] transition hover:text-[#1096a8]"
+                  className="text-sm font-semibold text-[#0A4D34] transition hover:text-[#083D29]"
                 >
                   {ui.tasks.seeAll} →
                 </Link>
@@ -241,7 +241,7 @@ export function HomeClient({ dashboard }: { dashboard: Dashboard }) {
                       href={item.href}
                       className="group relative flex flex-col gap-2 bg-white px-4 py-5 transition hover:bg-slate-50"
                     >
-                      <div className="flex h-10 w-10 items-center justify-center rounded-md bg-cyan-50 text-[#14a7bb] transition group-hover:bg-[#14a7bb] group-hover:text-white">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#E8F5EF] text-[#0A4D34] transition group-hover:bg-[#0A4D34] group-hover:text-white">
                         <QuickCreateIcon name={item.key} />
                       </div>
                       <div className="flex items-center gap-2">
@@ -267,7 +267,7 @@ export function HomeClient({ dashboard }: { dashboard: Dashboard }) {
                       <li key={s.label}>
                         <Link
                           href={s.href}
-                          className="text-[13px] text-[#14a7bb] transition hover:underline"
+                          className="text-[13px] text-[#0A4D34] transition hover:underline"
                         >
                           + {s.label}
                         </Link>
@@ -287,7 +287,7 @@ export function HomeClient({ dashboard }: { dashboard: Dashboard }) {
                 </h2>
                 <Link
                   href="/usage"
-                  className="text-sm font-semibold text-[#14a7bb] transition hover:text-[#1096a8]"
+                  className="text-sm font-semibold text-[#0A4D34] transition hover:text-[#083D29]"
                 >
                   {ui.recent.seeAll} →
                 </Link>
@@ -313,7 +313,7 @@ export function HomeClient({ dashboard }: { dashboard: Dashboard }) {
                 </h2>
                 <Link
                   href={getAnnouncementsHref(lang)}
-                  className="text-sm font-semibold text-[#14a7bb] transition hover:text-[#1096a8]"
+                  className="text-sm font-semibold text-[#0A4D34] transition hover:text-[#083D29]"
                 >
                   {ui.notices.seeAll} →
                 </Link>
@@ -327,7 +327,7 @@ export function HomeClient({ dashboard }: { dashboard: Dashboard }) {
                       className="block px-5 py-4 transition hover:bg-slate-50"
                     >
                       <div className="flex items-center gap-2 text-[12px] text-slate-500">
-                        <span className="rounded bg-cyan-50 px-2 py-0.5 text-[11px] font-semibold text-[#14a7bb] ring-1 ring-cyan-100">
+                        <span className="rounded bg-[#E8F5EF] px-2 py-0.5 text-[11px] font-semibold text-[#0A4D34] ring-1 ring-[#C5E6D8]">
                           {notice.category}
                         </span>
                         <span>{notice.date}</span>
@@ -363,7 +363,7 @@ function KpiCard({
   return (
     <Link
       href={href}
-      className="group block rounded-lg border border-slate-200 bg-white p-5 transition hover:border-[#14a7bb]/40 hover:shadow-sm"
+      className="group block rounded-lg border border-slate-200 bg-white p-5 transition hover:border-[#0A4D34]/40 hover:shadow-sm"
     >
       <p className="text-[12px] font-medium tracking-wide text-slate-500 uppercase">{label}</p>
       <p
@@ -429,7 +429,7 @@ function TaskGroup({
                   </span>
                 </div>
                 <span
-                  className="hidden shrink-0 text-[12px] font-semibold text-[#14a7bb] sm:inline"
+                  className="hidden shrink-0 text-[12px] font-semibold text-[#0A4D34] sm:inline"
                   aria-hidden="true"
                 >
                   {ui.tasks.open} →

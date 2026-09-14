@@ -238,7 +238,7 @@ export function DocumentBottomBar({
               type="button"
               onClick={onSave}
               disabled={pending || !onSave}
-              className="w-full rounded bg-[#14a7bb] px-8 py-3.5 text-base font-semibold text-white transition hover:bg-[#1096a8] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-12 sm:py-4 sm:text-[18px]"
+              className="w-full rounded bg-[#0A4D34] px-8 py-3.5 text-base font-semibold text-white transition hover:bg-[#083D29] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-12 sm:py-4 sm:text-[18px]"
             >
               {pending ? "..." : saveLabel}
             </button>
@@ -280,7 +280,7 @@ export function DocumentPageShell<T extends DocumentTabKey>({
               className={[
                 "shrink-0 whitespace-nowrap border-b-[3px] px-3 pb-3 sm:px-4",
                 activeTab === tab.key
-                  ? "border-cyan-500 font-semibold text-slate-900"
+                  ? "border-[#1A7A57] font-semibold text-slate-900"
                   : "border-transparent",
               ].join(" ")}
             >
@@ -309,7 +309,7 @@ export function FormField({ label, required, children }: FormFieldProps) {
       <div className="mb-2 flex items-center gap-2 text-[16px] font-semibold text-slate-800">
         <span>{label}</span>
         {required ? (
-          <span className="rounded bg-[#f59b45] px-2 py-0.5 text-xs font-bold text-white">{required}</span>
+          <span className="rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">{required}</span>
         ) : null}
       </div>
       {children}
@@ -405,7 +405,7 @@ export function ClientHonorificSelect({
             className={[
               "rounded-full px-4 py-1.5 text-sm font-semibold transition",
               value === option.key
-                ? "bg-cyan-600 text-white hover:bg-cyan-700"
+                ? "bg-[#0A4D34] text-white hover:bg-[#083D29]"
                 : "border border-slate-300 bg-white text-slate-600 hover:bg-slate-100",
             ].join(" ")}
           >
@@ -460,7 +460,7 @@ export function CommonBasicSection({
           </div>
 
           <FormField label={numberLabel} required={numberRequired}>
-            {numberHint ? <div className="mb-2 text-sm text-cyan-600">{numberHint}</div> : null}
+            {numberHint ? <div className="mb-2 text-sm text-[#0A4D34]">{numberHint}</div> : null}
             <input className="field" defaultValue={numberValue} />
           </FormField>
 
@@ -481,7 +481,7 @@ export function CommonBasicSection({
             <input className="field mt-2" />
             <input className="field mt-2" />
           </FormField>
-          <button className="text-[15px] font-medium text-cyan-600">{detailLinkLabel}</button>
+          <button className="text-[15px] font-medium text-[#0A4D34]">{detailLinkLabel}</button>
         </div>
       </section>
     </div>
@@ -565,7 +565,7 @@ export function SenderDetailFields({
       <button
         type="button"
         onClick={() => setIsOpen((open) => !open)}
-        className="inline-flex items-center gap-2 text-[15px] font-medium text-cyan-600"
+        className="inline-flex items-center gap-2 text-[15px] font-medium text-[#0A4D34]"
       >
         <span className={["text-xs transition", isOpen ? "rotate-90" : ""].join(" ")}>▶</span>
         <span>{buttonLabel}</span>
@@ -611,7 +611,7 @@ export function SenderDetailFields({
           <FormField label="登録番号">
             <p className="mb-2 text-sm text-slate-500">
               適格請求書(インボイス)に記載が必要な番号です。{" "}
-              <Link href={appHrefs.supportInvoiceGuide} className="text-cyan-600 underline">
+              <Link href={appHrefs.supportInvoiceGuide} className="text-[#0A4D34] underline">
                 適格請求書について詳しく
               </Link>
             </p>
@@ -833,8 +833,8 @@ export function CommonLineItemsTable({
             {rows.map((row, index) => {
               const amount = parseNumberInput(row.qty) * parseNumberInput(row.price);
               const inputClass = compact
-                ? "w-full border-0 border-b border-dashed border-slate-300 bg-transparent px-1 py-1 text-[13px] leading-normal text-slate-800 outline-none transition focus:border-cyan-400"
-                : "w-full border-0 border-b border-dashed border-slate-300 bg-transparent px-2 py-2 text-[17px] leading-normal text-slate-800 outline-none transition focus:border-cyan-400";
+                ? "w-full border-0 border-b border-dashed border-slate-300 bg-transparent px-1 py-1 text-[13px] leading-normal text-slate-800 outline-none transition focus:border-[#3AA87A]"
+                : "w-full border-0 border-b border-dashed border-slate-300 bg-transparent px-2 py-2 text-[17px] leading-normal text-slate-800 outline-none transition focus:border-[#3AA87A]";
 
               return (
                 <tr key={index}>
@@ -906,7 +906,7 @@ export function CommonLineItemsTable({
                     type="button"
                     onClick={addRow}
                     className={[
-                      "font-medium text-cyan-600",
+                      "font-medium text-[#0A4D34]",
                       compact ? "text-[14px]" : "text-xl",
                     ].join(" ")}
                   >
@@ -921,7 +921,7 @@ export function CommonLineItemsTable({
                       type="button"
                       onClick={addRow}
                       className={[
-                        "font-medium text-cyan-600",
+                        "font-medium text-[#0A4D34]",
                         compact ? "text-[14px]" : "mt-4 text-xl",
                       ].join(" ")}
                     >

@@ -5,7 +5,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
-import { ListPageTabs } from "../list-page-shared";
+import { ListPageTabs, ListSearchBar } from "../list-page-shared";
+import { pageContainerClass } from "@/components/page-container";
 import { deleteEstimate } from "@/lib/actions/estimates";
 import { formatSalesDocumentStatus } from "@/lib/document-status";
 import { getEstimateContent } from "./content";
@@ -73,7 +74,7 @@ export function EstimatesList({
 
   return (
     <SalesFlowShell activeItem="estimates">
-      <div className="mx-auto min-h-[calc(100vh-72px)] w-full max-w-[1260px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+      <div className={`min-h-[calc(100vh-72px)] ${pageContainerClass()}`}>
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <h1 className="text-[32px] font-bold tracking-tight text-slate-900">
@@ -89,7 +90,7 @@ export function EstimatesList({
                 </Link>
                 <Link
                   href={`/${lang}/estimates/new`}
-                  className="inline-flex items-center justify-center rounded bg-[#f59b45] px-6 py-4 text-lg font-semibold text-white transition hover:bg-[#ef8d32]"
+                  className="inline-flex items-center justify-center rounded bg-[#0A4D34] px-5 py-3 text-[15px] font-semibold text-white transition hover:bg-[#083D29]"
                 >
                   {ui.createEstimate}
                 </Link>
@@ -107,24 +108,15 @@ export function EstimatesList({
 
           <div className="flex flex-col items-start gap-4 border-b border-slate-200 pb-4">
             <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:justify-end">
-              <div className="flex w-full max-w-[720px] rounded border border-slate-300 bg-white">
-                <input
-                  className="min-w-0 flex-1 px-4 py-3 text-[15px] text-slate-700 outline-none placeholder:text-slate-300"
-                  placeholder={ui.searchPlaceholder}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") navigate({ q: search.trim(), page: 1 });
-                  }}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => navigate({ q: search.trim(), page: 1 })}
-                className="rounded border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                {ui.searchButton}
-              </button>
+              <ListSearchBar
+              placeholder={ui.searchPlaceholder}
+              searchLabel={ui.searchButton}
+              defaultValue={search}
+              onSearch={(q) => {
+                setSearch(q);
+                navigate({ q, page: 1 });
+              }}
+            />
             </div>
 
             <ListPageTabs
@@ -160,7 +152,7 @@ export function EstimatesList({
                       <td className="px-4 py-4">
                         <Link
                           href={`/${lang}/estimates/${row.id}`}
-                          className="font-medium text-[#14a7bb] hover:underline"
+                          className="font-medium text-[#0A4D34] hover:underline"
                         >
                           {row.documentNumber}
                         </Link>
@@ -176,7 +168,7 @@ export function EstimatesList({
                         <div className="flex gap-3 text-[14px]">
                           <Link
                             href={`/${lang}/estimates/${row.id}/edit`}
-                            className="text-[#14a7bb] hover:underline"
+                            className="text-[#0A4D34] hover:underline"
                           >
                             {ui.editAction}
                           </Link>

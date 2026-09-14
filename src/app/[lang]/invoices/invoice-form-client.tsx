@@ -397,10 +397,10 @@ export function InvoiceFormClient({
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[30px]">
             {ui.newTitle}
           </h1>
-          <span className="flex items-center gap-1 rounded bg-cyan-600 px-2 py-0.5 text-xs font-bold text-white">
+          <span className="flex items-center gap-1 rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">
             {ui.draftBadge}
           </span>
-          <Link href={getSupportHref(lang, "invoice-guide")} className="text-sm text-cyan-600 underline">
+          <Link href={getSupportHref(lang, "invoice-guide")} className="text-sm text-[#0A4D34] underline">
             {ui.guideLink}
           </Link>
           <button
@@ -429,7 +429,7 @@ export function InvoiceFormClient({
                 className={[
                   "shrink-0 whitespace-nowrap border-b-[3px] px-3 pb-3 sm:px-4",
                   activeTab === tab.key
-                    ? "border-cyan-500 font-semibold text-slate-900"
+                    ? "border-[#1A7A57] font-semibold text-slate-900"
                     : "border-transparent",
                 ].join(" ")}
               >
@@ -501,7 +501,7 @@ export function InvoiceFormClient({
                   />
 
                   <FormField label={ui.invoiceNumber} required={ui.required}>
-                    <p className="mb-2 text-sm text-cyan-600">
+                    <p className="mb-2 text-sm text-[#0A4D34]">
                       {ui.invoiceHint}{" "}
                       <Link href={appHrefs.settingsDocumentDefaults} className="underline">
                         {ui.settingsLink}
@@ -543,7 +543,7 @@ export function InvoiceFormClient({
                   </FormField>
 
                   <div>
-                    <Link href={appHrefs.settingsDocumentDefaults} className="text-sm text-cyan-600 underline">
+                    <Link href={appHrefs.settingsDocumentDefaults} className="text-sm text-[#0A4D34] underline">
                       {ui.deliveryDateLink} ↗
                     </Link>
                   </div>
@@ -678,7 +678,7 @@ export function InvoiceFormClient({
                 {bankAccounts.length === 0 ? (
                   <p className="mt-4 text-[15px] text-slate-500">
                     {ui.noBankAccount}{" "}
-                    <Link href={appHrefs.settingsPayment} className="text-cyan-600 underline">
+                    <Link href={appHrefs.settingsPayment} className="text-[#0A4D34] underline">
                       {ui.addBankAccount} ↗
                     </Link>
                   </p>
@@ -692,7 +692,7 @@ export function InvoiceFormClient({
                         >
                           <input
                             type="checkbox"
-                            className="mt-1 h-4 w-4 accent-cyan-600"
+                            className="mt-1 h-4 w-4 accent-[#0A4D34]"
                             checked={form.bankAccountIds.includes(account.id)}
                             onChange={(e) => {
                               const next = e.target.checked
@@ -707,7 +707,7 @@ export function InvoiceFormClient({
                     </div>
                     {err("bankAccountIds")}
                     <p className="mt-3">
-                      <Link href={appHrefs.settingsPayment} className="text-sm text-cyan-600 underline">
+                      <Link href={appHrefs.settingsPayment} className="text-sm text-[#0A4D34] underline">
                         {ui.addBankAccount} ↗
                       </Link>
                     </p>
@@ -723,7 +723,7 @@ export function InvoiceFormClient({
             <div className="mt-6">
               <p className="text-sm text-slate-600">
                 {ui.taxSettingsNote}{" "}
-                <Link href={appHrefs.settingsDocumentDefaults} className="text-cyan-600 underline">
+                <Link href={appHrefs.settingsDocumentDefaults} className="text-[#0A4D34] underline">
                   ↗ {ui.taxSettingsLink}
                 </Link>
               </p>
@@ -740,7 +740,7 @@ export function InvoiceFormClient({
                         name="taxDisplay"
                         checked={form.taxDisplay === TAX_DISPLAY_ORDER[index]}
                         onChange={() => set("taxDisplay", TAX_DISPLAY_ORDER[index])}
-                        className="h-4 w-4 accent-cyan-600"
+                        className="h-4 w-4 accent-[#0A4D34]"
                       />
                       {label}
                     </label>
@@ -759,7 +759,7 @@ export function InvoiceFormClient({
                         name="taxRounding"
                         checked={form.taxRounding === TAX_ROUNDING_ORDER[index]}
                         onChange={() => set("taxRounding", TAX_ROUNDING_ORDER[index])}
-                        className="h-4 w-4 accent-cyan-600"
+                        className="h-4 w-4 accent-[#0A4D34]"
                       />
                       {label}
                     </label>
@@ -770,7 +770,7 @@ export function InvoiceFormClient({
               <section>
                 <SectionTitle title={ui.withholdingTitle} />
                 <p className="mt-2">
-                  <Link href={getSupportHref(lang, "invoice-guide")} className="text-sm text-cyan-600 underline">
+                  <Link href={getSupportHref(lang, "invoice-guide")} className="text-sm text-[#0A4D34] underline">
                     {ui.withholdingLink} ↗
                   </Link>
                 </p>
@@ -782,7 +782,7 @@ export function InvoiceFormClient({
                         name="withholding"
                         checked={form.withholdingType === WITHHOLDING_ORDER[index]}
                         onChange={() => set("withholdingType", WITHHOLDING_ORDER[index])}
-                        className="h-4 w-4 accent-cyan-600"
+                        className="h-4 w-4 accent-[#0A4D34]"
                       />
                       {label}
                     </label>
@@ -792,7 +792,7 @@ export function InvoiceFormClient({
             </div>
 
             <div className="mt-6">
-              <Link href={appHrefs.settingsDocumentDefaults} className="text-sm text-cyan-600 underline">
+              <Link href={appHrefs.settingsDocumentDefaults} className="text-sm text-[#0A4D34] underline">
                 {ui.deliveryDateLink} ↗
               </Link>
             </div>
@@ -813,12 +813,12 @@ export function InvoiceFormClient({
                     clientHonorific={clientHonorific}
                   />
                 </button>
-                <div className="rounded bg-[#14a7bb] px-6 py-2 text-[14px] font-semibold text-white">
+                <div className="rounded bg-[#0A4D34] px-6 py-2 text-[14px] font-semibold text-white">
                   {ui.templateList.find((t) => t.key === selectedTemplate)?.name ?? ui.templateList[0].name}
                 </div>
                 <button
                   onClick={() => setGalleryOpen(true)}
-                  className="text-[14px] text-cyan-600 underline"
+                  className="text-[14px] text-[#0A4D34] underline"
                 >
                   {ui.templateChangeButton}
                 </button>
@@ -828,7 +828,7 @@ export function InvoiceFormClient({
                 <SectionTitle title={ui.templateTitle} />
                 <p className="mt-2 text-sm text-slate-600">
                   {ui.templateNote}{" "}
-                  <Link href={appHrefs.settingsDocumentDefaults} className="text-cyan-600 underline">
+                  <Link href={appHrefs.settingsDocumentDefaults} className="text-[#0A4D34] underline">
                     ↗ {ui.templateSettingsLink}
                   </Link>
                 </p>
@@ -849,14 +849,14 @@ export function InvoiceFormClient({
                           type="checkbox"
                           checked={showSeal}
                           onChange={(e) => setShowSeal(e.target.checked)}
-                          className="h-4 w-4 accent-cyan-600"
+                          className="h-4 w-4 accent-[#0A4D34]"
                         />
                         {ui.sealShow}
                       </label>
                     ) : (
                       <p className="mt-2 text-sm text-slate-500">
                         {ui.sealNotRegistered}{" "}
-                        <Link href={appHrefs.settingsCompany} className="text-cyan-600 underline">
+                        <Link href={appHrefs.settingsCompany} className="text-[#0A4D34] underline">
                           {ui.sealSettingsLink} ↗
                         </Link>
                       </p>
@@ -952,7 +952,7 @@ export function InvoiceFormClient({
                     onClick={() => setPreviewTemplate(tmpl.key)}
                     className={[
                       "flex flex-col overflow-hidden rounded border-2 transition hover:shadow-md",
-                      selectedTemplate === tmpl.key ? "border-cyan-500" : "border-slate-200",
+                      selectedTemplate === tmpl.key ? "border-[#1A7A57]" : "border-slate-200",
                     ].join(" ")}
                   >
                     <div className="flex-1 bg-white">
@@ -1016,7 +1016,7 @@ export function InvoiceFormClient({
                   setPreviewTemplate(null);
                   setGalleryOpen(false);
                 }}
-                className="rounded bg-[#14a7bb] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#1096a8]"
+                className="rounded bg-[#0A4D34] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#083D29]"
               >
                 {ui.templateModalSelect}
               </button>
@@ -1060,7 +1060,7 @@ function RemarksBlock({
       {simple ? null : (
         <div className="mt-2 flex items-center justify-end text-sm text-slate-500">
           <div className="flex items-center gap-2">
-            <Link href={appHrefs.settingsDocumentDefaults} className="text-cyan-600 underline">
+            <Link href={appHrefs.settingsDocumentDefaults} className="text-[#0A4D34] underline">
               {ui.documentSettings} ↗
             </Link>
             <span className="text-slate-400">{value.length}/1000</span>
@@ -1102,7 +1102,7 @@ function FormField({
       <div className="mb-2 flex items-center gap-2 text-[16px] font-semibold text-slate-800">
         <span>{label}</span>
         {required ? (
-          <span className="rounded bg-[#f59b45] px-2 py-0.5 text-xs font-bold text-white">
+          <span className="rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">
             {required}
           </span>
         ) : null}

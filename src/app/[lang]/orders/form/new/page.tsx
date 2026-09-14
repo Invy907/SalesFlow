@@ -75,7 +75,7 @@ export default function NewOrderFormPage() {
             <div>
               <FieldLabel label={form.client} required={form.required} />
               <input
-                className="mt-2 w-full rounded border border-slate-300 px-3 py-2.5 text-[15px] text-slate-800 outline-none focus:border-cyan-400"
+                className="mt-2 w-full rounded border border-slate-300 px-3 py-2.5 text-[15px] text-slate-800 outline-none focus:border-[#3AA87A]"
                 value={client}
                 onChange={(event) => setClient(event.target.value)}
               />
@@ -90,7 +90,7 @@ export default function NewOrderFormPage() {
                     name="expirationMode"
                     checked={expirationMode === "date"}
                     onChange={() => setExpirationMode("date")}
-                    className="h-4 w-4 accent-cyan-600"
+                    className="h-4 w-4 accent-[#0A4D34]"
                   />
                   <DateFieldInput
                     value={expirationDate}
@@ -105,7 +105,7 @@ export default function NewOrderFormPage() {
                     name="expirationMode"
                     checked={expirationMode === "none"}
                     onChange={() => setExpirationMode("none")}
-                    className="h-4 w-4 accent-cyan-600"
+                    className="h-4 w-4 accent-[#0A4D34]"
                   />
                   {form.noExpiration}
                 </label>
@@ -116,7 +116,7 @@ export default function NewOrderFormPage() {
               <FieldLabel label={form.subject} required={form.required} />
               <div className="relative mt-2">
                 <input
-                  className="w-full rounded border border-slate-300 px-3 py-2.5 pr-16 text-[15px] text-slate-800 outline-none focus:border-cyan-400"
+                  className="w-full rounded border border-slate-300 px-3 py-2.5 pr-16 text-[15px] text-slate-800 outline-none focus:border-[#3AA87A]"
                   maxLength={70}
                   value={subject}
                   onChange={(event) => setSubject(event.target.value)}
@@ -139,7 +139,7 @@ export default function NewOrderFormPage() {
           <div className="mt-12 flex justify-center pb-8">
             <button
               type="button"
-              className="w-full rounded bg-[#14a7bb] px-8 py-3.5 text-[16px] font-semibold text-white transition hover:bg-[#1096a8] sm:w-auto sm:min-w-[280px]"
+              className="w-full rounded bg-[#0A4D34] px-8 py-3.5 text-[16px] font-semibold text-white transition hover:bg-[#083D29] sm:w-auto sm:min-w-[280px]"
             >
               {form.save}
             </button>

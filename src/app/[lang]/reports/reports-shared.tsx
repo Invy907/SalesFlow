@@ -5,39 +5,26 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/language-context";
 import { appHrefs } from "@/lib/app-hrefs";
+import { SubNavBand } from "../list-page-shared";
 import { getReportsContent, getReportsTabHref, type ReportsTabKey } from "./content";
 
 export function ReportsSubNav({ active }: { active: ReportsTabKey }) {
   const { lang } = useLanguage();
   const ui = getReportsContent(lang);
-  const tabs: ReportsTabKey[] = ["main", "receivables", "collections"];
+  const tabKeys: ReportsTabKey[] = ["main", "receivables", "collections"];
 
-  return (
-    <div className="flex flex-wrap gap-3 border-b border-slate-200 pb-6">
-      {tabs.map((tab) => {
-        const isActive = tab === active;
-        return (
-          <Link
-            key={tab}
-            href={getReportsTabHref(lang, tab)}
-            className={[
-              "rounded px-5 py-2.5 text-[15px] font-semibold transition",
-              isActive
-                ? "bg-[#14a7bb] text-white"
-                : "border border-[#14a7bb] text-[#14a7bb] hover:bg-cyan-50",
-            ].join(" ")}
-          >
-            {ui.tabs[tab]}
-          </Link>
-        );
-      })}
-    </div>
-  );
+  const tabs = tabKeys.map((key) => ({
+    key,
+    label: ui.tabs[key],
+    href: getReportsTabHref(lang, key),
+  }));
+
+  return <SubNavBand tabs={tabs} activeKey={active} />;
 }
 
 export function ReportsLearnMoreLink({ label }: { label: string }) {
   return (
-    <Link href={appHrefs.support} className="inline-flex items-center gap-1 text-[#14a7bb] hover:underline">
+    <Link href={appHrefs.support} className="inline-flex items-center gap-1 text-[#0A4D34] hover:underline">
       ({label})
       <ExternalLinkIcon />
     </Link>
@@ -110,7 +97,7 @@ export function ReportsInfoIcon({ hint }: { hint?: string }) {
         onBlur={hideTooltip}
       >
         <span
-          className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-slate-400 text-[10px] font-bold leading-none text-white outline-none focus-visible:ring-2 focus-visible:ring-[#14a7bb]"
+          className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-slate-400 text-[10px] font-bold leading-none text-white outline-none focus-visible:ring-2 focus-visible:ring-[#0A4D34]"
           aria-label={hint}
         >
           ?

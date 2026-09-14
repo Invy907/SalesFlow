@@ -54,8 +54,8 @@ export function OutputLanguageSelector({
             className={[
               "rounded-md border px-4 py-2.5 text-sm font-semibold transition",
               value === locale
-                ? "border-cyan-600 bg-cyan-600 text-white shadow-sm"
-                : "border-slate-300 bg-white text-slate-700 hover:border-cyan-400 hover:text-cyan-700",
+                ? "border-[#0A4D34] bg-[#0A4D34] text-white shadow-sm"
+                : "border-slate-300 bg-white text-slate-700 hover:border-[#3AA87A] hover:text-[#083D29]",
             ].join(" ")}
           >
             {OPTION_LABELS[locale]}

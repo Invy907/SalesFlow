@@ -50,7 +50,7 @@ export function EstimateEditClient({ id }: Props) {
               className={[
                 "border border-transparent border-b-0 px-5 py-3",
                 activeTab === tab.key
-                  ? "rounded-t border-cyan-400 bg-white font-semibold text-slate-900 shadow-[inset_0_-2px_0_0_#fff]"
+                  ? "rounded-t border-[#3AA87A] bg-white font-semibold text-slate-900 shadow-[inset_0_-2px_0_0_#fff]"
                   : "text-slate-500",
               ].join(" ")}
             >
@@ -87,7 +87,7 @@ export function EstimateEditClient({ id }: Props) {
               <button className="rounded border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
                 文書初期設定の備考を使う
               </button>
-              <Link href={appHrefs.settingsDocumentDefaults} className="text-cyan-600 hover:text-cyan-700">
+              <Link href={appHrefs.settingsDocumentDefaults} className="text-[#0A4D34] hover:text-[#083D29]">
                 文書初期設定
               </Link>
             </div>
@@ -119,7 +119,7 @@ function BasicTab({ ui }: { ui: ReturnType<typeof getEstimateContent> }) {
             <div className="flex items-center justify-between gap-4 rounded border border-slate-200 bg-white px-4 py-4 text-[16px]">
               <div>
                 <span className="font-medium text-slate-900">11111 様</span>
-                <button className="ml-2 text-cyan-600 hover:text-cyan-700">
+                <button className="ml-2 text-[#0A4D34] hover:text-[#083D29]">
                   (編集)
                 </button>
               </div>
@@ -149,7 +149,7 @@ function BasicTab({ ui }: { ui: ReturnType<typeof getEstimateContent> }) {
           </div>
 
           <FormField label={ui.estimateNumber} required={ui.required}>
-            <p className="mb-2 text-sm text-cyan-600">{ui.estimateHint}</p>
+            <p className="mb-2 text-sm text-[#0A4D34]">{ui.estimateHint}</p>
             <input className="field" defaultValue={ui.estimateNumberValue} />
           </FormField>
 
@@ -168,7 +168,7 @@ function BasicTab({ ui }: { ui: ReturnType<typeof getEstimateContent> }) {
             <input className="field mt-2" />
             <input className="field mt-2" />
           </FormField>
-          <button className="text-[15px] font-medium text-cyan-600">
+          <button className="text-[15px] font-medium text-[#0A4D34]">
             {ui.detailLink}
           </button>
         </div>
@@ -243,11 +243,11 @@ function TemplateTab() {
   return (
     <div className="grid gap-8 xl:grid-cols-[210px_1fr]">
       <div>
-        <div className="overflow-hidden rounded border border-cyan-400 bg-white">
+        <div className="overflow-hidden rounded border border-[#3AA87A] bg-white">
           <div className="flex h-[330px] items-center justify-center bg-[linear-gradient(180deg,#ffffff_0%,#f7fbfd_100%)] px-4">
             <div className="h-[250px] w-[160px] border border-slate-300 bg-white shadow-sm" />
           </div>
-          <div className="bg-[#14a7bb] py-3 text-center text-[18px] font-medium text-white">
+          <div className="bg-[#0A4D34] py-3 text-center text-[18px] font-medium text-white">
             スタンダード
           </div>
         </div>
@@ -260,7 +260,7 @@ function TemplateTab() {
         <h2 className="text-[24px] font-bold text-slate-900">カスタマイズオプション</h2>
         <p className="mt-4 text-[18px] leading-8 text-slate-700">
           テンプレートの内容を変更できます。初期値は文書初期設定で変更可能です
-          <Link href={appHrefs.settingsDocumentDefaults} className="ml-2 text-cyan-600 hover:text-cyan-700">
+          <Link href={appHrefs.settingsDocumentDefaults} className="ml-2 text-[#0A4D34] hover:text-[#083D29]">
             → 設定画面へ
           </Link>
         </p>
@@ -319,7 +319,7 @@ function FormField({
       <div className="mb-2 flex items-center gap-2 text-[16px] font-semibold text-slate-800">
         <span>{label}</span>
         {required ? (
-          <span className="rounded bg-[#f59b45] px-2 py-0.5 text-xs font-bold text-white">
+          <span className="rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">
             {required}
           </span>
         ) : null}

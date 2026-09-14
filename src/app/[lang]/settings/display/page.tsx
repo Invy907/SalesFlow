@@ -32,7 +32,7 @@ export default function SettingsDisplayPage() {
               </label>
               <p className="mt-2 text-[14px] text-slate-600">
                 {display.listPerPageDesc}{" "}
-                <Link href={appHrefs.support} className="inline-flex items-center gap-1 text-[#14a7bb] hover:underline">
+                <Link href={appHrefs.support} className="inline-flex items-center gap-1 text-[#0A4D34] hover:underline">
                   {display.help}
                   <svg viewBox="0 0 20 20" aria-hidden="true" className="h-3.5 w-3.5 fill-current">
                     <path d="M11 3a1 1 0 1 0 0 2h2.59l-6.3 6.29a1 1 0 0 0 1.42 1.42L15 6.41V9a1 1 0 1 0 2 0V4a1 1 0 0 0-1-1h-5Z" />

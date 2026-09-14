@@ -52,7 +52,7 @@ export default function EstimateFaxPage(props: {
               <tr className="align-top">
                 <td className="border-r border-slate-300 px-5 py-5">
                   <div className="space-y-2">
-                    <Link href="/clients" className="text-[18px] font-semibold text-cyan-600">
+                    <Link href="/clients" className="text-[18px] font-semibold text-[#0A4D34]">
                       {ui.clientValue} {ui.companyHonorific || ""}
                     </Link>
                     <p className="text-[16px] text-slate-500">{ui.estimateNumberValue}</p>
@@ -72,7 +72,7 @@ export default function EstimateFaxPage(props: {
                     </div>
                   </div>
                 </td>
-                <td className="border-r border-slate-300 px-5 py-5 text-[18px] font-semibold text-cyan-600">
+                <td className="border-r border-slate-300 px-5 py-5 text-[18px] font-semibold text-[#0A4D34]">
                   {ui.clientValue} {ui.companyHonorific || ""}
                 </td>
                 <td className="px-5 py-5 text-right text-[22px] font-semibold text-slate-800">

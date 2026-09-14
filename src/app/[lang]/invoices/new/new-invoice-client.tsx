@@ -54,12 +54,12 @@ export function NewInvoiceClient() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[30px]">
             {ui.newTitle}
           </h1>
-          <span className="flex items-center gap-1 rounded bg-cyan-600 px-2 py-0.5 text-xs font-bold text-white">
+          <span className="flex items-center gap-1 rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">
             ご案内
           </span>
           <Link
             href={getSupportHref(lang, "invoice-guide")}
-            className="text-sm text-cyan-600 underline"
+            className="text-sm text-[#0A4D34] underline"
           >
             {ui.guideLink} ↗
           </Link>
@@ -75,7 +75,7 @@ export function NewInvoiceClient() {
                 className={[
                   "shrink-0 whitespace-nowrap border-b-[3px] px-3 pb-3 sm:px-4",
                   activeTab === tab.key
-                    ? "border-cyan-500 font-semibold text-slate-900"
+                    ? "border-[#1A7A57] font-semibold text-slate-900"
                     : "border-transparent",
                 ].join(" ")}
               >
@@ -118,7 +118,7 @@ export function NewInvoiceClient() {
                   />
 
                   <FormField label={ui.invoiceNumber} required={ui.required}>
-                    <p className="mb-2 text-sm text-cyan-600">
+                    <p className="mb-2 text-sm text-[#0A4D34]">
                       {ui.invoiceHint}{" "}
                       <Link href={appHrefs.supportInvoiceGuide} className="underline">↗</Link>
                     </p>
@@ -131,7 +131,7 @@ export function NewInvoiceClient() {
                   </FormField>
 
                   <div>
-                    <Link href={appHrefs.support} className="text-sm text-cyan-600 underline">
+                    <Link href={appHrefs.support} className="text-sm text-[#0A4D34] underline">
                       {ui.deliveryDateLink} ↗
                     </Link>
                   </div>
@@ -193,7 +193,7 @@ export function NewInvoiceClient() {
                 </FormField>
 
                 <div>
-                  <Link href={appHrefs.support} className="text-sm text-cyan-600 underline">
+                  <Link href={appHrefs.support} className="text-sm text-[#0A4D34] underline">
                     {ui.billingMonthLink} ↗
                   </Link>
                 </div>
@@ -230,7 +230,7 @@ export function NewInvoiceClient() {
                       type="radio"
                       name="paymentOption"
                       defaultChecked
-                      className="mt-1 h-4 w-4 accent-cyan-600"
+                      className="mt-1 h-4 w-4 accent-[#0A4D34]"
                     />
                     <span>{ui.paymentNone}</span>
                   </label>
@@ -239,13 +239,13 @@ export function NewInvoiceClient() {
                     <input
                       type="radio"
                       name="paymentOption"
-                      className="mt-1 h-4 w-4 accent-cyan-600"
+                      className="mt-1 h-4 w-4 accent-[#0A4D34]"
                     />
                     <div>
                       <span>{ui.paymentCard}</span>
                       <p className="mt-1 text-sm text-slate-500">
                         {ui.paymentCardDesc}{" "}
-                        <Link href={appHrefs.settingsPayment} className="text-cyan-600 underline">
+                        <Link href={appHrefs.settingsPayment} className="text-[#0A4D34] underline">
                           → {ui.settingsLink}
                         </Link>
                       </p>
@@ -256,13 +256,13 @@ export function NewInvoiceClient() {
                     <input
                       type="radio"
                       name="paymentOption"
-                      className="mt-1 h-4 w-4 accent-cyan-600"
+                      className="mt-1 h-4 w-4 accent-[#0A4D34]"
                     />
                     <div>
                       <span>{ui.paymentPay}</span>
                       <p className="mt-1 text-sm text-slate-500">
                         {ui.paymentPayDesc}{" "}
-                        <Link href={appHrefs.settingsPayment} className="text-cyan-600 underline">
+                        <Link href={appHrefs.settingsPayment} className="text-[#0A4D34] underline">
                           → {ui.settingsLink}
                         </Link>
                       </p>
@@ -273,7 +273,7 @@ export function NewInvoiceClient() {
             </div>
 
             <div className="mt-6">
-              <Link href={appHrefs.support} className="text-sm text-cyan-600 underline">
+              <Link href={appHrefs.support} className="text-sm text-[#0A4D34] underline">
                 {ui.deliveryDateLink} ↗
               </Link>
             </div>
@@ -287,11 +287,11 @@ export function NewInvoiceClient() {
               <textarea className="field min-h-[140px]" />
               <div className="mt-2 flex items-center justify-between text-sm text-slate-500">
                 <label className="flex cursor-pointer items-center gap-2">
-                  <input type="checkbox" className="h-4 w-4 accent-cyan-600" />
+                  <input type="checkbox" className="h-4 w-4 accent-[#0A4D34]" />
                   {ui.documentRemarks}
                 </label>
                 <div className="flex items-center gap-2">
-                  <button className="text-cyan-600 underline">
+                  <button className="text-[#0A4D34] underline">
                     {ui.documentSettings} ↗
                   </button>
                   <span className="text-slate-400">20以内 0/1000</span>
@@ -303,7 +303,7 @@ export function NewInvoiceClient() {
             <div className="mt-8">
               <SectionTitle title={ui.bankTransferTitle} />
               <p className="mt-2 text-sm text-slate-500">{ui.bankTransferNote}</p>
-              <button className="mt-3 text-[15px] font-medium text-cyan-600">
+              <button className="mt-3 text-[15px] font-medium text-[#0A4D34]">
                 {ui.addBankAccount}
               </button>
             </div>
@@ -316,7 +316,7 @@ export function NewInvoiceClient() {
             <div className="mt-6">
               <p className="text-sm text-slate-600">
                 {ui.taxSettingsNote}{" "}
-                <Link href={appHrefs.settingsDocumentDefaults} className="text-cyan-600 underline">
+                <Link href={appHrefs.settingsDocumentDefaults} className="text-[#0A4D34] underline">
                   → {ui.taxSettingsLink}
                 </Link>
               </p>
@@ -336,7 +336,7 @@ export function NewInvoiceClient() {
                           type="radio"
                           name="taxDisplay"
                           defaultChecked={index === 0}
-                          className="h-4 w-4 accent-cyan-600"
+                          className="h-4 w-4 accent-[#0A4D34]"
                         />
                         {label}
                       </label>
@@ -358,7 +358,7 @@ export function NewInvoiceClient() {
                         type="radio"
                         name="taxRounding"
                         defaultChecked={index === 0}
-                        className="h-4 w-4 accent-cyan-600"
+                        className="h-4 w-4 accent-[#0A4D34]"
                       />
                       {label}
                     </label>
@@ -369,7 +369,7 @@ export function NewInvoiceClient() {
               <section>
                 <SectionTitle title={ui.withholdingTitle} />
                 <p className="mt-2">
-                  <Link href={appHrefs.supportInvoiceGuide} className="text-sm text-cyan-600 underline">
+                  <Link href={appHrefs.supportInvoiceGuide} className="text-sm text-[#0A4D34] underline">
                     {ui.withholdingLink} ↗
                   </Link>
                 </p>
@@ -387,7 +387,7 @@ export function NewInvoiceClient() {
                         type="radio"
                         name="withholding"
                         defaultChecked={index === 0}
-                        className="h-4 w-4 accent-cyan-600"
+                        className="h-4 w-4 accent-[#0A4D34]"
                       />
                       {label}
                     </label>
@@ -397,7 +397,7 @@ export function NewInvoiceClient() {
             </div>
 
             <div className="mt-6">
-              <Link href={appHrefs.support} className="text-sm text-cyan-600 underline">
+              <Link href={appHrefs.support} className="text-sm text-[#0A4D34] underline">
                 {ui.deliveryDateLink} ↗
               </Link>
             </div>
@@ -411,11 +411,11 @@ export function NewInvoiceClient() {
               <textarea className="field min-h-[140px]" />
               <div className="mt-2 flex items-center justify-between text-sm text-slate-500">
                 <label className="flex cursor-pointer items-center gap-2">
-                  <input type="checkbox" className="h-4 w-4 accent-cyan-600" />
+                  <input type="checkbox" className="h-4 w-4 accent-[#0A4D34]" />
                   {ui.documentRemarks}
                 </label>
                 <div className="flex items-center gap-2">
-                  <button className="text-cyan-600 underline">
+                  <button className="text-[#0A4D34] underline">
                     {ui.documentSettings} ↗
                   </button>
                   <span className="text-slate-400">20以内 0/1000</span>
@@ -427,7 +427,7 @@ export function NewInvoiceClient() {
             <div className="mt-8">
               <SectionTitle title={ui.bankTransferTitle} />
               <p className="mt-2 text-sm text-slate-500">{ui.bankTransferNote}</p>
-              <button className="mt-3 text-[15px] font-medium text-cyan-600">
+              <button className="mt-3 text-[15px] font-medium text-[#0A4D34]">
                 {ui.addBankAccount}
               </button>
             </div>
@@ -445,12 +445,12 @@ export function NewInvoiceClient() {
                 >
                   <InvoiceThumbnail ui={ui} />
                 </button>
-                <div className="rounded bg-[#14a7bb] px-6 py-2 text-[14px] font-semibold text-white">
+                <div className="rounded bg-[#0A4D34] px-6 py-2 text-[14px] font-semibold text-white">
                   {ui.templateList.find((t) => t.key === selectedTemplate)?.name ?? ui.templateList[0].name}
                 </div>
                 <button
                   onClick={() => setGalleryOpen(true)}
-                  className="text-[14px] text-cyan-600 underline"
+                  className="text-[14px] text-[#0A4D34] underline"
                 >
                   {ui.templateChangeButton}
                 </button>
@@ -460,7 +460,7 @@ export function NewInvoiceClient() {
                 <SectionTitle title={ui.templateTitle} />
                 <p className="mt-2 text-sm text-slate-600">
                   {ui.templateNote}{" "}
-                  <Link href={appHrefs.settingsDocumentDefaults} className="text-cyan-600 underline">→ {ui.templateSettingsLink}</Link>
+                  <Link href={appHrefs.settingsDocumentDefaults} className="text-[#0A4D34] underline">→ {ui.templateSettingsLink}</Link>
                 </p>
 
                 <div className="mt-6 space-y-5">
@@ -517,7 +517,7 @@ export function NewInvoiceClient() {
                     onClick={() => setPreviewTemplate(tmpl.key)}
                     className={[
                       "flex flex-col overflow-hidden rounded border-2 transition hover:shadow-md",
-                      selectedTemplate === tmpl.key ? "border-cyan-500" : "border-slate-200",
+                      selectedTemplate === tmpl.key ? "border-[#1A7A57]" : "border-slate-200",
                     ].join(" ")}
                   >
                     <div className="flex-1 bg-white">
@@ -574,7 +574,7 @@ export function NewInvoiceClient() {
                   setPreviewTemplate(null);
                   setGalleryOpen(false);
                 }}
-                className="rounded bg-[#14a7bb] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#1096a8]"
+                className="rounded bg-[#0A4D34] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#083D29]"
               >
                 {ui.templateModalSelect}
               </button>
@@ -627,7 +627,7 @@ function FormField({
       <div className="mb-2 flex items-center gap-2 text-[16px] font-semibold text-slate-800">
         <span>{label}</span>
         {required ? (
-          <span className="rounded bg-[#f59b45] px-2 py-0.5 text-xs font-bold text-white">
+          <span className="rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">
             {required}
           </span>
         ) : null}

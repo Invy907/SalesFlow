@@ -27,10 +27,9 @@ export function ReceivablesClient({ report }: { report: ReceivablesReport }) {
 
   return (
     <SalesFlowShell activeItem="reports">
+      <ReportsSubNav active="receivables" />
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
-        <ReportsSubNav active="receivables" />
-
-        <div className="mt-8 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{page.title}</h1>
             <p className="mt-3 max-w-[720px] text-[15px] leading-7 text-slate-600">

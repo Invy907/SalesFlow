@@ -38,12 +38,12 @@ export default function SettingsTeamPage() {
                   <input
                     type="email"
                     placeholder="name@example.com"
-                    className="h-10 min-w-0 rounded-lg border border-slate-200 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                    className="h-10 min-w-0 rounded-lg border border-slate-200 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#3AA87A] focus:ring-2 focus:ring-[#C5E6D8]"
                   />
                   <select
                     aria-label={team.roleLabel}
                     defaultValue="member"
-                    className="h-10 w-[8.5rem] shrink-0 rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-900 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                    className="h-10 w-[8.5rem] shrink-0 rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-900 outline-none focus:border-[#3AA87A] focus:ring-2 focus:ring-[#C5E6D8]"
                   >
                     <option value="admin">{team.roleAdmin}</option>
                     <option value="member">{team.roleMember}</option>

@@ -24,7 +24,7 @@ export default function SettingsTopPage() {
 
             const body = (
               <>
-                <h2 className="text-[20px] font-bold text-[#14a7bb]">{card.title}</h2>
+                <h2 className="text-[20px] font-bold text-[#0A4D34]">{card.title}</h2>
                 <p className="mt-3 text-[15px] leading-7 text-slate-600">{card.description}</p>
               </>
             );
@@ -44,7 +44,7 @@ export default function SettingsTopPage() {
               <Link
                 key={card.key}
                 href={href}
-                className="rounded border border-slate-200 bg-white p-6 transition hover:border-cyan-300 hover:shadow-md"
+                className="rounded border border-slate-200 bg-white p-6 transition hover:border-[#6BBF9E] hover:shadow-md"
               >
                 {body}
               </Link>

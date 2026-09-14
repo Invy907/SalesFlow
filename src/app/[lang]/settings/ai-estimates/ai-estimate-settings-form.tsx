@@ -48,7 +48,7 @@ export function AiEstimateSettingsForm({ initial, canEdit }: { initial: Settings
         </div></section>
         <section className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-5"><div className="flex gap-3"><ShieldCheck className="h-6 w-6 shrink-0 text-emerald-700" /><div><h2 className="font-bold text-emerald-900">{ui.provider}</h2><p className="mt-1 text-sm leading-6 text-emerald-800">{ui.safe}</p></div></div></section>
         {!canEdit ? <p className="mt-4 text-sm text-amber-700">{ui.admin}</p> : null}{error ? <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}{saved ? <p className="mt-4 text-sm text-emerald-700">{ui.saved}</p> : null}
-        <div className="mt-6 flex justify-end"><button type="button" disabled={!canEdit || pending} onClick={submit} className="rounded-lg bg-cyan-600 px-6 py-3 font-semibold text-white disabled:opacity-40">{pending ? "…" : ui.save}</button></div>
+        <div className="mt-6 flex justify-end"><button type="button" disabled={!canEdit || pending} onClick={submit} className="rounded-lg bg-[#0A4D34] px-6 py-3 font-semibold text-white disabled:opacity-40">{pending ? "…" : ui.save}</button></div>
       </main>
     </SalesFlowShell>
   );

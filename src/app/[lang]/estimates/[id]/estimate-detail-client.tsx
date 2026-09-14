@@ -261,7 +261,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
         <div className="no-print mb-4">
           <Link
             href={`/${lang}/estimates`}
-            className="text-[16px] font-semibold text-cyan-600 hover:text-cyan-700"
+            className="text-[16px] font-semibold text-[#0A4D34] hover:text-[#083D29]"
           >
             ← {ui.backToList}
           </Link>
@@ -281,7 +281,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
             <button
               type="button"
               onClick={() => setIsIssueMenuOpen((prev) => !prev)}
-              className="rounded bg-[#14a7bb] px-6 py-3 text-[18px] font-semibold text-white shadow-sm transition hover:bg-[#1096a8]"
+              className="rounded bg-[#0A4D34] px-6 py-3 text-[18px] font-semibold text-white shadow-sm transition hover:bg-[#083D29]"
             >
               {ui.exportAction} ▼
             </button>
@@ -434,7 +434,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
                   <button
                     type="submit"
                     disabled={pending}
-                    className="rounded bg-[#14a7bb] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#1096a8] disabled:opacity-60"
+                    className="rounded bg-[#0A4D34] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#083D29] disabled:opacity-60"
                   >
                     {ui.emailModal.submit}
                   </button>
@@ -457,7 +457,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
                     type="button"
                     onClick={handleShare}
                     disabled={pending}
-                    className="rounded bg-[#14a7bb] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#1096a8] disabled:opacity-60"
+                    className="rounded bg-[#0A4D34] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#083D29] disabled:opacity-60"
                   >
                     {ui.shareModal.submit}
                   </button>
@@ -497,7 +497,7 @@ function IssueMenuItem({
     >
       <span className="flex-1">{label}</span>
       {badge ? (
-        <span className="rounded bg-[#f59b45] px-2 py-0.5 text-xs font-bold text-white">{badge}</span>
+        <span className="rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">{badge}</span>
       ) : null}
     </button>
   );

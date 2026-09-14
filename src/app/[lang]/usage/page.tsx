@@ -17,7 +17,7 @@ export default function UsagePage() {
         <p className="mt-4 max-w-[900px] text-[15px] leading-7 text-slate-600">{ui.intro}</p>
         <Link
           href={appHrefs.support}
-          className="mt-5 inline-flex items-center gap-2 rounded bg-[#14a7bb] px-5 py-3 text-[15px] font-semibold text-white transition hover:bg-[#1096a8]"
+          className="mt-5 inline-flex items-center gap-2 rounded bg-[#0A4D34] px-5 py-3 text-[15px] font-semibold text-white transition hover:bg-[#083D29]"
         >
           {ui.inquireBilling}
           <ExternalLinkIcon />
@@ -29,7 +29,7 @@ export default function UsagePage() {
               <h2 className="text-[18px] font-semibold text-slate-800">{ui.currentMonth}</h2>
               <Link
                 href={appHrefs.support}
-                className="inline-flex items-center gap-1 text-[15px] font-medium text-[#14a7bb] hover:underline"
+                className="inline-flex items-center gap-1 text-[15px] font-medium text-[#0A4D34] hover:underline"
               >
                 {ui.planUpgrade}
                 <ExternalLinkIcon />
@@ -86,7 +86,7 @@ export default function UsagePage() {
 
             <Link
               href={appHrefs.support}
-              className="flex items-center justify-center gap-2 bg-[#14a7bb] px-6 py-4 text-[16px] font-semibold text-white transition hover:bg-[#1096a8]"
+              className="flex items-center justify-center gap-2 bg-[#0A4D34] px-6 py-4 text-[16px] font-semibold text-white transition hover:bg-[#083D29]"
             >
               {ui.planUpgrade}
               <ExternalLinkIcon />

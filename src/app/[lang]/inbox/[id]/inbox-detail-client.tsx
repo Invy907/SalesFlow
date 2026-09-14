@@ -53,7 +53,7 @@ export function InboxDetailClient({ detail }: { detail: InboxDetail }) {
       <div className="mx-auto w-full max-w-[900px] px-4 py-6 pb-12 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
         <Link
           href={`/${lang}/inbox`}
-          className="text-[14px] font-semibold text-cyan-600 hover:text-cyan-700"
+          className="text-[14px] font-semibold text-[#0A4D34] hover:text-[#083D29]"
         >
           ← {ui.backToList}
         </Link>
@@ -86,7 +86,7 @@ export function InboxDetailClient({ detail }: { detail: InboxDetail }) {
                 <li key={file.id}>
                   <a
                     href={`/api/gmail/attachments?inboxMessageId=${encodeURIComponent(detail.id)}&attachmentId=${encodeURIComponent(file.id)}`}
-                    className="inline-flex items-center gap-2 text-[14px] text-cyan-600 hover:underline"
+                    className="inline-flex items-center gap-2 text-[14px] text-[#0A4D34] hover:underline"
                   >
                     {file.filename}
                     <span className="text-slate-400">({Math.ceil(file.size / 1024)} KB)</span>

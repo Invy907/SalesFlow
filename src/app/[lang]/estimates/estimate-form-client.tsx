@@ -263,7 +263,7 @@ export function EstimateFormClient({
                 className={[
                   "shrink-0 whitespace-nowrap border-b-[3px] px-3 pb-3 sm:px-4",
                   activeTab === tab.key
-                    ? "border-cyan-500 font-semibold text-slate-900"
+                    ? "border-[#1A7A57] font-semibold text-slate-900"
                     : "border-transparent",
                 ].join(" ")}
               >
@@ -472,13 +472,13 @@ export function EstimateFormClient({
                     clientHonorific={clientHonorific}
                   />
                 </button>
-                <div className="rounded bg-[#14a7bb] px-6 py-2 text-[14px] font-semibold text-white">
+                <div className="rounded bg-[#0A4D34] px-6 py-2 text-[14px] font-semibold text-white">
                   {selectedTemplate === "standard" ? ui.templateStandard : ui.templateEnvelope}
                 </div>
                 <button
                   type="button"
                   onClick={() => setPreviewModal(selectedTemplate)}
-                  className="text-[14px] text-cyan-600 underline"
+                  className="text-[14px] text-[#0A4D34] underline"
                 >
                   {ui.templateChangeButton}
                 </button>
@@ -490,7 +490,7 @@ export function EstimateFormClient({
                   {ui.templateNote}{" "}
                   <Link
                     href={`/${lang}/settings/document-defaults`}
-                    className="text-cyan-600 underline"
+                    className="text-[#0A4D34] underline"
                   >
                     ↗ {ui.templateSettingsLink}
                   </Link>
@@ -595,7 +595,7 @@ export function EstimateFormClient({
                   setSelectedTemplate(previewModal);
                   setPreviewModal(null);
                 }}
-                className="rounded bg-[#14a7bb] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#1096a8]"
+                className="rounded bg-[#0A4D34] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#083D29]"
               >
                 {ui.templateModalSelect}
               </button>
@@ -629,7 +629,7 @@ function FormField({
       <div className="mb-2 flex items-center gap-2 text-[16px] font-semibold text-slate-800">
         <span>{label}</span>
         {required ? (
-          <span className="rounded bg-[#f59b45] px-2 py-0.5 text-xs font-bold text-white">{required}</span>
+          <span className="rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">{required}</span>
         ) : null}
       </div>
       {children}

@@ -167,7 +167,7 @@ export function PaymentFormClient({
                     type="button"
                     onClick={handleCreate}
                     disabled={pending}
-                    className="rounded bg-[#14a7bb] px-6 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                    className="rounded bg-[#0A4D34] px-6 py-2 text-sm font-semibold text-white disabled:opacity-60"
                   >
                     口座を追加
                   </button>

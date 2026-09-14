@@ -222,7 +222,7 @@ export function DocumentPreviewPanel({
                 className={[
                   "rounded px-2.5 py-1 transition",
                   option.active
-                    ? "bg-cyan-600 text-white"
+                    ? "bg-[#0A4D34] text-white"
                     : "text-slate-600 hover:bg-slate-100",
                 ].join(" ")}
               >

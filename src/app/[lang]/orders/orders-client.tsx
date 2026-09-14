@@ -87,11 +87,11 @@ export function OrdersClient({
   return (
     <SalesFlowShell activeItem="orders">
       <OrderSubNav active="management" />
-      <div className="mx-auto w-full max-w-[1440px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:pb-16">
+      <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:pb-16">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
+          <h1 className="text-[32px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
 
-          <div className="flex w-full max-w-[720px] rounded border border-slate-300 bg-white">
+          <div className="flex w-full max-w-full rounded border border-slate-300 bg-white sm:max-w-[520px]">
             <input
               className="min-w-0 flex-1 px-4 py-3 text-[15px] text-slate-700 outline-none placeholder:text-slate-300"
               placeholder={ui.searchPlaceholder}
@@ -101,13 +101,13 @@ export function OrdersClient({
                 if (e.key === "Enter") navigate({ q: search.trim(), orderId: null });
               }}
             />
-            <button className="border-l border-slate-300 px-4 text-sm text-slate-600">
+            <button className="border-l border-slate-300 px-4 text-[15px] text-slate-600">
               {ui.searchDetail}
             </button>
             <button
               type="button"
               onClick={() => navigate({ q: search.trim(), orderId: null })}
-              className="border-l border-slate-300 px-5 text-[15px] font-medium text-slate-700"
+              className="border-l border-slate-300 px-5 text-[15px] font-medium text-slate-700 transition hover:bg-slate-50"
             >
               {ui.search}
             </button>
@@ -119,7 +119,7 @@ export function OrdersClient({
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="w-full rounded bg-[#f59b45] px-4 py-3.5 text-[15px] font-semibold text-white hover:bg-[#ef8d32]"
+              className="w-full rounded bg-[#0A4D34] px-4 py-3.5 text-[15px] font-semibold text-white hover:bg-[#083D29]"
             >
               {ui.createOrder}
             </button>
@@ -192,7 +192,7 @@ export function OrdersClient({
                     setIsAddingStatus(true);
                     setNewStatusName("");
                   }}
-                  className="mt-4 text-[14px] font-medium text-[#14a7bb] hover:underline"
+                  className="mt-4 text-[14px] font-medium text-[#0A4D34] hover:underline"
                 >
                   + {ui.addStatus}
                 </button>
@@ -218,7 +218,7 @@ export function OrdersClient({
                       onClick={() => navigate({ orderId: row.id })}
                       className={[
                         "w-full px-4 py-3.5 text-left transition",
-                        detail?.id === row.id ? "bg-cyan-50/70" : "hover:bg-slate-50",
+                        detail?.id === row.id ? "bg-[#E8F5EF]/70" : "hover:bg-slate-50",
                       ].join(" ")}
                     >
                       <div className="flex items-baseline justify-between gap-2">
@@ -381,7 +381,7 @@ function StatusRow({
       className={[
         "flex w-full cursor-pointer items-center justify-between rounded border px-3 py-2.5 text-left text-[14px] transition",
         active
-          ? "border-cyan-500 bg-white font-medium text-slate-800"
+          ? "border-[#1A7A57] bg-white font-medium text-slate-800"
           : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
       ].join(" ")}
     >
@@ -399,7 +399,7 @@ function InboxIcon({ active }: { active?: boolean }) {
     <svg
       viewBox="0 0 20 20"
       aria-hidden="true"
-      className={["h-[18px] w-[18px] fill-current", active ? "text-cyan-600" : "text-slate-400"].join(" ")}
+      className={["h-[18px] w-[18px] fill-current", active ? "text-[#0A4D34]" : "text-slate-400"].join(" ")}
     >
       <path d="M2.5 5.5A2.5 2.5 0 0 1 5 3h10a2.5 2.5 0 0 1 2.5 2.5v9A1.5 1.5 0 0 1 16 16H4a1.5 1.5 0 0 1-1.5-1.5v-9ZM5 4.5a1 1 0 0 0-1 1v8.5h12V5.5a1 1 0 0 0-1-1H5Zm2.75 2a.75.75 0 0 1 .75-.75h4a.75.75 0 0 1 0 1.5h-4a.75.75 0 0 1-.75-.75Z" />
     </svg>
@@ -411,7 +411,7 @@ function TrashIcon({ active }: { active?: boolean }) {
     <svg
       viewBox="0 0 20 20"
       aria-hidden="true"
-      className={["h-[18px] w-[18px] fill-current", active ? "text-cyan-600" : "text-slate-400"].join(" ")}
+      className={["h-[18px] w-[18px] fill-current", active ? "text-[#0A4D34]" : "text-slate-400"].join(" ")}
     >
       <path d="M8.5 3a1 1 0 0 0-1 1v.5H5.75a.75.75 0 0 0 0 1.5h.708l.54 9.18A1.75 1.75 0 0 0 8.69 17h2.62a1.75 1.75 0 0 0 1.742-1.82l.54-9.18h.708a.75.75 0 0 0 0-1.5H12.5V4a1 1 0 0 0-1-1h-3ZM7 5h6l-.52 8.84a.25.25 0 0 1-.249.16H7.77a.25.25 0 0 1-.249-.16L7 5Zm2.25 2.25a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5a.75.75 0 0 1 .75-.75Zm3.5.75a.75.75 0 0 0-1.5 0v4.5a.75.75 0 0 0 1.5 0v-4.5Z" />
     </svg>

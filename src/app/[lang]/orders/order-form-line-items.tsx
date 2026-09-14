@@ -58,14 +58,14 @@ export function OrderFormLineItemsTable({
               <tr key={index}>
                 <td className="border-b border-r border-slate-200 px-3 py-2 align-middle">
                   <input
-                    className="w-full border-0 border-b border-dashed border-slate-300 bg-transparent px-2 py-2 text-[15px] text-slate-800 outline-none focus:border-cyan-400"
+                    className="w-full border-0 border-b border-dashed border-slate-300 bg-transparent px-2 py-2 text-[15px] text-slate-800 outline-none focus:border-[#3AA87A]"
                     value={row.name}
                     onChange={(event) => updateRow(index, "name", event.target.value)}
                   />
                 </td>
                 <td className="border-b border-r border-slate-200 px-3 py-2 align-middle">
                   <input
-                    className="w-full border-0 border-b border-dashed border-slate-300 bg-transparent px-2 py-2 text-center text-[15px] text-slate-700 outline-none focus:border-cyan-400"
+                    className="w-full border-0 border-b border-dashed border-slate-300 bg-transparent px-2 py-2 text-center text-[15px] text-slate-700 outline-none focus:border-[#3AA87A]"
                     placeholder={unitPlaceholder}
                     value={row.unit}
                     onChange={(event) => updateRow(index, "unit", event.target.value)}
@@ -74,7 +74,7 @@ export function OrderFormLineItemsTable({
                 <td className="border-b border-r border-slate-200 px-3 py-2 align-middle">
                   <input
                     inputMode="numeric"
-                    className="w-full border-0 border-b border-dashed border-slate-300 bg-transparent px-2 py-2 text-right text-[15px] text-slate-800 outline-none focus:border-cyan-400"
+                    className="w-full border-0 border-b border-dashed border-slate-300 bg-transparent px-2 py-2 text-right text-[15px] text-slate-800 outline-none focus:border-[#3AA87A]"
                     value={row.price}
                     onChange={(event) => updateRow(index, "price", event.target.value)}
                   />
@@ -90,7 +90,7 @@ export function OrderFormLineItemsTable({
       <button
         type="button"
         onClick={() => setRows((current) => [...current, createEmptyRow()])}
-        className="mt-4 text-[16px] font-medium text-[#14a7bb] hover:underline"
+        className="mt-4 text-[16px] font-medium text-[#0A4D34] hover:underline"
       >
         {addRowLabel}
       </button>

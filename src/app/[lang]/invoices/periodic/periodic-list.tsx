@@ -100,7 +100,7 @@ export function PeriodicList({
 
           <p className="text-[15px] text-slate-600">
             {ui.periodicDesc}{" "}
-            <Link href={appHrefs.supportInvoiceGuide} className="text-cyan-600 underline">
+            <Link href={appHrefs.supportInvoiceGuide} className="text-[#0A4D34] underline">
               {ui.periodicDescLink}
             </Link>
           </p>
@@ -161,7 +161,7 @@ export function PeriodicList({
                         ) : (
                           <Link
                             href={`/invoices/periodic/${row.id}/edit`}
-                            className="text-[#14a7bb] hover:underline"
+                            className="text-[#0A4D34] hover:underline"
                           >
                             {row.clientName || "—"}
                           </Link>
@@ -179,7 +179,7 @@ export function PeriodicList({
                             row.isPaused
                               ? "bg-amber-50 text-amber-700"
                               : row.nextRunDate
-                                ? "bg-cyan-50 text-cyan-700"
+                                ? "bg-[#E8F5EF] text-[#083D29]"
                                 : "bg-slate-100 text-slate-500",
                           ].join(" ")}
                         >
@@ -198,7 +198,7 @@ export function PeriodicList({
                               type="button"
                               onClick={() => run(() => restorePeriodicSchedule(row.id))}
                               disabled={pending}
-                              className="text-cyan-700 hover:underline disabled:opacity-60"
+                              className="text-[#083D29] hover:underline disabled:opacity-60"
                             >
                               {ui.periodicRestoreAction}
                             </button>

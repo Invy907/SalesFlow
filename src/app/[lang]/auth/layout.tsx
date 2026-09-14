@@ -20,7 +20,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute -left-24 top-1/4 -z-10 h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl"
+        className="pointer-events-none absolute -left-24 top-1/4 -z-10 h-72 w-72 rounded-full bg-[#6BBF9E]/20 blur-3xl"
         aria-hidden
       />
       <div

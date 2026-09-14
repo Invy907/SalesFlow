@@ -89,7 +89,7 @@ export function ItemsTable({
     <SalesFlowShell activeItem="items">
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
+          <h1 className="text-[32px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
           <div className="flex flex-wrap items-center gap-3">
             <Link
               href={getItemsHref(lang, "bulk")}
@@ -99,7 +99,7 @@ export function ItemsTable({
             </Link>
             <Link
               href={getItemsHref(lang, "new")}
-              className="inline-flex shrink-0 items-center justify-center rounded bg-[#f59b45] px-6 py-3.5 text-[16px] font-semibold text-white transition hover:bg-[#ef8d32]"
+              className="inline-flex shrink-0 items-center justify-center rounded bg-[#0A4D34] px-5 py-3 text-[15px] font-semibold text-white transition hover:bg-[#083D29]"
             >
               {ui.createItem}
             </Link>
@@ -144,7 +144,7 @@ export function ItemsTable({
                     <td className="px-4 py-4">
                       <Link
                         href={`/${lang}/items/${row.id}/edit`}
-                        className="font-medium text-[#14a7bb] hover:underline"
+                        className="font-medium text-[#0A4D34] hover:underline"
                       >
                         {row.name}
                       </Link>

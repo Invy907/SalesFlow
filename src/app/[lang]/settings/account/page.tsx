@@ -84,7 +84,7 @@ function ActionButton({ label }: { label: string }) {
   return (
     <button
       type="button"
-      className="inline-flex items-center gap-2 rounded bg-[#14a7bb] px-5 py-3 text-[15px] font-semibold text-white transition hover:bg-[#1096a8]"
+      className="inline-flex items-center gap-2 rounded bg-[#0A4D34] px-5 py-3 text-[15px] font-semibold text-white transition hover:bg-[#083D29]"
     >
       {label}
       <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 fill-current">

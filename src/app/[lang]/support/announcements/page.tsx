@@ -18,7 +18,7 @@ export default function AnnouncementsPage() {
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
         <Link
           href={getSupportHref(lang, "top")}
-          className="inline-flex items-center gap-1 text-sm text-slate-500 transition hover:text-cyan-600"
+          className="inline-flex items-center gap-1 text-sm text-slate-500 transition hover:text-[#0A4D34]"
         >
           ← {ui.backToSupport}
         </Link>
@@ -34,7 +34,7 @@ export default function AnnouncementsPage() {
                 className="block px-5 py-5 transition hover:bg-slate-50"
               >
                 <div className="flex flex-wrap items-center gap-2 text-[12px] text-slate-500">
-                  <span className="rounded bg-cyan-50 px-2 py-0.5 text-[11px] font-semibold text-[#14a7bb] ring-1 ring-cyan-100">
+                  <span className="rounded bg-[#E8F5EF] px-2 py-0.5 text-[11px] font-semibold text-[#0A4D34] ring-1 ring-[#C5E6D8]">
                     {item.category}
                   </span>
                   <span>{item.date}</span>

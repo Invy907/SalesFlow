@@ -24,7 +24,7 @@ export function StatusAddInlineForm({
   return (
     <div className="space-y-2 py-1">
       <input
-        className="field w-full border-cyan-500 ring-1 ring-cyan-500"
+        className="field w-full border-[#1A7A57] ring-1 ring-[#1A7A57]"
         placeholder={placeholder}
         maxLength={STATUS_MAX_LENGTH}
         value={value}

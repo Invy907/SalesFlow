@@ -51,7 +51,7 @@ function ResetPasswordForm({ lang }: { lang: string }) {
           <p className="text-sm text-slate-500">{sessionError}</p>
           <Link
             href={`/${lang}/auth/forgot-password`}
-            className="mt-2 text-sm text-cyan-600 hover:underline font-medium"
+            className="mt-2 text-sm text-[#0A4D34] hover:underline font-medium"
           >
             パスワードリセットをやり直す
           </Link>
@@ -84,7 +84,7 @@ function ResetPasswordForm({ lang }: { lang: string }) {
       footer={
         <Link
           href={`/${lang}/auth/sign-in`}
-          className="inline-flex items-center gap-1.5 text-slate-500 hover:text-cyan-600 hover:underline"
+          className="inline-flex items-center gap-1.5 text-slate-500 hover:text-[#0A4D34] hover:underline"
         >
           <ArrowLeft size={14} />
           サインインに戻る

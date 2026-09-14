@@ -82,7 +82,7 @@ export function ItemForm({ initial }: { initial: ItemFormValues }) {
           <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{form.title}</h1>
           <Link
             href={`/${lang}${getItemsHref(lang, "list")}`}
-            className="text-[15px] text-[#14a7bb] hover:underline"
+            className="text-[15px] text-[#0A4D34] hover:underline"
           >
             {form.backToList}
           </Link>
@@ -136,7 +136,7 @@ export function ItemForm({ initial }: { initial: ItemFormValues }) {
                       name="taxRate"
                       checked={values.taxCategory === option.value}
                       onChange={() => setValues((v) => ({ ...v, taxCategory: option.value }))}
-                      className="h-4 w-4 accent-cyan-600"
+                      className="h-4 w-4 accent-[#0A4D34]"
                     />
                     <span className="flex items-center gap-2">
                       {option.label}
@@ -158,7 +158,7 @@ export function ItemForm({ initial }: { initial: ItemFormValues }) {
                   onChange={(e) =>
                     setValues((v) => ({ ...v, withholdingExempt: e.target.checked }))
                   }
-                  className="h-4 w-4 accent-cyan-600"
+                  className="h-4 w-4 accent-[#0A4D34]"
                 />
                 {form.withholdingExempt}
               </label>
@@ -171,7 +171,7 @@ export function ItemForm({ initial }: { initial: ItemFormValues }) {
               type="button"
               onClick={handleSave}
               disabled={pending}
-              className="rounded bg-[#14a7bb] px-8 py-3 text-[15px] font-semibold text-white transition hover:bg-[#1096a8] disabled:opacity-60"
+              className="rounded bg-[#0A4D34] px-8 py-3 text-[15px] font-semibold text-white transition hover:bg-[#083D29] disabled:opacity-60"
             >
               {form.save}
             </button>

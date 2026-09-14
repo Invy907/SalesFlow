@@ -54,7 +54,7 @@ export function NewEstimateClient() {
               className={[
                 "shrink-0 whitespace-nowrap border-b-[3px] px-3 pb-3 sm:px-4",
                 activeTab === tab.key
-                  ? "border-cyan-500 font-semibold text-slate-900"
+                  ? "border-[#1A7A57] font-semibold text-slate-900"
                   : "border-transparent",
               ].join(" ")}
             >
@@ -97,7 +97,7 @@ export function NewEstimateClient() {
                   />
 
                   <FormField label={ui.estimateNumber} required={ui.required}>
-                    <p className="mb-2 text-sm text-cyan-600">{ui.estimateHint}</p>
+                    <p className="mb-2 text-sm text-[#0A4D34]">{ui.estimateHint}</p>
                     <input className="field" defaultValue={ui.estimateNumberValue} />
                   </FormField>
 
@@ -172,7 +172,7 @@ export function NewEstimateClient() {
                 <div className="mt-4 space-y-3">
                   {[ui.taxSeparate, ui.taxSeparateOnInvoice, ui.taxIncluded, ui.taxExempt].map((label, index) => (
                     <label key={label} className="flex items-center gap-3 text-[16px] text-slate-800">
-                      <input type="radio" name="taxDisplay" defaultChecked={index === 0} className="h-4 w-4 accent-cyan-600" />
+                      <input type="radio" name="taxDisplay" defaultChecked={index === 0} className="h-4 w-4 accent-[#0A4D34]" />
                       {label}
                     </label>
                   ))}
@@ -185,7 +185,7 @@ export function NewEstimateClient() {
                 <div className="mt-4 space-y-3">
                   {[ui.roundDown, ui.roundUp, ui.roundHalf].map((label, index) => (
                     <label key={label} className="flex items-center gap-3 text-[16px] text-slate-800">
-                      <input type="radio" name="taxRounding" defaultChecked={index === 0} className="h-4 w-4 accent-cyan-600" />
+                      <input type="radio" name="taxRounding" defaultChecked={index === 0} className="h-4 w-4 accent-[#0A4D34]" />
                       {label}
                     </label>
                   ))}
@@ -200,11 +200,11 @@ export function NewEstimateClient() {
               <textarea className="field min-h-[140px]" />
               <div className="mt-2 flex items-center justify-between text-sm text-slate-500">
                 <label className="flex cursor-pointer items-center gap-2">
-                  <input type="checkbox" className="h-4 w-4 accent-cyan-600" />
+                  <input type="checkbox" className="h-4 w-4 accent-[#0A4D34]" />
                   {ui.documentRemarks}
                 </label>
                 <div className="flex items-center gap-2">
-                  <button className="text-cyan-600 underline">{ui.documentSettings} ↗</button>
+                  <button className="text-[#0A4D34] underline">{ui.documentSettings} ↗</button>
                   <span className="text-slate-400">20以内 0/1000</span>
                 </div>
               </div>
@@ -223,12 +223,12 @@ export function NewEstimateClient() {
                 >
                   <EstimateThumbnail ui={ui} />
                 </button>
-                <div className="rounded bg-[#14a7bb] px-6 py-2 text-[14px] font-semibold text-white">
+                <div className="rounded bg-[#0A4D34] px-6 py-2 text-[14px] font-semibold text-white">
                   {selectedTemplate === "standard" ? ui.templateStandard : ui.templateEnvelope}
                 </div>
                 <button
                   onClick={() => setPreviewModal(selectedTemplate)}
-                  className="text-[14px] text-cyan-600 underline"
+                  className="text-[14px] text-[#0A4D34] underline"
                 >
                   {ui.templateChangeButton}
                 </button>
@@ -238,7 +238,7 @@ export function NewEstimateClient() {
                 <SectionTitle title={ui.templateTitle} />
                 <p className="mt-2 text-sm text-slate-600">
                   {ui.templateNote}{" "}
-                  <Link href={appHrefs.settingsDocumentDefaults} className="text-cyan-600 underline">→ {ui.templateSettingsLink}</Link>
+                  <Link href={appHrefs.settingsDocumentDefaults} className="text-[#0A4D34] underline">→ {ui.templateSettingsLink}</Link>
                 </p>
 
                 <div className="mt-6 space-y-5">
@@ -310,7 +310,7 @@ export function NewEstimateClient() {
                   setSelectedTemplate(previewModal);
                   setPreviewModal(null);
                 }}
-                className="rounded bg-[#14a7bb] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#1096a8]"
+                className="rounded bg-[#0A4D34] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#083D29]"
               >
                 {ui.templateModalSelect}
               </button>
@@ -353,7 +353,7 @@ function FormField({
       <div className="mb-2 flex items-center gap-2 text-[16px] font-semibold text-slate-800">
         <span>{label}</span>
         {required ? (
-          <span className="rounded bg-[#f59b45] px-2 py-0.5 text-xs font-bold text-white">{required}</span>
+          <span className="rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">{required}</span>
         ) : null}
       </div>
       {children}

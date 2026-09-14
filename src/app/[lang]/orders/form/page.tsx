@@ -77,7 +77,7 @@ function CtaSection({ heading, buttonLabel, href }: { heading: string; buttonLab
       <p className="text-[18px] font-bold text-slate-900">{heading}</p>
       <Link
         href={href}
-        className="mt-6 inline-flex w-full max-w-full items-center justify-center rounded bg-[#14a7bb] px-8 py-4 text-[16px] font-semibold text-white transition hover:bg-[#1096a8] sm:w-auto sm:min-w-[280px]"
+        className="mt-6 inline-flex w-full max-w-full items-center justify-center rounded bg-[#0A4D34] px-8 py-4 text-[16px] font-semibold text-white transition hover:bg-[#083D29] sm:w-auto sm:min-w-[280px]"
       >
         {buttonLabel}
       </Link>
@@ -104,8 +104,8 @@ export default function OrderFormPage() {
           />
 
           <div className="text-center">
-            <p className="text-[15px] font-medium text-[#14a7bb]">{landing.subtitle}</p>
-            <h1 className="mt-3 whitespace-pre-line text-[34px] font-bold leading-tight text-[#14a7bb]">
+            <p className="text-[15px] font-medium text-[#0A4D34]">{landing.subtitle}</p>
+            <h1 className="mt-3 whitespace-pre-line text-[34px] font-bold leading-tight text-[#0A4D34]">
               {landing.title}
             </h1>
           </div>
@@ -113,7 +113,7 @@ export default function OrderFormPage() {
           <div className="mt-14 grid grid-cols-3 gap-10">
             {landing.features.map((feature, index) => (
               <div key={feature.title} className="text-center">
-                <div className="mx-auto flex h-[88px] w-[88px] items-center justify-center rounded-full bg-[#14a7bb] text-white">
+                <div className="mx-auto flex h-[88px] w-[88px] items-center justify-center rounded-full bg-[#0A4D34] text-white">
                   {featureIcons[index]}
                 </div>
                 <h2 className="mt-5 text-[17px] font-bold text-slate-900">{feature.title}</h2>
@@ -125,7 +125,7 @@ export default function OrderFormPage() {
           <CtaSection heading={landing.ctaHeading} buttonLabel={landing.ctaButton} href={newHref} />
 
           <div className="border-t border-slate-200 pt-12">
-            <h2 className="text-center text-[22px] font-bold text-[#14a7bb]">{landing.howTitle}</h2>
+            <h2 className="text-center text-[22px] font-bold text-[#0A4D34]">{landing.howTitle}</h2>
             <div className="mt-10 grid grid-cols-3 gap-8">
               {landing.steps.map((step, index) => (
                 <div key={step.title} className="text-center">

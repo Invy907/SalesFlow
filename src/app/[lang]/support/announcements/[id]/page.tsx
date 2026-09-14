@@ -21,7 +21,7 @@ export default function AnnouncementDetailPage() {
       <div className="mx-auto w-full max-w-[860px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
         <Link
           href={getAnnouncementsHref(lang)}
-          className="inline-flex items-center gap-1 text-sm text-slate-500 transition hover:text-cyan-600"
+          className="inline-flex items-center gap-1 text-sm text-slate-500 transition hover:text-[#0A4D34]"
         >
           ← {ui.backToList}
         </Link>
@@ -32,7 +32,7 @@ export default function AnnouncementDetailPage() {
             <p className="mt-3 text-[15px] leading-7 text-slate-600">{ui.notFoundBody}</p>
             <Link
               href={getAnnouncementsHref(lang)}
-              className="mt-6 inline-flex rounded bg-[#14a7bb] px-5 py-3 text-[15px] font-semibold text-white transition hover:bg-[#1096a8]"
+              className="mt-6 inline-flex rounded bg-[#0A4D34] px-5 py-3 text-[15px] font-semibold text-white transition hover:bg-[#083D29]"
             >
               {ui.backToList}
             </Link>
@@ -40,7 +40,7 @@ export default function AnnouncementDetailPage() {
         ) : (
           <article className="mt-6">
             <div className="flex flex-wrap items-center gap-2 text-[12px] text-slate-500">
-              <span className="rounded bg-cyan-50 px-2 py-0.5 text-[11px] font-semibold text-[#14a7bb] ring-1 ring-cyan-100">
+              <span className="rounded bg-[#E8F5EF] px-2 py-0.5 text-[11px] font-semibold text-[#0A4D34] ring-1 ring-[#C5E6D8]">
                 {announcement.category}
               </span>
               <span>{announcement.date}</span>
@@ -63,7 +63,7 @@ export default function AnnouncementDetailPage() {
               <div className="mt-8">
                 <Link
                   href={announcement.relatedHref}
-                  className="inline-flex items-center gap-2 rounded bg-[#14a7bb] px-5 py-3 text-[15px] font-semibold text-white transition hover:bg-[#1096a8]"
+                  className="inline-flex items-center gap-2 rounded bg-[#0A4D34] px-5 py-3 text-[15px] font-semibold text-white transition hover:bg-[#083D29]"
                 >
                   {announcement.relatedLabel}
                 </Link>

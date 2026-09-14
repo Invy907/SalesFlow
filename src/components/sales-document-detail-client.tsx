@@ -184,7 +184,7 @@ export function SalesDocumentDetailClient({
         <div className="no-print mb-4">
           <Link
             href={listHref}
-            className="text-[16px] font-semibold text-cyan-600 hover:text-cyan-700"
+            className="text-[16px] font-semibold text-[#0A4D34] hover:text-[#083D29]"
           >
             ← {ui.backToList}
           </Link>
@@ -196,7 +196,7 @@ export function SalesDocumentDetailClient({
             <button
               type="button"
               onClick={() => setIsExportMenuOpen((prev) => !prev)}
-              className="rounded bg-[#14a7bb] px-6 py-3 text-[18px] font-semibold text-white shadow-sm transition hover:bg-[#1096a8]"
+              className="rounded bg-[#0A4D34] px-6 py-3 text-[18px] font-semibold text-white shadow-sm transition hover:bg-[#083D29]"
             >
               {ui.exportAction}
             </button>
@@ -374,7 +374,7 @@ function InvoiceEmailModal({
             <button
               type="submit"
               disabled={pending}
-              className="rounded bg-[#14a7bb] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#1096a8] disabled:opacity-60"
+              className="rounded bg-[#0A4D34] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#083D29] disabled:opacity-60"
             >
               {ui.emailModal.submit}
             </button>

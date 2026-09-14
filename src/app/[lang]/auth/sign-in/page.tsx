@@ -61,7 +61,7 @@ function SignInForm({ lang }: { lang: string }) {
             アカウントをお持ちでない方は{" "}
             <Link
               href={`/${lang}/auth/sign-up`}
-              className="font-semibold text-cyan-700 underline-offset-4 transition-colors hover:text-cyan-800 hover:underline"
+              className="font-semibold text-[#083D29] underline-offset-4 transition-colors hover:text-[#062E1F] hover:underline"
             >
               新規登録はこちら
             </Link>
@@ -132,7 +132,7 @@ function SignInForm({ lang }: { lang: string }) {
           <div className="-mt-1 flex justify-end">
             <Link
               href={`/${lang}/auth/forgot-password`}
-              className="text-xs text-slate-500 underline-offset-2 transition-colors hover:text-cyan-700 hover:underline"
+              className="text-xs text-slate-500 underline-offset-2 transition-colors hover:text-[#083D29] hover:underline"
             >
               パスワードをお忘れですか？
             </Link>

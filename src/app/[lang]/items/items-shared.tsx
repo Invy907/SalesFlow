@@ -24,7 +24,7 @@ export function ItemsNavTabs({ active }: { active: "list" | "bulk" }) {
             className={[
               "rounded px-5 py-2.5 text-[15px] font-medium transition",
               isActive
-                ? "bg-[#14a7bb] text-white shadow-sm"
+                ? "bg-[#0A4D34] text-white shadow-sm"
                 : "bg-[#dbe8f3] text-slate-700 hover:bg-[#c9dce9]",
             ].join(" ")}
           >

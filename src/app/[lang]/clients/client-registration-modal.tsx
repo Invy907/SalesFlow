@@ -152,7 +152,7 @@ export function ClientRegistrationModal({
             type="button"
             onClick={handleSave}
             disabled={pending}
-            className="rounded bg-[#14a7bb] px-8 py-3 text-[15px] font-semibold text-white transition hover:bg-[#1096a8] disabled:opacity-60"
+            className="rounded bg-[#0A4D34] px-8 py-3 text-[15px] font-semibold text-white transition hover:bg-[#083D29] disabled:opacity-60"
           >
             {ui.register}
           </button>
@@ -195,7 +195,7 @@ export function ClientRegistrationModal({
         </ModalField>
 
         <div className="flex gap-2 border-b border-slate-200 pb-1">
-          <span className="border-b-2 border-cyan-500 px-3 py-2 text-[15px] font-medium text-slate-900">
+          <span className="border-b-2 border-[#1A7A57] px-3 py-2 text-[15px] font-medium text-slate-900">
             {ui.destinationTab}
           </span>
         </div>

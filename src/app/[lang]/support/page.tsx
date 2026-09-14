@@ -24,7 +24,7 @@ export default function SupportPage() {
             </div>
             <Link
               href={getSupportHref(lang, "announcements")}
-              className="inline-flex items-center gap-1 text-sm font-semibold text-[#14a7bb] transition hover:text-[#1096a8]"
+              className="inline-flex items-center gap-1 text-sm font-semibold text-[#0A4D34] transition hover:text-[#083D29]"
             >
               {ui.announcementsLink} →
             </Link>
@@ -38,9 +38,9 @@ export default function SupportPage() {
               <Link
                 key={guide.key}
                 href={getSupportHref(lang, guide.key as "invoice-guide")}
-                className="rounded border border-slate-200 bg-white p-6 transition hover:border-[#14a7bb]/40 hover:shadow-sm"
+                className="rounded border border-slate-200 bg-white p-6 transition hover:border-[#0A4D34]/40 hover:shadow-sm"
               >
-                <h3 className="text-[18px] font-bold text-[#14a7bb]">{guide.title}</h3>
+                <h3 className="text-[18px] font-bold text-[#0A4D34]">{guide.title}</h3>
                 <p className="mt-3 text-[15px] leading-7 text-slate-600">{guide.description}</p>
               </Link>
             ))}
@@ -78,14 +78,14 @@ export default function SupportPage() {
             <div className="mt-5 flex flex-wrap gap-3">
               <Link
                 href={appHrefs.support}
-                className="inline-flex items-center gap-2 rounded bg-[#14a7bb] px-5 py-3 text-[15px] font-semibold text-white transition hover:bg-[#1096a8]"
+                className="inline-flex items-center gap-2 rounded bg-[#0A4D34] px-5 py-3 text-[15px] font-semibold text-white transition hover:bg-[#083D29]"
               >
                 {ui.contactButton}
                 <ExternalLinkIcon />
               </Link>
               <Link
                 href={appHrefs.supportInvoiceGuide}
-                className="inline-flex items-center gap-2 rounded border border-slate-200 px-5 py-3 text-[15px] font-semibold text-[#14a7bb] transition hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded border border-slate-200 px-5 py-3 text-[15px] font-semibold text-[#0A4D34] transition hover:bg-slate-50"
               >
                 {ui.helpCenterLink}
                 <ExternalLinkIcon />
