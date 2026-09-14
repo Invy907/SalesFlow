@@ -149,7 +149,7 @@ export function EstimatesList({
                     <th className="px-4 py-3 font-semibold text-slate-700">{ui.client}</th>
                     <th className="px-4 py-3 font-semibold text-slate-700">件名</th>
                     <th className="px-4 py-3 font-semibold text-slate-700">発行日</th>
-                    <th className="px-4 py-3 font-semibold text-slate-700">金額</th>
+                    <th className="px-4 py-3 text-right font-semibold text-slate-700">金額</th>
                     <th className="px-4 py-3 font-semibold text-slate-700">状態</th>
                     <th className="px-4 py-3 font-semibold text-slate-700">操作</th>
                   </tr>
