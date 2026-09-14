@@ -42,20 +42,30 @@ export function ReportsLearnMoreLink({ label }: { label: string }) {
   );
 }
 
-export function ReportsInfoIcon({ hint }: { hint?: string }) {
+export function ReportsInfoIcon({
+  hint,
+  align = "end",
+}: {
+  hint?: string;
+  align?: "start" | "end";
+}) {
   if (!hint) return null;
+  const tooltipAlign = align === "end" ? "right-0" : "left-0";
   return (
     <span className="group relative ml-1 inline-flex align-middle">
       <span
         tabIndex={0}
-        title={hint}
         className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-slate-400 text-[10px] font-bold leading-none text-white outline-none focus-visible:ring-2 focus-visible:ring-[#14a7bb]"
+        aria-label={hint}
       >
         ?
       </span>
       <span
         role="tooltip"
-        className="pointer-events-none absolute left-1/2 top-[calc(100%+6px)] z-[200] hidden w-[min(18rem,72vw)] -translate-x-1/2 rounded border border-slate-200 bg-white px-3 py-2 text-left text-[12px] font-normal leading-snug text-slate-700 shadow-lg group-hover:block group-focus-within:block"
+        className={[
+          "pointer-events-none absolute top-[calc(100%+6px)] z-[200] hidden max-w-[min(20rem,calc(100vw-2rem))] whitespace-normal rounded border border-slate-200 bg-white px-3 py-2 text-left text-[12px] font-normal leading-snug text-slate-700 shadow-lg group-hover:block group-focus-within:block",
+          tooltipAlign,
+        ].join(" ")}
       >
         {hint}
       </span>

@@ -67,7 +67,7 @@ export function ReceivablesClient({ report }: { report: ReceivablesReport }) {
                     {page.headers[0]}
                   </th>
                   {page.headers.slice(1).map((header, index) => (
-                    <th key={header} className="px-4 py-3 text-right font-semibold text-slate-700">
+                    <th key={header} className="overflow-visible px-4 py-3 text-right font-semibold text-slate-700">
                       {header}
                       <ReportsInfoIcon hint={page.columnHints?.[index + 1]} />
                     </th>
