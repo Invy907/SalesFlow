@@ -58,7 +58,7 @@ export function CollectionsClient({ report }: { report: CollectionsReport }) {
           </div>
         </div>
 
-        <div className="mt-8 overflow-hidden rounded border border-slate-200 bg-white">
+        <div className="mt-8 rounded border border-slate-200 bg-white">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] border-collapse text-[14px]">
               <thead>
