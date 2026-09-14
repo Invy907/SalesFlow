@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/language-context";
@@ -44,45 +44,54 @@ export function ReportsLearnMoreLink({ label }: { label: string }) {
   );
 }
 
-export function ReportsInfoIcon({
-  hint,
-  align = "end",
-}: {
-  hint?: string;
-  align?: "start" | "end";
-}) {
+export function ReportsInfoIcon({ hint }: { hint?: string }) {
   const anchorRef = useRef<HTMLSpanElement>(null);
-  const [tooltip, setTooltip] = useState<{ top: number; left: number; maxWidth: number } | null>(
-    null,
-  );
+  const tooltipRef = useRef<HTMLSpanElement>(null);
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+  const [placement, setPlacement] = useState<{ top: number; left: number } | null>(null);
 
   const showTooltip = useCallback(() => {
     const el = anchorRef.current;
-    if (!el || !hint) return;
-    const rect = el.getBoundingClientRect();
-    const margin = 12;
-    const maxWidth = Math.min(320, window.innerWidth - margin * 2);
-    let left = align === "end" ? rect.right - maxWidth : rect.left;
-    left = Math.max(margin, Math.min(left, window.innerWidth - maxWidth - margin));
-    setTooltip({ top: rect.bottom + 6, left, maxWidth });
-  }, [align, hint]);
+    if (!el) return;
+    setAnchorRect(el.getBoundingClientRect());
+  }, []);
 
-  const hideTooltip = useCallback(() => setTooltip(null), []);
+  const hideTooltip = useCallback(() => {
+    setAnchorRect(null);
+    setPlacement(null);
+  }, []);
+
+  /* 말풍선을 실제로 그린 뒤 폭을 재서 아이콘 중앙에 맞춘다. 미리 최대폭으로
+     계산하면 짧은 문구일 때 아이콘에서 멀리 떨어져 보인다. */
+  useLayoutEffect(() => {
+    const tip = tooltipRef.current;
+    if (!anchorRect || !tip) return;
+    const margin = 12;
+    const width = tip.offsetWidth;
+    const centered = anchorRect.left + anchorRect.width / 2 - width / 2;
+    const left = Math.max(
+      margin,
+      Math.min(centered, window.innerWidth - width - margin),
+    );
+    setPlacement({ top: anchorRect.bottom + 8, left });
+  }, [anchorRect]);
 
   if (!hint) return null;
 
   const tooltipNode =
-    tooltip &&
+    anchorRect &&
     createPortal(
       <span
+        ref={tooltipRef}
         role="tooltip"
         style={{
           position: "fixed",
-          top: tooltip.top,
-          left: tooltip.left,
-          maxWidth: tooltip.maxWidth,
+          top: placement?.top ?? anchorRect.bottom + 8,
+          left: placement?.left ?? 0,
+          maxWidth: Math.min(320, window.innerWidth - 24),
+          visibility: placement ? "visible" : "hidden",
         }}
-        className="pointer-events-none z-[9999] w-max min-w-[11rem] whitespace-normal break-words rounded border border-slate-200 bg-white px-3 py-2 text-left text-[12px] font-normal leading-snug text-slate-700 shadow-lg"
+        className="pointer-events-none z-[9999] w-max whitespace-normal break-words rounded border border-slate-200 bg-white px-3 py-2 text-left text-[12px] font-normal leading-snug text-slate-700 shadow-lg"
       >
         {hint}
       </span>,
