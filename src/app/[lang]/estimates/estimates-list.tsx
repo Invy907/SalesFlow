@@ -81,10 +81,10 @@ export function EstimatesList({
               {ui.tabTitles[activeTab]}
             </h1>
             {!isTrashTab ? (
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <Link
                   href={`/${lang}/estimates/ai-library`}
-                  className="inline-flex items-center justify-center rounded border border-violet-200 bg-violet-50 px-5 py-4 text-base font-semibold text-violet-700 transition hover:bg-violet-100"
+                  className="inline-flex items-center justify-center rounded border border-violet-200 bg-violet-50 px-5 py-3 text-[15px] font-semibold text-violet-700 transition hover:bg-violet-100"
                 >
                   {lang === "ko" ? "AI 견적 자료함" : lang === "en" ? "AI estimate library" : "AI見積資料"}
                 </Link>

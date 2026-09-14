@@ -127,7 +127,7 @@ export function ClientsTable({
           <div className="flex flex-wrap items-center gap-3">
             <Link
               href={getClientsHref(lang, "bulk")}
-              className="inline-flex items-center justify-center rounded border border-slate-300 bg-white px-5 py-3.5 text-[15px] font-semibold text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex items-center justify-center rounded border border-slate-300 bg-white px-5 py-3 text-[15px] font-semibold text-slate-700 transition hover:bg-slate-50"
             >
               {ui.tabs[1]}
             </Link>
