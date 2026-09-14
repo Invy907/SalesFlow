@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/language-context";
 import { appHrefs } from "@/lib/app-hrefs";
@@ -51,7 +52,7 @@ export function ReportsInfoIcon({
   align?: "start" | "end";
 }) {
   const anchorRef = useRef<HTMLSpanElement>(null);
-  const [tooltip, setTooltip] = useState<{ top: number; left: number; width: number } | null>(
+  const [tooltip, setTooltip] = useState<{ top: number; left: number; maxWidth: number } | null>(
     null,
   );
 
@@ -63,12 +64,30 @@ export function ReportsInfoIcon({
     const maxWidth = Math.min(320, window.innerWidth - margin * 2);
     let left = align === "end" ? rect.right - maxWidth : rect.left;
     left = Math.max(margin, Math.min(left, window.innerWidth - maxWidth - margin));
-    setTooltip({ top: rect.bottom + 6, left, width: maxWidth });
+    setTooltip({ top: rect.bottom + 6, left, maxWidth });
   }, [align, hint]);
 
   const hideTooltip = useCallback(() => setTooltip(null), []);
 
   if (!hint) return null;
+
+  const tooltipNode =
+    tooltip &&
+    createPortal(
+      <span
+        role="tooltip"
+        style={{
+          position: "fixed",
+          top: tooltip.top,
+          left: tooltip.left,
+          maxWidth: tooltip.maxWidth,
+        }}
+        className="pointer-events-none z-[9999] w-max min-w-[11rem] whitespace-normal break-words rounded border border-slate-200 bg-white px-3 py-2 text-left text-[12px] font-normal leading-snug text-slate-700 shadow-lg"
+      >
+        {hint}
+      </span>,
+      document.body,
+    );
 
   return (
     <>
@@ -88,15 +107,7 @@ export function ReportsInfoIcon({
           ?
         </span>
       </span>
-      {tooltip ? (
-        <span
-          role="tooltip"
-          style={{ top: tooltip.top, left: tooltip.left, width: tooltip.width }}
-          className="pointer-events-none fixed z-[300] whitespace-normal rounded border border-slate-200 bg-white px-3 py-2 text-left text-[12px] font-normal leading-snug text-slate-700 shadow-lg"
-        >
-          {hint}
-        </span>
-      ) : null}
+      {tooltipNode}
     </>
   );
 }
