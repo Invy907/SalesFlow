@@ -37,7 +37,7 @@ export default function SupportPage() {
             {ui.guides.map((guide) => (
               <Link
                 key={guide.key}
-                href={getSupportHref(lang, guide.key as "invoice-guide")}
+                href={getSupportHref(lang, guide.key as "invoice-guide" | "order-form-guide")}
                 className="rounded border border-slate-200 bg-white p-6 transition hover:border-[#0A4D34]/40 hover:shadow-sm"
               >
                 <h3 className="text-[18px] font-bold text-[#0A4D34]">{guide.title}</h3>

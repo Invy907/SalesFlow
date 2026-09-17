@@ -9,16 +9,28 @@ import { requireActiveOrg } from "@/lib/guards";
 import { getClients } from "@/lib/db/clients";
 import { getCompanyProfile, getDocumentDefaults } from "@/lib/db/company";
 import { getEstimateById } from "@/lib/db/estimates";
+import { getItems } from "@/lib/db/items";
 import { TAX_CATEGORY_TO_LABEL } from "@/lib/tax";
 import type { TaxCategory } from "@/lib/tax";
-import type { LineItemRow } from "../documents/new-document-shared";
+import type { ItemOption, LineItemRow } from "../documents/new-document-shared";
 import type { EstimateFormInitial } from "./estimate-form-client";
 import { normalizeDocumentOutputLocale } from "@/lib/documents/output-locale";
 
 export type ClientOption = { id: string; name: string };
 
+function toItemOptions(items: Array<Record<string, unknown>>): ItemOption[] {
+  return items.map((it) => ({
+    id: it.id as string,
+    name: (it.name as string) ?? "",
+    unit: (it.unit as string | null) ?? null,
+    unitPrice: Number(it.unit_price ?? 0),
+    taxCategory: (it.tax_category as string) ?? "follow_company",
+  }));
+}
+
 function toLineRows(
   lines: Array<{
+    item_id?: string | null;
     name_snapshot: string;
     qty: number | string;
     unit_snapshot: string | null;
@@ -32,18 +44,24 @@ function toLineRows(
     unit: l.unit_snapshot ?? "",
     price: String(l.unit_price_snapshot ?? ""),
     tax: TAX_CATEGORY_TO_LABEL[(l.tax_category as TaxCategory) ?? "standard_10"] ?? "10%",
+    itemId: l.item_id ?? null,
   }));
 }
 
-export async function buildNewEstimateInitial(lang: string): Promise<{
+export async function buildNewEstimateInitial(
+  lang: string,
+  clientId?: string,
+): Promise<{
   initial: EstimateFormInitial;
   clients: ClientOption[];
+  items: ItemOption[];
 }> {
   const scope = await requireActiveOrg(lang);
-  const [profile, defaults, clientList] = await Promise.all([
+  const [profile, defaults, clientList, itemList] = await Promise.all([
     getCompanyProfile(scope.orgId),
     getDocumentDefaults(scope.orgId),
     getClients(scope.orgId, { pageSize: 500 }),
+    getItems(scope.orgId, { pageSize: 500 }),
   ]);
 
   const today = new Date();
@@ -51,14 +69,18 @@ export async function buildNewEstimateInitial(lang: string): Promise<{
     today.getDate(),
   ).padStart(2, "0")}`;
 
+  const clients = clientList.clients.map((c) => ({
+    id: c.id as string,
+    name: (c.name as string) ?? "",
+  }));
+  const prefilledClient = clientId ? clients.find((c) => c.id === clientId) : undefined;
+
   return {
-    clients: clientList.clients.map((c) => ({
-      id: c.id as string,
-      name: (c.name as string) ?? "",
-    })),
+    clients,
+    items: toItemOptions(itemList.items),
     initial: {
-      clientId: null,
-      clientName: "",
+      clientId: prefilledClient?.id ?? null,
+      clientName: prefilledClient?.name ?? "",
       issueDate,
       expiryDate: "",
       documentNumber: "",
@@ -88,19 +110,21 @@ export async function buildNewEstimateInitial(lang: string): Promise<{
 export async function buildEditEstimateInitial(
   lang: string,
   estimateId: string,
-): Promise<{ initial: EstimateFormInitial; clients: ClientOption[] } | null> {
+): Promise<{ initial: EstimateFormInitial; clients: ClientOption[]; items: ItemOption[] } | null> {
   const scope = await requireActiveOrg(lang);
   const estimate = await getEstimateById(estimateId);
   if (!estimate) return null;
 
-  const [clientList, profile] = await Promise.all([
+  const [clientList, profile, itemList] = await Promise.all([
     getClients(scope.orgId, { pageSize: 500 }),
     getCompanyProfile(scope.orgId),
+    getItems(scope.orgId, { pageSize: 500 }),
   ]);
 
   const recipient = (estimate.recipient_snapshot ?? {}) as Record<string, string>;
   const sender = (estimate.sender_snapshot ?? {}) as Record<string, string>;
   const lines = (estimate.estimate_line_items ?? []) as Array<{
+    item_id?: string | null;
     name_snapshot: string;
     qty: number | string;
     unit_snapshot: string | null;
@@ -113,6 +137,7 @@ export async function buildEditEstimateInitial(
       id: c.id as string,
       name: (c.name as string) ?? "",
     })),
+    items: toItemOptions(itemList.items),
     initial: {
       id: estimate.id as string,
       clientId: (estimate.client_id as string | null) ?? null,

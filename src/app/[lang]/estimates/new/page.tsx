@@ -5,10 +5,13 @@ export const dynamic = "force-dynamic";
 
 export default async function NewEstimatePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ lang: string }>;
+  searchParams: Promise<{ clientId?: string }>;
 }) {
   const { lang } = await params;
-  const { initial, clients } = await buildNewEstimateInitial(lang);
-  return <EstimateFormClient initial={initial} clients={clients} />;
+  const { clientId } = await searchParams;
+  const { initial, clients, items } = await buildNewEstimateInitial(lang, clientId);
+  return <EstimateFormClient initial={initial} clients={clients} items={items} />;
 }

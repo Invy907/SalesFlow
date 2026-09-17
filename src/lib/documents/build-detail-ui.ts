@@ -24,6 +24,13 @@ type InvoiceContentSlice = {
   backToList: string;
   invoiceAmount: string;
   exportMenuEmail?: string;
+  exportMenuMail?: string;
+  exportMenuShare?: string;
+  shareModal?: SalesDocumentDetailUi["shareModal"];
+  shareRevoke?: string;
+  shareRevoked?: string;
+  shareExpires?: string;
+  mailedToast?: string;
   emailModal?: SalesDocumentDetailUi["emailModal"];
 };
 
@@ -55,7 +62,14 @@ export function buildInvoiceDetailUi(locale: string, ui: InvoiceContentSlice): S
     exportMenu: {
       ...exportUi.exportMenu,
       email: ui.exportMenuEmail,
+      mail: ui.exportMenuMail,
+      share: ui.exportMenuShare,
     },
+    shareModal: ui.shareModal,
+    shareRevoke: ui.shareRevoke,
+    shareRevoked: ui.shareRevoked,
+    shareExpires: ui.shareExpires,
+    mailedToast: ui.mailedToast,
     emailModal: ui.emailModal,
     actions: exportUi.actions,
   };

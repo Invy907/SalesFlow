@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
@@ -77,8 +77,27 @@ export function ClientsTable({
   const [editing, setEditing] = useState<ClientRow | "new" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [docMenuFor, setDocMenuFor] = useState<string | null>(null);
+  const docMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleOutsideClick(event: MouseEvent) {
+      if (docMenuRef.current && !docMenuRef.current.contains(event.target as Node)) {
+        setDocMenuFor(null);
+      }
+    }
+    window.addEventListener("mousedown", handleOutsideClick);
+    return () => window.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  const documentMenuLinks = (clientId: string): { key: string; label: string; href: string }[] => [
+    { key: "estimate", label: ui.detail.docTypeLabels.estimate, href: `/${lang}/estimates/new?clientId=${clientId}` },
+    { key: "delivery_note", label: ui.detail.docTypeLabels.delivery_note, href: `/${lang}/delivery-notes/new?clientId=${clientId}` },
+    { key: "invoice", label: ui.detail.docTypeLabels.invoice, href: `/${lang}/invoices/new?clientId=${clientId}` },
+    { key: "receipt", label: ui.detail.docTypeLabels.receipt, href: `/${lang}/receipts/new?clientId=${clientId}` },
+  ];
 
   function navigate(next: { q?: string; page?: number; fav?: boolean }) {
     const params = new URLSearchParams();
@@ -217,6 +236,35 @@ export function ClientsTable({
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex flex-wrap items-center gap-3 text-[14px]">
+                        <div className="relative" ref={docMenuFor === client.id ? docMenuRef : undefined}>
+                          <button
+                            type="button"
+                            onClick={() => setDocMenuFor((current) => (current === client.id ? null : client.id))}
+                            className="text-[#0A4D34] hover:underline"
+                          >
+                            {ui.createDocument}
+                          </button>
+                          {docMenuFor === client.id ? (
+                            <div className="absolute left-0 top-full z-20 mt-1 w-40 rounded border border-slate-200 bg-white py-1 shadow-lg">
+                              {documentMenuLinks(client.id).map((item) => (
+                                <Link
+                                  key={item.key}
+                                  href={item.href}
+                                  className="block px-4 py-2 text-[14px] text-slate-700 hover:bg-slate-50"
+                                  onClick={() => setDocMenuFor(null)}
+                                >
+                                  {item.label}
+                                </Link>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                        <Link
+                          href={getClientsHref(lang, "detail", client.id)}
+                          className="text-[#0A4D34] hover:underline"
+                        >
+                          {ui.showDocument}
+                        </Link>
                         <Link
                           href={getClientsHref(lang, "detail", client.id)}
                           className="text-[#0A4D34] hover:underline"

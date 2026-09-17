@@ -40,28 +40,6 @@ export default function SettingsEvidencePage() {
               disabled
             />
           </section>
-
-          <section className="overflow-hidden rounded border border-slate-200 bg-white">
-            <SettingsSectionHeader title={evidence.accountingSection} />
-            <SettingsIntegrationRow
-              title={evidence.yayoi.title}
-              description={evidence.yayoi.desc}
-              products={evidence.yayoi.products}
-              buttonLabel={evidence.yayoi.button}
-              disabled
-            />
-            <SettingsIntegrationRow
-              title={evidence.freee.title}
-              description={evidence.freee.desc}
-              buttonLabel={evidence.freee.button}
-              disabled
-              icon={
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[#2864f0] text-xs font-bold text-white">
-                  f
-                </div>
-              }
-            />
-          </section>
         </div>
       </div>
     </SalesFlowShell>

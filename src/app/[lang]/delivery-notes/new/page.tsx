@@ -1,11 +1,22 @@
 import { requireActiveOrg } from "@/lib/guards";
 import { getClientOptions } from "@/lib/db/clients";
 import { getEstimateById } from "@/lib/db/estimates";
+import { getItems } from "@/lib/db/items";
 import { normalizeClientHonorific } from "@/lib/documents/client-honorific";
 import { normalizeDocumentOutputLocale } from "@/lib/documents/output-locale";
 import { TAX_CATEGORY_TO_LABEL, type TaxCategory } from "@/lib/tax";
-import type { LineItemRow } from "../../documents/new-document-shared";
+import type { ItemOption, LineItemRow } from "../../documents/new-document-shared";
 import { NewDeliveryNoteClient, type DeliveryNoteFormInitial } from "./new-delivery-note-client";
+
+function toItemOptions(items: Array<Record<string, unknown>>): ItemOption[] {
+  return items.map((it) => ({
+    id: it.id as string,
+    name: (it.name as string) ?? "",
+    unit: (it.unit as string | null) ?? null,
+    unitPrice: Number(it.unit_price ?? 0),
+    taxCategory: (it.tax_category as string) ?? "follow_company",
+  }));
+}
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +32,7 @@ async function buildFromEstimateInitial(
   const lines: LineItemRow[] = (
     (source.estimate_line_items ?? []) as Array<Record<string, unknown>>
   ).map((line) => ({
+    itemId: (line.item_id as string | null) ?? null,
     name: (line.name_snapshot as string) ?? "",
     qty: line.qty === null || line.qty === undefined ? "" : String(line.qty),
     unit: (line.unit_snapshot as string) ?? "",
@@ -50,16 +62,27 @@ export default async function NewDeliveryNotePage({
   searchParams,
 }: {
   params: Promise<{ lang: string }>;
-  searchParams: Promise<{ fromEstimate?: string }>;
+  searchParams: Promise<{ fromEstimate?: string; clientId?: string }>;
 }) {
   const { lang } = await params;
   const scope = await requireActiveOrg(lang);
-  const { fromEstimate } = await searchParams;
+  const { fromEstimate, clientId } = await searchParams;
 
-  const [clients, initial] = await Promise.all([
+  const [clients, initial, itemList] = await Promise.all([
     getClientOptions(scope.orgId),
     fromEstimate ? buildFromEstimateInitial(scope.orgId, fromEstimate) : Promise.resolve(null),
+    getItems(scope.orgId, { pageSize: 500 }),
   ]);
 
-  return <NewDeliveryNoteClient clients={clients} initial={initial ?? undefined} />;
+  const prefilledClient = clientId ? clients.find((c) => c.id === clientId) : undefined;
+  const resolvedInitial =
+    initial ?? (prefilledClient ? { clientId: prefilledClient.id, clientName: prefilledClient.name } : undefined);
+
+  return (
+    <NewDeliveryNoteClient
+      clients={clients}
+      initial={resolvedInitial}
+      items={toItemOptions(itemList.items)}
+    />
+  );
 }

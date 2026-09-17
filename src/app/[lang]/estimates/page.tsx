@@ -1,4 +1,5 @@
 import { requireActiveOrg } from "@/lib/guards";
+import { getListPageSize } from "@/lib/display-settings.server";
 import { getEstimates } from "@/lib/db/estimates";
 import { EstimatesList, type EstimateListRow } from "./estimates-list";
 
@@ -25,6 +26,7 @@ export default async function EstimatesPage({
 }) {
   const { lang } = await params;
   const scope = await requireActiveOrg(lang);
+  const pageSize = await getListPageSize(scope.orgId);
   const sp = await searchParams;
   const tab = Math.min(2, Math.max(0, Number(sp.tab ?? "0") || 0));
   const page = Math.max(1, Number(sp.page ?? "1") || 1);
@@ -40,7 +42,7 @@ export default async function EstimatesPage({
     orderFlag,
     query,
     page,
-    pageSize: 30,
+    pageSize,
   });
 
   const rows: EstimateListRow[] = estimates.map((e) => ({
@@ -60,7 +62,7 @@ export default async function EstimatesPage({
       rows={rows}
       total={total}
       page={page}
-      pageSize={30}
+      pageSize={pageSize}
       activeTab={tab}
       query={query ?? ""}
       issueFlag={issueFlag}

@@ -10,9 +10,20 @@ import { normalizeDocumentOutputLocale } from "@/lib/documents/output-locale";
 import { getDocumentSealUrl } from "@/lib/documents/seal-url";
 import { getInvoiceById } from "@/lib/db/invoices";
 import { getEstimateById } from "@/lib/db/estimates";
+import { getItems } from "@/lib/db/items";
 import { normalizeClientHonorific } from "@/lib/documents/client-honorific";
 import { TAX_CATEGORY_TO_LABEL, type TaxCategory } from "@/lib/tax";
-import type { LineItemRow } from "./../documents/new-document-shared";
+import type { ItemOption, LineItemRow } from "./../documents/new-document-shared";
+
+function toItemOptions(items: Array<Record<string, unknown>>): ItemOption[] {
+  return items.map((it) => ({
+    id: it.id as string,
+    name: (it.name as string) ?? "",
+    unit: (it.unit as string | null) ?? null,
+    unitPrice: Number(it.unit_price ?? 0),
+    taxCategory: (it.tax_category as string) ?? "follow_company",
+  }));
+}
 
 export type ClientOption = InvoiceClientOption;
 export type BankAccountOption = {
@@ -29,6 +40,7 @@ async function buildCopyInitial(orgId: string, invoiceId: string) {
   const lines: LineItemRow[] = (
     (source.invoice_line_items ?? []) as Array<Record<string, unknown>>
   ).map((line) => ({
+    itemId: (line.item_id as string | null) ?? null,
     name: (line.name_snapshot as string) ?? "",
     qty: line.qty === null || line.qty === undefined ? "" : String(line.qty),
     unit: (line.unit_snapshot as string) ?? "",
@@ -65,6 +77,7 @@ async function buildFromEstimateInitial(orgId: string, estimateId: string) {
   const lines: LineItemRow[] = (
     (source.estimate_line_items ?? []) as Array<Record<string, unknown>>
   ).map((line) => ({
+    itemId: (line.item_id as string | null) ?? null,
     name: (line.name_snapshot as string) ?? "",
     qty: line.qty === null || line.qty === undefined ? "" : String(line.qty),
     unit: (line.unit_snapshot as string) ?? "",
@@ -93,18 +106,21 @@ export async function buildNewInvoiceInitial(
   lang: string,
   copyFromId?: string,
   fromEstimateId?: string,
+  clientId?: string,
 ): Promise<{
   initial: InvoiceFormInitial;
   clients: ClientOption[];
   bankAccounts: BankAccountOption[];
   sealUrl: string | null;
+  items: ItemOption[];
 }> {
   const scope = await requireActiveOrg(lang);
-  const [profile, defaults, clientList, banks] = await Promise.all([
+  const [profile, defaults, clientList, banks, itemList] = await Promise.all([
     getCompanyProfile(scope.orgId),
     getDocumentDefaults(scope.orgId),
     getClientOptions(scope.orgId),
     getBankAccounts(scope.orgId),
+    getItems(scope.orgId, { pageSize: 500 }),
   ]);
 
   const copy = copyFromId
@@ -112,6 +128,8 @@ export async function buildNewInvoiceInitial(
     : fromEstimateId
       ? await buildFromEstimateInitial(scope.orgId, fromEstimateId)
       : null;
+
+  const prefilledClient = clientId ? clientList.find((c) => c.id === clientId) : undefined;
 
   const today = new Date();
   const issueDate = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, "0")}/${String(
@@ -124,6 +142,7 @@ export async function buildNewInvoiceInitial(
   return {
     sealUrl,
     clients: clientList,
+    items: toItemOptions(itemList.items),
     bankAccounts: banks.map((b) => ({
       id: b.id as string,
       label: [b.bank_name, b.branch_name, b.account_number, b.account_holder]
@@ -131,8 +150,8 @@ export async function buildNewInvoiceInitial(
         .join(" / "),
     })),
     initial: {
-      clientId: null,
-      clientName: "",
+      clientId: prefilledClient?.id ?? null,
+      clientName: prefilledClient?.name ?? "",
       issueDate,
       paymentDue: "",
       documentNumber: "",

@@ -15,6 +15,10 @@ const labels = {
     deleteConfirm: "この品目を削除しますか？",
     saveFailed: "保存に失敗しました",
     empty: "品目はありません",
+    selectedCount: "{count}件選択中",
+    selectAll: "すべて選択",
+    bulkDelete: "削除",
+    bulkDeleteConfirm: "選択した{count}件の品目を削除しますか？",
     newItem: {
       title: "品目の新規登録",
       backToList: "品目管理へ戻る",
@@ -49,7 +53,7 @@ const labels = {
       uploadNotes: [
         "Excelで作成したCSV形式、またはCSV形式で保存したファイルをアップロードしてください。",
         "1行目はヘッダー行としてください。",
-        "1回のアップロードで登録できる品目数は100件までです。",
+        "1回のアップロードで登録できる品目数は1000件までです。",
       ],
       templateSection: "記入用テンプレートのダウンロード",
       templateUtf8: "UTF-8版",
@@ -118,6 +122,10 @@ const labels = {
     deleteConfirm: "이 품목을 삭제하시겠습니까?",
     saveFailed: "저장에 실패했습니다",
     empty: "품목이 없습니다",
+    selectedCount: "{count}건 선택됨",
+    selectAll: "전체 선택",
+    bulkDelete: "삭제",
+    bulkDeleteConfirm: "선택한 {count}건의 품목을 삭제하시겠습니까?",
     newItem: {
       title: "품목 신규 등록",
       backToList: "품목 관리로 돌아가기",
@@ -152,7 +160,7 @@ const labels = {
       uploadNotes: [
         "Excel로 작성한 CSV 형식 또는 CSV 형식으로 저장한 파일을 업로드해 주세요.",
         "첫 번째 행은 헤더 행이어야 합니다.",
-        "한 번에 등록할 수 있는 품목 수는 최대 100건입니다.",
+        "한 번에 등록할 수 있는 품목 수는 최대 1000건입니다.",
       ],
       templateSection: "입력용 템플릿 다운로드",
       templateUtf8: "UTF-8版",
@@ -221,6 +229,10 @@ const labels = {
     deleteConfirm: "Delete this item?",
     saveFailed: "Failed to save",
     empty: "No items",
+    selectedCount: "{count} selected",
+    selectAll: "Select all",
+    bulkDelete: "Delete",
+    bulkDeleteConfirm: "Delete the selected {count} items?",
     newItem: {
       title: "Register New Item",
       backToList: "Back to Item Management",
@@ -255,7 +267,7 @@ const labels = {
       uploadNotes: [
         "Upload a file saved in CSV format, including files exported from Excel.",
         "The first row must be a header row.",
-        "You can register up to 100 items per upload.",
+        "You can register up to 1000 items per upload.",
       ],
       templateSection: "Download Entry Template",
       templateUtf8: "UTF-8",

@@ -375,6 +375,7 @@ export type Database = {
       }
       delivery_notes: {
         Row: {
+          billed_marked_at: string | null
           client_destination_id: string | null
           client_id: string | null
           created_at: string
@@ -385,6 +386,7 @@ export type Database = {
           id: string
           internal_memo: string | null
           issue_date: string
+          issued_marked_at: string | null
           linked_invoice_id: string | null
           organization_id: string
           output_locale: string
@@ -408,6 +410,7 @@ export type Database = {
           withholding_type: Database["public"]["Enums"]["withholding_type"]
         }
         Insert: {
+          billed_marked_at?: string | null
           client_destination_id?: string | null
           client_id?: string | null
           created_at?: string
@@ -418,6 +421,7 @@ export type Database = {
           id?: string
           internal_memo?: string | null
           issue_date: string
+          issued_marked_at?: string | null
           linked_invoice_id?: string | null
           organization_id: string
           output_locale?: string
@@ -441,6 +445,7 @@ export type Database = {
           withholding_type?: Database["public"]["Enums"]["withholding_type"]
         }
         Update: {
+          billed_marked_at?: string | null
           client_destination_id?: string | null
           client_id?: string | null
           created_at?: string
@@ -451,6 +456,7 @@ export type Database = {
           id?: string
           internal_memo?: string | null
           issue_date?: string
+          issued_marked_at?: string | null
           linked_invoice_id?: string | null
           organization_id?: string
           output_locale?: string
@@ -1113,6 +1119,7 @@ export type Database = {
           id: string
           internal_memo: string | null
           issue_date: string
+          issued_marked_at: string | null
           organization_id: string
           output_locale: string
           client_honorific: string
@@ -1121,6 +1128,7 @@ export type Database = {
           paid_amount: number
           paid_at: string | null
           payment_due: string | null
+          payment_marked_at: string | null
           payment_option: Database["public"]["Enums"]["payment_option"]
           periodic_schedule_id: string | null
           recipient_snapshot: Json | null
@@ -1156,6 +1164,7 @@ export type Database = {
           id?: string
           internal_memo?: string | null
           issue_date: string
+          issued_marked_at?: string | null
           organization_id: string
           output_locale?: string
           client_honorific?: string
@@ -1164,6 +1173,7 @@ export type Database = {
           paid_amount?: number
           paid_at?: string | null
           payment_due?: string | null
+          payment_marked_at?: string | null
           payment_option?: Database["public"]["Enums"]["payment_option"]
           periodic_schedule_id?: string | null
           recipient_snapshot?: Json | null
@@ -1199,6 +1209,7 @@ export type Database = {
           id?: string
           internal_memo?: string | null
           issue_date?: string
+          issued_marked_at?: string | null
           organization_id?: string
           output_locale?: string
           client_honorific?: string
@@ -1207,6 +1218,7 @@ export type Database = {
           paid_amount?: number
           paid_at?: string | null
           payment_due?: string | null
+          payment_marked_at?: string | null
           payment_option?: Database["public"]["Enums"]["payment_option"]
           periodic_schedule_id?: string | null
           recipient_snapshot?: Json | null
@@ -1252,6 +1264,57 @@ export type Database = {
             columns: ["periodic_schedule_id"]
             isOneToOne: false
             referencedRelation: "periodic_invoice_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_status_events: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          invoice_id: string
+          new_value: string
+          organization_id: string
+          previous_value: string | null
+          source: string
+          status_type: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          invoice_id: string
+          new_value: string
+          organization_id: string
+          previous_value?: string | null
+          source?: string
+          status_type: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          invoice_id?: string
+          new_value?: string
+          organization_id?: string
+          previous_value?: string | null
+          source?: string
+          status_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_status_events_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_status_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -2216,6 +2279,7 @@ export type Database = {
           id: string
           internal_memo: string | null
           issue_date: string
+          issued_marked_at: string | null
           linked_invoice_id: string | null
           organization_id: string
           output_locale: string
@@ -2249,6 +2313,7 @@ export type Database = {
           id?: string
           internal_memo?: string | null
           issue_date: string
+          issued_marked_at?: string | null
           linked_invoice_id?: string | null
           organization_id: string
           output_locale?: string
@@ -2282,6 +2347,7 @@ export type Database = {
           id?: string
           internal_memo?: string | null
           issue_date?: string
+          issued_marked_at?: string | null
           linked_invoice_id?: string | null
           organization_id?: string
           output_locale?: string

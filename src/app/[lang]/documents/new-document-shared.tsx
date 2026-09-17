@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { pageContainerClass } from "@/components/page-container";
 import {
   clientHonorificSuffix,
@@ -11,6 +11,7 @@ import { LocalizedFileInput } from "@/components/localized-file-input";
 import { appHrefs } from "@/lib/app-hrefs";
 import { DateFieldInput } from "../estimates/date-field-input";
 import { toDateInputValue } from "../estimates/date-field-utils";
+import { TAX_CATEGORY_TO_LABEL, type TaxCategory } from "@/lib/tax";
 
 export type DocumentTabKey = string;
 
@@ -97,6 +98,8 @@ type LineItemsTableProps = {
   itemHeaders: readonly string[];
   unitPlaceholder: string;
   deleteRowLabel: string;
+  /** 登録済みの品目一覧。品番・品名の入力欄でオートコンプリートに使う。 */
+  items?: ItemOption[];
   topNotice?: ReactNode;
   onTotalsChange?: (totals: LineItemTotals) => void;
   onRowsChange?: (rows: LineItemRow[]) => void;
@@ -128,9 +131,20 @@ type LineItemRow = {
   unit: string;
   price: string;
   tax: string;
+  /** 品目マスタから選択された場合のID。手入力・不一致になった場合は null。 */
+  itemId?: string | null;
 };
 
 export type { LineItemRow };
+
+/** 品目マスタのオートコンプリート候補。 */
+export type ItemOption = {
+  id: string;
+  name: string;
+  unit: string | null;
+  unitPrice: number;
+  taxCategory: string;
+};
 
 export type LineItemTotals = {
   subtotal: number;
@@ -139,7 +153,7 @@ export type LineItemTotals = {
 };
 
 function createEmptyRow(): LineItemRow {
-  return { name: "", qty: "", unit: "", price: "", tax: "10%" };
+  return { name: "", qty: "", unit: "", price: "", tax: "10%", itemId: null };
 }
 
 function parseNumberInput(value: string) {
@@ -653,7 +667,9 @@ export function CommonLineItemsTable({
   compact = false,
   initialRowCount,
   hideSummaryRows = false,
+  items = [],
 }: LineItemsTableProps) {
+  const itemOptionsId = useId();
   const defaultRowCount = initialRowCount ?? (compact ? 1 : 5);
   const [rows, setRows] = useState<LineItemRow[]>(
     () => initialRows ?? Array.from({ length: defaultRowCount }, createEmptyRow),
@@ -708,6 +724,30 @@ export function CommonLineItemsTable({
   const updateRow = (index: number, key: keyof LineItemRow, nextValue: string) => {
     setRows((current) =>
       current.map((row, rowIndex) => (rowIndex === index ? { ...row, [key]: nextValue } : row)),
+    );
+  };
+
+  /**
+   * 品番・品名の入力。登録済み品目名と完全一致すれば単位・単価・税区分と itemId を
+   * まとめて反映する(依頼: 品目オートコンプリート)。一致しなくなれば itemId は外す。
+   */
+  const updateName = (index: number, nextValue: string) => {
+    const matched = items.find((it) => it.name === nextValue);
+    setRows((current) =>
+      current.map((row, rowIndex) => {
+        if (rowIndex !== index) return row;
+        if (matched) {
+          return {
+            ...row,
+            name: matched.name,
+            unit: matched.unit ?? row.unit,
+            price: String(matched.unitPrice),
+            tax: TAX_CATEGORY_TO_LABEL[matched.taxCategory as TaxCategory] ?? row.tax,
+            itemId: matched.id,
+          };
+        }
+        return { ...row, name: nextValue, itemId: null };
+      }),
     );
   };
 
@@ -842,7 +882,8 @@ export function CommonLineItemsTable({
                     <input
                       className={inputClass}
                       value={row.name}
-                      onChange={(event) => updateRow(index, "name", event.target.value)}
+                      list={items.length ? itemOptionsId : undefined}
+                      onChange={(event) => updateName(index, event.target.value)}
                     />
                   </td>
                   <td className={["border-b border-r border-slate-200 align-middle", compact ? "px-1 py-1" : "px-3 py-2"].join(" ")}>
@@ -991,6 +1032,14 @@ export function CommonLineItemsTable({
           </div>
         </div>
       ) : null}
+
+      {items.length ? (
+        <datalist id={itemOptionsId}>
+          {items.map((it) => (
+            <option key={it.id} value={it.name} />
+          ))}
+        </datalist>
+      ) : null}
     </div>
   );
 }
@@ -1019,6 +1068,7 @@ export function DocumentLineItemsTable({
   compact = false,
   initialRowCount,
   hideSummaryRows = false,
+  items,
 }: {
   ui: LineItemsUiContent;
   storageKey?: string;
@@ -1029,12 +1079,14 @@ export function DocumentLineItemsTable({
   compact?: boolean;
   initialRowCount?: number;
   hideSummaryRows?: boolean;
+  items?: ItemOption[];
 }) {
   return (
     <CommonLineItemsTable
       batchTaxLabel={ui.batchTax}
       changeLabel={ui.change}
       printNote={ui.printNote}
+      items={items}
       addRowLabel={ui.addRow}
       subtotalLabel={ui.subtotal}
       taxLabel={ui.tax}

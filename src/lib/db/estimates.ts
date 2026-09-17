@@ -8,10 +8,14 @@ export interface DocumentFilter {
   status?: DocumentStatus;
   statusIn?: DocumentStatus[];
   trashed?: boolean;
-  /** 見積書 전용: 発行 배지. true=発行済만, false=未発行만 */
+  /** 見積書: 発行 배지. 請求書: 発行(issued_marked_at) 배지도 같은 이름을 재사용. true=완료만, false=미완료만 */
   issueFlag?: boolean;
   /** 見積書 전용: 受注 배지. true=受注済만, false=未受注만 */
   orderFlag?: boolean;
+  /** 請求書 전용: 入金(payment_marked_at) 배지. true=入金済만, false=未入金만 */
+  paymentFlag?: boolean;
+  /** 納品書 전용: 請求(billed_marked_at) 배지. true=請求済만, false=未請求만 */
+  billedFlag?: boolean;
   from?: string;
   to?: string;
   query?: string;

@@ -82,6 +82,7 @@ const labels = {
           { title: "受注管理ページでまとめて管理" },
         ],
       },
+      guideLink: "受注フォームについて詳しく見る",
       new: {
         title: "受注フォームの新規作成",
         companyName: "会社名",
@@ -184,6 +185,7 @@ const labels = {
           { title: "수주 관리 페이지에서 일괄 관리" },
         ],
       },
+      guideLink: "수주 폼에 대해 자세히 보기",
       new: {
         title: "수주 폼 신규 작성",
         companyName: "회사명",
@@ -286,6 +288,7 @@ const labels = {
           { title: "Manage everything on the order management page" },
         ],
       },
+      guideLink: "Learn more about order forms",
       new: {
         title: "Create New Order Form",
         companyName: "Company Name",

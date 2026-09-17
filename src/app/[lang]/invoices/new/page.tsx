@@ -8,17 +8,23 @@ export default async function NewInvoicePage({
   searchParams,
 }: {
   params: Promise<{ lang: string }>;
-  searchParams: Promise<{ copyFrom?: string; fromEstimate?: string }>;
+  searchParams: Promise<{ copyFrom?: string; fromEstimate?: string; clientId?: string }>;
 }) {
   const { lang } = await params;
-  const { copyFrom, fromEstimate } = await searchParams;
-  const { initial, clients, bankAccounts, sealUrl } = await buildNewInvoiceInitial(lang, copyFrom, fromEstimate);
+  const { copyFrom, fromEstimate, clientId } = await searchParams;
+  const { initial, clients, bankAccounts, sealUrl, items } = await buildNewInvoiceInitial(
+    lang,
+    copyFrom,
+    fromEstimate,
+    clientId,
+  );
   return (
     <InvoiceFormClient
       initial={initial}
       clients={clients}
       bankAccounts={bankAccounts}
       sealUrl={sealUrl}
+      items={items}
     />
   );
 }

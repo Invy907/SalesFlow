@@ -15,6 +15,7 @@ import {
   HonorificField as SharedHonorificField,
   toIsoDate,
   useDocumentDateFields,
+  type ItemOption,
   type LineItemRow,
   type LineItemTotals,
 } from "../../documents/new-document-shared";
@@ -104,9 +105,11 @@ function isBlankLineRow(row: LineItemRow) {
 export function NewDeliveryNoteClient({
   clients = [],
   initial,
+  items = [],
 }: {
   clients?: ClientOptionRow[];
   initial?: DeliveryNoteFormInitial;
+  items?: ItemOption[];
 }) {
   const { lang } = useLanguage();
   const ui = getDeliveryNoteContent(lang);
@@ -177,6 +180,7 @@ export function NewDeliveryNoteClient({
       initialRows={rows.length ? rows : undefined}
       onTotalsChange={handleTotalsChange}
       onRowsChange={handleRowsChange}
+      items={items}
     />
   );
 
@@ -195,6 +199,7 @@ export function NewDeliveryNoteClient({
         return isBlankLineRow(r)
           ? { name: "", qty: 0, unit: "", unitPrice: 0, taxCategory, taxRateSnapshot: 0 }
           : {
+              itemId: r.itemId ?? undefined,
               name: r.name,
               qty: r.qty === "" ? 1 : Number(r.qty),
               unit: r.unit,

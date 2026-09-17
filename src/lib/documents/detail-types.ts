@@ -76,7 +76,21 @@ export type SalesDocumentDetailUi = {
     excel: string;
     print: string;
     email?: string;
+    mail?: string;
+    share?: string;
   };
+  shareModal?: {
+    title: string;
+    description: string;
+    caution: string;
+    submit: string;
+    copied: string;
+    copyAction?: string;
+  };
+  shareRevoke?: string;
+  shareRevoked?: string;
+  shareExpires?: string;
+  mailedToast?: string;
   emailModal?: {
     title: string;
     description: string;

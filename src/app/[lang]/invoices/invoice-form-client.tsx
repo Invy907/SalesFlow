@@ -16,6 +16,7 @@ import {
   HonorificField as SharedHonorificField,
   SenderDetailFields,
   useDocumentDateFields,
+  type ItemOption,
   type LineItemRow,
   type LineItemTotals,
 } from "../documents/new-document-shared";
@@ -127,12 +128,14 @@ export function InvoiceFormClient({
   clients,
   bankAccounts,
   sealUrl = null,
+  items = [],
 }: {
   initial: InvoiceFormInitial;
   clients: InvoiceClientOption[];
   bankAccounts: InvoiceBankAccount[];
   /** Company seal image (signed URL). null when none is registered. */
   sealUrl?: string | null;
+  items?: ItemOption[];
 }) {
   const { lang } = useLanguage();
   const ui = getInvoiceContent(lang);
@@ -331,6 +334,7 @@ export function InvoiceFormClient({
         const taxCategory = taxCategoryFromLabel(r.tax);
         const blank = isBlankLineRow(r);
         return {
+          itemId: blank ? undefined : (r.itemId ?? undefined),
           name: blank ? "" : r.name,
           qty: blank ? 0 : r.qty === "" ? 1 : Number(r.qty),
           unit: blank ? "" : r.unit,
@@ -878,6 +882,7 @@ export function InvoiceFormClient({
           onTotalsChange={handleTotalsChange}
           onRowsChange={handleRowsChange}
           compact={previewOpen}
+          items={items}
         />
 
         <RemarksBlock ui={ui} value={form.remarks} onChange={(v) => set("remarks", v)} />

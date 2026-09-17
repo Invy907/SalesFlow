@@ -1,4 +1,5 @@
 import { requireActiveOrg } from "@/lib/guards";
+import { getListPageSize } from "@/lib/display-settings.server";
 import { getInvoices } from "@/lib/db/invoices";
 import { InvoicesList, type InvoiceListRow } from "./invoices-list";
 
@@ -10,27 +11,38 @@ const TAB_FILTERS = [
   { statusIn: undefined, trashed: true },
 ] as const;
 
+function parseFlag(value: string | undefined): boolean | undefined {
+  if (value === "1") return true;
+  if (value === "0") return false;
+  return undefined;
+}
+
 export default async function InvoicesPage({
   params,
   searchParams,
 }: {
   params: Promise<{ lang: string }>;
-  searchParams: Promise<{ tab?: string; q?: string; page?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; page?: string; issueFlag?: string; paymentFlag?: string }>;
 }) {
   const { lang } = await params;
   const scope = await requireActiveOrg(lang);
+  const pageSize = await getListPageSize(scope.orgId);
   const sp = await searchParams;
   const tab = Math.min(2, Math.max(0, Number(sp.tab ?? "0") || 0));
   const page = Math.max(1, Number(sp.page ?? "1") || 1);
   const query = sp.q?.trim() || undefined;
   const filter = TAB_FILTERS[tab];
+  const issueFlag = parseFlag(sp.issueFlag);
+  const paymentFlag = parseFlag(sp.paymentFlag);
 
   const { invoices, total } = await getInvoices(scope.orgId, {
     statusIn: filter.statusIn ? [...filter.statusIn] : undefined,
     trashed: filter.trashed,
+    issueFlag,
+    paymentFlag,
     query,
     page,
-    pageSize: 30,
+    pageSize,
   });
 
   let unpaidTotal = 0;
@@ -60,6 +72,8 @@ export default async function InvoicesPage({
     total: Number(inv.total ?? 0),
     paidAmount: Number(inv.paid_amount ?? 0),
     status: (inv.status as string) ?? "draft",
+    issued: Boolean(inv.issued_marked_at),
+    paid: Boolean(inv.payment_marked_at),
   }));
 
   return (
@@ -67,9 +81,11 @@ export default async function InvoicesPage({
       rows={rows}
       total={total}
       page={page}
-      pageSize={30}
+      pageSize={pageSize}
       activeTab={tab}
       query={query ?? ""}
+      issueFlag={issueFlag}
+      paymentFlag={paymentFlag}
       unpaidTotal={unpaidTotal}
       overdueTotal={overdueTotal}
     />

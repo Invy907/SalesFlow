@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
 import { CsvDownloadLink, LearnMoreLink, ListSearchBar } from "../list-page-shared";
-import { deleteItem } from "@/lib/actions/items";
+import { deleteItem, bulkDeleteItems } from "@/lib/actions/items";
 import { TAX_CATEGORY_TO_LABEL } from "@/lib/tax";
 import type { TaxCategory } from "@/lib/tax";
 import { getItemsContent, getItemsHref } from "./content";
@@ -38,6 +38,8 @@ export function ItemsTable({
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [lastClickedIndex, setLastClickedIndex] = useState<number | null>(null);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -57,6 +59,47 @@ export function ItemsTable({
       const result = await deleteItem(row.id);
       if (result.ok) router.refresh();
       else setError(result.error);
+    });
+  }
+
+  function toggleRow(rowId: string, index: number, shiftKey: boolean) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (shiftKey && lastClickedIndex !== null) {
+        const [from, to] = [lastClickedIndex, index].sort((a, b) => a - b);
+        const shouldSelect = !next.has(rowId);
+        for (let i = from; i <= to; i += 1) {
+          const id = rows[i]?.id;
+          if (!id) continue;
+          if (shouldSelect) next.add(id);
+          else next.delete(id);
+        }
+      } else if (next.has(rowId)) {
+        next.delete(rowId);
+      } else {
+        next.add(rowId);
+      }
+      return next;
+    });
+    setLastClickedIndex(index);
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((current) => (current.size === rows.length ? new Set() : new Set(rows.map((r) => r.id))));
+  }
+
+  function handleBulkDelete() {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    if (!window.confirm(ui.bulkDeleteConfirm.replace("{count}", String(ids.length)))) return;
+    startTransition(async () => {
+      const result = await bulkDeleteItems(ids);
+      if (result.ok) {
+        setSelectedIds(new Set());
+        router.refresh();
+      } else {
+        setError(result.error ?? "操作に失敗しました");
+      }
     });
   }
 
@@ -122,15 +165,39 @@ export function ItemsTable({
           <CsvDownloadLink label={ui.csvDownload} onDownload={rows.length ? handleCsv : undefined} />
         </div>
 
+        {selectedIds.size > 0 ? (
+          <div className="sticky top-0 z-10 mt-4 flex flex-wrap items-center gap-3 rounded border border-[#9DD4BD] bg-[#E8F5EF] px-4 py-3 text-[14px]">
+            <span className="font-semibold text-[#062E1F]">
+              {ui.selectedCount.replace("{count}", String(selectedIds.size))}
+            </span>
+            <button
+              type="button"
+              onClick={handleBulkDelete}
+              disabled={pending}
+              className="ml-auto rounded bg-red-600 px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {ui.bulkDelete}
+            </button>
+          </div>
+        ) : null}
+
         {rows.length === 0 ? (
           <div className="mt-16 flex min-h-[480px] items-center justify-center text-[20px] text-slate-300">
             {ui.empty}
           </div>
         ) : (
           <div className="mt-6 overflow-x-auto rounded border border-slate-200 bg-white">
-            <table className="w-full min-w-[640px] border-collapse text-[15px]">
+            <table className="w-full min-w-[720px] border-collapse text-[15px]">
               <thead>
                 <tr className="border-b border-slate-200 bg-[#f8fafc] text-left">
+                  <th className="w-10 px-4 py-3">
+                    <input
+                      type="checkbox"
+                      aria-label={ui.selectAll}
+                      checked={selectedIds.size > 0 && selectedIds.size === rows.length}
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
                   <th className="px-4 py-3 font-semibold text-slate-700">品番・品名</th>
                   <th className="px-4 py-3 font-semibold text-slate-700">単位</th>
                   <th className="px-4 py-3 font-semibold text-slate-700">単価</th>
@@ -139,8 +206,15 @@ export function ItemsTable({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
+                {rows.map((row, index) => (
                   <tr key={row.id} className="border-b border-slate-100 last:border-b-0">
+                    <td className="px-4 py-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(row.id)}
+                        onChange={(e) => toggleRow(row.id, index, (e.nativeEvent as MouseEvent).shiftKey)}
+                      />
+                    </td>
                     <td className="px-4 py-4">
                       <Link
                         href={`/${lang}/items/${row.id}/edit`}

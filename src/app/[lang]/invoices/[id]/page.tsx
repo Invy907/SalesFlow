@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireActiveOrg } from "@/lib/guards";
 import { getInvoiceById } from "@/lib/db/invoices";
 import { getBankAccounts, getCompanyProfile } from "@/lib/db/company";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getDocumentSealUrl } from "@/lib/documents/seal-url";
 import { buildInvoiceDetailUi } from "@/lib/documents/build-detail-ui";
 import { mapSalesDocumentDetail } from "@/lib/documents/map-document-detail";
@@ -25,6 +26,17 @@ export default async function InvoiceDetailPage({
     getBankAccounts(scope.orgId),
   ]);
   if (!invoice || invoice.organization_id !== scope.orgId) notFound();
+
+  let shareExpiresAt: string | null = null;
+  if (invoice.share_token) {
+    const supabase = await getSupabaseServerClient();
+    const { data: shareRow } = await supabase
+      .from("share_tokens")
+      .select("expires_at")
+      .eq("token", invoice.share_token as string)
+      .maybeSingle();
+    shareExpiresAt = (shareRow?.expires_at as string | null) ?? null;
+  }
 
   const ui = getInvoiceContent(lang);
   const outputLocale = normalizeDocumentOutputLocale(invoice.output_locale);
@@ -71,6 +83,8 @@ export default async function InvoiceDetailPage({
       }
       senderName={profile?.company_name_line1 ?? ""}
       replyTo={profile?.email ?? ""}
+      shareToken={(invoice.share_token as string | null) ?? null}
+      shareExpiresAt={shareExpiresAt}
     />
   );
 }

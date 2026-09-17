@@ -15,6 +15,7 @@ import {
   SenderDetailFields,
   toIsoDate,
   useDocumentDateFields,
+  type ItemOption,
   type LineItemRow,
   type LineItemTotals,
 } from "../../documents/new-document-shared";
@@ -50,7 +51,7 @@ type PreviewForm = {
   taxRounding: TaxRounding;
 };
 
-export function NewReceiptClient() {
+export function NewReceiptClient({ items = [] }: { items?: ItemOption[] }) {
   const { lang } = useLanguage();
   const ui = getReceiptContent(lang);
   const previewLabels = getDocumentPreviewPanelLabels(lang);
@@ -89,6 +90,7 @@ export function NewReceiptClient() {
       storageKey="receipt-new-line-items"
       onTotalsChange={handleTotalsChange}
       onRowsChange={handleRowsChange}
+      items={items}
     />
   );
 

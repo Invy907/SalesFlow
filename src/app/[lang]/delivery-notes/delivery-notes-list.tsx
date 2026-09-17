@@ -1,12 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
 import { ListPageTabs } from "../list-page-shared";
 import { pageContainerClass } from "@/components/page-container";
+import {
+  toggleDeliveryNoteIssueFlag,
+  bulkMarkDeliveryNotesProcessed,
+  bulkUnmarkDeliveryNotesProcessed,
+  bulkConvertDeliveryNotesToInvoices,
+} from "@/lib/actions/delivery-notes";
 import { getDeliveryNoteContent } from "./content";
 
 export type DeliveryNoteListRow = {
@@ -18,6 +24,8 @@ export type DeliveryNoteListRow = {
   deliveryDate: string;
   total: number;
   status: string;
+  issued: boolean;
+  billed: boolean;
 };
 
 const yen = (v: number) => `¥${Math.round(v).toLocaleString("ja-JP")}`;
@@ -29,6 +37,8 @@ export function DeliveryNotesList({
   pageSize,
   activeTab,
   query,
+  issueFlag,
+  billedFlag,
 }: {
   rows: DeliveryNoteListRow[];
   total: number;
@@ -36,25 +46,101 @@ export function DeliveryNotesList({
   pageSize: number;
   activeTab: number;
   query: string;
+  issueFlag?: boolean;
+  billedFlag?: boolean;
 }) {
   const { lang } = useLanguage();
   const ui = getDeliveryNoteContent(lang);
   const router = useRouter();
   const [search, setSearch] = useState(query);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [lastClickedIndex, setLastClickedIndex] = useState<number | null>(null);
 
   const isTrashTab = activeTab === 2;
+  const isProcessedTab = activeTab === 1;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
-  function navigate(next: { tab?: number; q?: string; page?: number }) {
+  function navigate(next: {
+    tab?: number;
+    q?: string;
+    page?: number;
+    issueFlag?: boolean | undefined;
+    billedFlag?: boolean | undefined;
+  }) {
     const params = new URLSearchParams();
     const tab = next.tab ?? activeTab;
     const q = next.q ?? search;
+    const nextIssueFlag = "issueFlag" in next ? next.issueFlag : issueFlag;
+    const nextBilledFlag = "billedFlag" in next ? next.billedFlag : billedFlag;
     if (tab > 0) params.set("tab", String(tab));
     if (q) params.set("q", q);
+    if (nextIssueFlag !== undefined) params.set("issueFlag", nextIssueFlag ? "1" : "0");
+    if (nextBilledFlag !== undefined) params.set("billedFlag", nextBilledFlag ? "1" : "0");
     const p = next.page ?? 1;
     if (p > 1) params.set("page", String(p));
     const qs = params.toString();
     router.push(`/${lang}/delivery-notes${qs ? `?${qs}` : ""}`);
+  }
+
+  function handleToggleIssue(row: DeliveryNoteListRow) {
+    startTransition(async () => {
+      const result = await toggleDeliveryNoteIssueFlag(row.id);
+      if (result.ok) router.refresh();
+      else setError(result.error);
+    });
+  }
+
+  function toggleRow(rowId: string, index: number, shiftKey: boolean) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (shiftKey && lastClickedIndex !== null) {
+        const [from, to] = [lastClickedIndex, index].sort((a, b) => a - b);
+        const shouldSelect = !next.has(rowId);
+        for (let i = from; i <= to; i += 1) {
+          const id = rows[i]?.id;
+          if (!id) continue;
+          if (shouldSelect) next.add(id);
+          else next.delete(id);
+        }
+      } else if (next.has(rowId)) {
+        next.delete(rowId);
+      } else {
+        next.add(rowId);
+      }
+      return next;
+    });
+    setLastClickedIndex(index);
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((current) => (current.size === rows.length ? new Set() : new Set(rows.map((r) => r.id))));
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
+
+  function runBulk(action: (ids: string[]) => Promise<{ ok: boolean; error?: string }>) {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    startTransition(async () => {
+      const result = await action(ids);
+      if (result.ok) {
+        clearSelection();
+        router.refresh();
+      } else {
+        setError(result.error ?? "操作に失敗しました");
+      }
+    });
+  }
+
+  function handleMarkProcessed() {
+    const ids = [...selectedIds];
+    const hasUnissued = rows.some((r) => ids.includes(r.id) && !r.issued);
+    if (hasUnissued && !window.confirm(ui.markProcessedConfirm)) return;
+    runBulk(bulkMarkDeliveryNotesProcessed);
   }
 
   return (
@@ -67,7 +153,7 @@ export function DeliveryNotesList({
             </h1>
             {!isTrashTab ? (
               <Link
-                href="/delivery-notes/new"
+                href={`/${lang}/delivery-notes/new`}
                 className="inline-flex items-center justify-center rounded bg-[#0A4D34] px-5 py-3 text-[15px] font-semibold text-white transition hover:bg-[#083D29]"
               >
                 {ui.createDeliveryNote}
@@ -81,8 +167,26 @@ export function DeliveryNotesList({
             </p>
           ) : null}
 
+          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
           <div className="flex flex-col items-start gap-4 border-b border-slate-200 pb-4">
             <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:justify-end">
+              {!isTrashTab ? (
+                <div className="flex flex-wrap items-center gap-2 text-[13px]">
+                  <FilterToggle
+                    doneLabel={ui.issueBadge.done}
+                    pendingLabel={ui.issueBadge.pending}
+                    value={issueFlag}
+                    onChange={(next) => navigate({ issueFlag: next, page: 1 })}
+                  />
+                  <FilterToggle
+                    doneLabel={ui.billedBadge.done}
+                    pendingLabel={ui.billedBadge.pending}
+                    value={billedFlag}
+                    onChange={(next) => navigate({ billedFlag: next, page: 1 })}
+                  />
+                </div>
+              ) : null}
               <div className="flex w-full max-w-full rounded border border-slate-300 bg-white sm:max-w-[520px]">
                 <input
                   className="min-w-0 flex-1 px-4 py-3 text-[15px] text-slate-700 outline-none placeholder:text-slate-300"
@@ -115,15 +219,47 @@ export function DeliveryNotesList({
             />
           </div>
 
+          {selectedIds.size > 0 ? (
+            <div className="sticky top-0 z-10 flex flex-wrap items-center gap-3 rounded border border-[#9DD4BD] bg-[#E8F5EF] px-4 py-3 text-[14px]">
+              <span className="font-semibold text-[#062E1F]">
+                {ui.selectedCount.replace("{count}", String(selectedIds.size))}
+              </span>
+              <div className="ml-auto flex flex-wrap items-center gap-2">
+                <BulkButton
+                  label={ui.bulkConvertInvoice}
+                  onClick={() => runBulk(bulkConvertDeliveryNotesToInvoices)}
+                  disabled={pending}
+                />
+                {isProcessedTab ? (
+                  <BulkButton
+                    label={ui.unmarkProcessed}
+                    onClick={() => runBulk(bulkUnmarkDeliveryNotesProcessed)}
+                    disabled={pending}
+                  />
+                ) : (
+                  <BulkButton label={ui.markProcessed} onClick={handleMarkProcessed} disabled={pending} primary />
+                )}
+              </div>
+            </div>
+          ) : null}
+
           {rows.length === 0 ? (
             <div className="flex min-h-[720px] items-center justify-center text-[22px] text-slate-300">
               {ui.tabEmpty[activeTab]}
             </div>
           ) : (
             <div className="overflow-x-auto rounded border border-slate-200 bg-white">
-              <table className="w-full min-w-[900px] border-collapse text-[15px]">
+              <table className="w-full min-w-[1080px] border-collapse text-[15px]">
                 <thead>
                   <tr className="border-b border-slate-200 bg-[#f8fafc] text-left">
+                    <th className="w-10 px-4 py-3">
+                      <input
+                        type="checkbox"
+                        aria-label={ui.selectAll}
+                        checked={selectedIds.size > 0 && selectedIds.size === rows.length}
+                        onChange={toggleSelectAll}
+                      />
+                    </th>
                     {ui.listHeaders.map((h) => (
                       <th key={h} className="px-4 py-3 font-semibold text-slate-700">
                         {h}
@@ -132,8 +268,15 @@ export function DeliveryNotesList({
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((row) => (
+                  {rows.map((row, index) => (
                     <tr key={row.id} className="border-b border-slate-100 last:border-b-0">
+                      <td className="px-4 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(row.id)}
+                          onChange={(e) => toggleRow(row.id, index, (e.nativeEvent as MouseEvent).shiftKey)}
+                        />
+                      </td>
                       <td className="px-4 py-4 font-medium">
                         <Link
                           href={`/${lang}/delivery-notes/${row.id}`}
@@ -153,6 +296,18 @@ export function DeliveryNotesList({
                       </td>
                       <td className="px-4 py-4 text-slate-600">
                         {ui.statusLabels[row.status as keyof typeof ui.statusLabels] ?? row.status}
+                      </td>
+                      <td className="px-4 py-4">
+                        <StatusBadge
+                          active={row.issued}
+                          activeLabel={ui.issueBadge.done}
+                          inactiveLabel={ui.issueBadge.pending}
+                          onClick={() => handleToggleIssue(row)}
+                          disabled={pending}
+                        />
+                      </td>
+                      <td className="px-4 py-4">
+                        <StaticBadge active={row.billed} activeLabel={ui.billedBadge.done} inactiveLabel={ui.billedBadge.pending} />
                       </td>
                     </tr>
                   ))}
@@ -187,5 +342,115 @@ export function DeliveryNotesList({
         </div>
       </div>
     </SalesFlowShell>
+  );
+}
+
+function StatusBadge({
+  active,
+  activeLabel,
+  inactiveLabel,
+  onClick,
+  disabled,
+}: {
+  active: boolean;
+  activeLabel: string;
+  inactiveLabel: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={[
+        "rounded-full px-3 py-1 text-[13px] font-medium transition disabled:cursor-not-allowed disabled:opacity-60",
+        active ? "bg-[#E8F5EF] text-[#062E1F] ring-1 ring-[#9DD4BD] hover:bg-[#C5E6D8]" : "bg-slate-100 text-slate-500 ring-1 ring-slate-200 hover:bg-slate-200",
+      ].join(" ")}
+    >
+      {active ? activeLabel : inactiveLabel}
+    </button>
+  );
+}
+
+/** 請求バッジ: 「請求書に変換」実行からのみ自動で切り替わる表示専用バッジ。 */
+function StaticBadge({
+  active,
+  activeLabel,
+  inactiveLabel,
+}: {
+  active: boolean;
+  activeLabel: string;
+  inactiveLabel: string;
+}) {
+  return (
+    <span
+      className={[
+        "inline-flex rounded-full px-3 py-1 text-[13px] font-medium",
+        active ? "bg-[#E8F5EF] text-[#062E1F] ring-1 ring-[#9DD4BD]" : "bg-slate-100 text-slate-500 ring-1 ring-slate-200",
+      ].join(" ")}
+    >
+      {active ? activeLabel : inactiveLabel}
+    </span>
+  );
+}
+
+/** 未設定→完了のみ→未完了のみ→未設定の順で巡回するフィルタトグル。 */
+function FilterToggle({
+  doneLabel,
+  pendingLabel,
+  value,
+  onChange,
+}: {
+  doneLabel: string;
+  pendingLabel: string;
+  value: boolean | undefined;
+  onChange: (next: boolean | undefined) => void;
+}) {
+  const cycle = () => {
+    if (value === undefined) onChange(true);
+    else if (value === true) onChange(false);
+    else onChange(undefined);
+  };
+  const text = value === undefined ? `${doneLabel} / ${pendingLabel}` : value ? doneLabel : pendingLabel;
+  return (
+    <button
+      type="button"
+      onClick={cycle}
+      className={[
+        "rounded border px-3 py-1.5 font-medium transition",
+        value === undefined ? "border-slate-300 bg-white text-slate-600 hover:bg-slate-50" : "border-[#0A4D34] bg-[#E8F5EF] text-[#0A4D34]",
+      ].join(" ")}
+    >
+      {text}
+    </button>
+  );
+}
+
+function BulkButton({
+  label,
+  onClick,
+  disabled,
+  primary,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  primary?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={[
+        "rounded px-4 py-2 text-[13px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
+        primary
+          ? "bg-[#0A4D34] text-white hover:bg-[#083D29]"
+          : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
+      ].join(" ")}
+    >
+      {label}
+    </button>
   );
 }

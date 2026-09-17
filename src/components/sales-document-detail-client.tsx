@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SalesFlowShell, type ActiveItem } from "@/components/salesflow-shell";
 import type { SalesDocumentDetail, SalesDocumentDetailUi } from "@/lib/documents/detail-types";
@@ -11,10 +11,10 @@ import {
   clientHonorificSuffix,
   formatClientNameWithHonorific,
 } from "@/lib/documents/client-honorific";
-import { sendInvoiceEmail } from "@/lib/actions/invoices";
+import { sendInvoiceEmail, markInvoiceMailed, shareInvoice, revokeShareInvoice } from "@/lib/actions/invoices";
 import { formatSalesDocumentStatus } from "@/lib/document-status";
 
-type ExportAction = "download" | "excel" | "print" | "email";
+type ExportAction = "download" | "excel" | "print" | "email" | "mail" | "share";
 
 const yen = (value: number) => `¥ ${value.toLocaleString("ja-JP")}`;
 
@@ -28,6 +28,8 @@ export function SalesDocumentDetailClient({
   clientEmailCc = [],
   senderName = "",
   replyTo = "",
+  shareToken: initialShareToken = null,
+  shareExpiresAt: initialShareExpiresAt = null,
 }: {
   detail: SalesDocumentDetail;
   ui: SalesDocumentDetailUi;
@@ -38,10 +40,15 @@ export function SalesDocumentDetailClient({
   clientEmailCc?: string[];
   senderName?: string;
   replyTo?: string;
+  shareToken?: string | null;
+  shareExpiresAt?: string | null;
 }) {
   const router = useRouter();
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [shareToken, setShareToken] = useState(initialShareToken);
+  const [shareExpiresAt, setShareExpiresAt] = useState(initialShareExpiresAt);
   const [email, setEmail] = useState(clientEmail);
   const [cc, setCc] = useState(clientEmailCc.join(", "));
   const [mailSenderName, setMailSenderName] = useState(senderName || detail.sender.companyName);
@@ -57,6 +64,13 @@ export function SalesDocumentDetailClient({
   const [pending, startTransition] = useTransition();
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const isInvoice = shellActiveItem === "invoices";
+  const lang = listHref.split("/")[1] ?? "ja";
+
+  const shareUrl = useMemo(() => {
+    if (!shareToken) return "";
+    const base = typeof window === "undefined" ? "" : window.location.origin;
+    return `${base}/${lang}/invoices/shared/${shareToken}`;
+  }, [shareToken, lang]);
 
   useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
@@ -158,11 +172,58 @@ export function SalesDocumentDetailClient({
     });
   }
 
+  function handleMarkMailed() {
+    if (!isInvoice) return;
+    startTransition(async () => {
+      const result = await markInvoiceMailed(detail.id);
+      if (!result.ok) {
+        setToast(result.error);
+        return;
+      }
+      setToast(ui.mailedToast ?? "");
+      router.refresh();
+    });
+  }
+
+  function handleShare() {
+    if (!isInvoice) return;
+    startTransition(async () => {
+      const result = await shareInvoice(detail.id);
+      if (!result.ok) {
+        setToast(result.error);
+        return;
+      }
+      setShareToken(result.data.token);
+      setShareExpiresAt(result.data.expiresAt);
+      setToast(ui.shareModal?.copied ?? "");
+      router.refresh();
+    });
+  }
+
+  function handleRevokeShare() {
+    startTransition(async () => {
+      const result = await revokeShareInvoice(detail.id);
+      if (!result.ok) {
+        setToast(result.error);
+        return;
+      }
+      setShareToken(null);
+      setShareExpiresAt(null);
+      setToast(ui.shareRevoked ?? "");
+    });
+  }
+
   function handleExportAction(action: ExportAction) {
     setIsExportMenuOpen(false);
     switch (action) {
       case "email":
         setIsEmailModalOpen(true);
+        return;
+      case "mail":
+        handleMarkMailed();
+        return;
+      case "share":
+        setIsShareModalOpen(true);
         return;
       case "download":
         setToast(ui.actions.downloaded);
@@ -213,6 +274,18 @@ export function SalesDocumentDetailClient({
                   <ExportMenuItem
                     label={ui.exportMenu.email}
                     onClick={() => handleExportAction("email")}
+                  />
+                ) : null}
+                {isInvoice && ui.exportMenu.mail ? (
+                  <ExportMenuItem
+                    label={ui.exportMenu.mail}
+                    onClick={() => handleExportAction("mail")}
+                  />
+                ) : null}
+                {isInvoice && ui.exportMenu.share ? (
+                  <ExportMenuItem
+                    label={ui.exportMenu.share}
+                    onClick={() => handleExportAction("share")}
                   />
                 ) : null}
               </div>
@@ -281,6 +354,60 @@ export function SalesDocumentDetailClient({
           onAttachmentChange={setAttachment}
           onSubmit={handleSendEmail}
         />
+      ) : null}
+
+      {isShareModalOpen && ui.shareModal ? (
+        <div className="no-print fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 p-6">
+          <div className="w-full max-w-[560px] overflow-hidden rounded-2xl bg-white shadow-[0_24px_60px_rgba(15,23,42,0.28)]">
+            <ModalHeader title={ui.shareModal.title} onClose={() => setIsShareModalOpen(false)} />
+            <div className="space-y-4 px-9 py-8">
+              <p className="text-[16px] text-slate-800">{ui.shareModal.description}</p>
+              <p className="text-[13px] text-slate-500">{ui.shareModal.caution}</p>
+              {shareToken ? (
+                <div className="space-y-2 rounded border border-slate-200 bg-slate-50 px-4 py-3">
+                  <p className="break-all text-[14px] text-slate-700">{shareUrl}</p>
+                  {shareExpiresAt ? (
+                    <p className="text-[12px] text-slate-500">
+                      {ui.shareExpires}: {shareExpiresAt.slice(0, 10)}
+                    </p>
+                  ) : null}
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard?.writeText(shareUrl);
+                        setToast(ui.shareModal!.copied);
+                      }}
+                      className="text-[13px] font-semibold text-[#0A4D34] hover:underline"
+                    >
+                      {ui.shareModal.copyAction ?? ui.shareModal.submit}
+                    </button>
+                    {ui.shareRevoke ? (
+                      <button
+                        type="button"
+                        onClick={handleRevokeShare}
+                        disabled={pending}
+                        className="text-[13px] text-red-600 hover:underline disabled:opacity-60"
+                      >
+                        {ui.shareRevoke}
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+            <div className="flex justify-end gap-3 border-t border-slate-200 px-9 py-5">
+              <button
+                type="button"
+                onClick={handleShare}
+                disabled={pending}
+                className="rounded bg-[#0A4D34] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#083D29] disabled:opacity-60"
+              >
+                {ui.shareModal.submit}
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </SalesFlowShell>
   );

@@ -79,8 +79,19 @@ export const createEstimateSchema = z.object({
 });
 
 export const createInvoiceSchema = createEstimateSchema.extend({
-  /** Empty means the normal numbering rule is used. */
-  documentNumber: z.string().trim().max(64).optional(),
+  /**
+   * Empty means the normal numbering rule is used. Braces are rejected so a
+   * numbering-template string (e.g. "{連番:M,3}") can never be saved/shown
+   * as-is on a manually entered invoice number (依頼1).
+   */
+  documentNumber: z
+    .string()
+    .trim()
+    .max(64)
+    .refine((value) => !/[{}]/.test(value), {
+      message: "「{」「}」は使用できません",
+    })
+    .optional(),
   paymentDue: z.coerce.date().nullish(),
   deliveryDate: z.coerce.date().nullish(),
   billingMonth: z.string().optional(),

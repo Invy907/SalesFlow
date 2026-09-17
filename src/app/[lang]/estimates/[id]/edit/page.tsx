@@ -12,5 +12,5 @@ export default async function EstimateEditPage({
   const { lang, id } = await params;
   const data = await buildEditEstimateInitial(lang, id);
   if (!data) notFound();
-  return <EstimateFormClient initial={data.initial} clients={data.clients} />;
+  return <EstimateFormClient initial={data.initial} clients={data.clients} items={data.items} />;
 }

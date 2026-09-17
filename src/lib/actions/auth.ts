@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveHomePathAfterLogin } from "@/lib/display-settings.server";
 import { isSignupEmailAlreadyRegistered } from "@/lib/auth/signup";
 import { buildAuthCallbackUrl } from "@/lib/site-url";
 import { getServerSiteUrl } from "@/lib/site-url.server";
@@ -33,7 +34,7 @@ export async function signIn(
     return { error: "AUTH_GENERIC" };
   }
 
-  redirect(`/${lang}`);
+  redirect(await resolveHomePathAfterLogin(lang));
 }
 
 export async function signUp(

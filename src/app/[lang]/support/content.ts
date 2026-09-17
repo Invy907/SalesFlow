@@ -15,6 +15,11 @@ const labels = {
         title: "請求書の作り方ガイド",
         description: "新規作成画面と同じタブ構成で、各項目の入力ポイントを解説します。",
       },
+      {
+        key: "order-form-guide",
+        title: "受注フォームの使い方ガイド",
+        description: "オンライン受注フォームでできることや使い方をご紹介します。",
+      },
     ],
     faqSection: "よくある質問",
     faqItems: [
@@ -53,6 +58,11 @@ const labels = {
         key: "invoice-guide",
         title: "청구서 작성 가이드",
         description: "신규 작성 화면과 같은 탭 구성으로 각 항목 입력 포인트를 안내합니다.",
+      },
+      {
+        key: "order-form-guide",
+        title: "수주 폼 이용 가이드",
+        description: "온라인 수주 폼으로 할 수 있는 것과 사용법을 소개합니다.",
       },
     ],
     faqSection: "자주 묻는 질문",
@@ -93,6 +103,11 @@ const labels = {
         title: "How to Create an Invoice",
         description: "Follow the same tabs as the new invoice form with tips for each field.",
       },
+      {
+        key: "order-form-guide",
+        title: "How to Use Order Forms",
+        description: "See what the online order form can do and how to use it.",
+      },
     ],
     faqSection: "Frequently Asked Questions",
     faqItems: [
@@ -126,9 +141,10 @@ export function getSupportContent(lang: AppLocale) {
 
 export function getSupportHref(
   _lang: AppLocale,
-  page: "top" | "invoice-guide" | "announcements" = "top",
+  page: "top" | "invoice-guide" | "order-form-guide" | "announcements" = "top",
 ) {
   if (page === "invoice-guide") return "/support/invoice-guide";
+  if (page === "order-form-guide") return "/support/order-form-guide";
   if (page === "announcements") return "/support/announcements";
   return "/support";
 }

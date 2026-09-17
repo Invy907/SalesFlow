@@ -12,10 +12,20 @@ import type { SalesDocumentDetail } from "@/lib/documents/detail-types";
 import { sendSalesDocumentEmail } from "@/lib/documents/send-document-email";
 import type { DocumentEmailComposeInput } from "@/lib/documents/send-document-email";
 import { getServerSiteUrl } from "@/lib/site-url.server";
+import { newShareToken, shareExpiryFromNow } from "@/lib/share-tokens";
+import { logInvoiceStatusEvent, markInvoiceIssued } from "@/lib/documents/invoice-status";
 
 type ActionResult<T = void> =
   | { ok: true; data: T }
   | { ok: false; error: string; fieldErrors?: Record<string, string> };
+
+const DOCUMENT_STATUSES = ["draft", "issued", "sent", "confirmed", "overdue"] as const;
+type InvoiceStatus = (typeof DOCUMENT_STATUSES)[number];
+
+function uniqueValidIds(ids: string[]): string[] {
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return [...new Set(ids)].filter((id) => typeof id === "string" && UUID_RE.test(id));
+}
 
 export async function createInvoice(
   formData: CreateInvoiceInput,
@@ -273,9 +283,201 @@ export async function sendInvoiceEmail(
   });
 
   if (result.ok) {
+    // 依頼2 2): 請求書メールを送信したら発行済とみなす。
+    await markInvoiceIssued(supabase, { orgId: org.organization_id, userId: user.id }, invoiceId, "email");
+    revalidatePath("/[lang]/invoices", "page");
     revalidatePath(`/[lang]/invoices/${invoiceId}`, "page");
   }
   return result;
+}
+
+/**
+ * 依頼2 2): 郵送手続き完了の記録。物理配送業者連携はまだ無いため、
+ * 印刷して発送したことを記録する運用。
+ */
+export async function markInvoiceMailed(invoiceId: string): Promise<ActionResult> {
+  const supabase = await getSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Unauthorized" };
+
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+
+  await markInvoiceIssued(supabase, { orgId: org.organization_id, userId: user.id }, invoiceId, "mail");
+  revalidatePath("/[lang]/invoices", "page");
+  revalidatePath(`/[lang]/invoices/${invoiceId}`, "page");
+  return { ok: true, data: undefined };
+}
+
+/** 依頼2 2): 共有可能なリンクを取得したら発行済とみなす。 */
+export async function shareInvoice(
+  invoiceId: string,
+  days?: number,
+): Promise<ActionResult<{ token: string; expiresAt: string }>> {
+  const supabase = await getSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Unauthorized" };
+
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+
+  const { data: existing } = await supabase
+    .from("invoices")
+    .select("share_token")
+    .eq("id", invoiceId)
+    .maybeSingle();
+
+  if (existing?.share_token) {
+    await supabase
+      .from("share_tokens")
+      .update({ revoked_at: new Date().toISOString() })
+      .eq("token", existing.share_token);
+  }
+
+  const token = newShareToken();
+  const expiresAt = shareExpiryFromNow(days);
+
+  const { error } = await supabase.from("share_tokens").insert({
+    token,
+    organization_id: org.organization_id,
+    target_table: "invoices",
+    target_id: invoiceId,
+    created_by: user.id,
+    expires_at: expiresAt,
+    revoked_at: null,
+  });
+
+  if (error) return { ok: false, error: error.message };
+
+  await supabase.from("invoices").update({ share_token: token }).eq("id", invoiceId);
+  await markInvoiceIssued(supabase, { orgId: org.organization_id, userId: user.id }, invoiceId, "share");
+
+  revalidatePath("/[lang]/invoices", "page");
+  revalidatePath(`/[lang]/invoices/${invoiceId}`, "page");
+  return { ok: true, data: { token, expiresAt } };
+}
+
+export async function revokeShareInvoice(invoiceId: string): Promise<ActionResult> {
+  const supabase = await getSupabaseServerClient();
+
+  const { data: invoice } = await supabase
+    .from("invoices")
+    .select("share_token")
+    .eq("id", invoiceId)
+    .single();
+
+  if (invoice?.share_token) {
+    await supabase
+      .from("share_tokens")
+      .update({ revoked_at: new Date().toISOString() })
+      .eq("token", invoice.share_token);
+  }
+
+  const { error } = await supabase
+    .from("invoices")
+    .update({ share_token: null })
+    .eq("id", invoiceId);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/[lang]/invoices/${invoiceId}`, "page");
+  return { ok: true, data: undefined };
+}
+
+/** 依頼2 3): 入金ステータス(payment_marked_at)の手動トグル。 */
+export async function toggleInvoicePaymentFlag(invoiceId: string): Promise<ActionResult<boolean>> {
+  const supabase = await getSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Unauthorized" };
+
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+
+  const { data: current, error: readErr } = await supabase
+    .from("invoices")
+    .select("payment_marked_at")
+    .eq("id", invoiceId)
+    .maybeSingle();
+  if (readErr) return { ok: false, error: readErr.message };
+  if (!current) return { ok: false, error: "請求書が見つかりません" };
+
+  const next = current.payment_marked_at ? null : new Date().toISOString();
+  const { error } = await supabase.from("invoices").update({ payment_marked_at: next }).eq("id", invoiceId);
+  if (error) return { ok: false, error: error.message };
+
+  await logInvoiceStatusEvent(supabase, {
+    orgId: org.organization_id,
+    userId: user.id,
+    invoiceId,
+    statusType: "payment",
+    previousValue: current.payment_marked_at ? "paid" : "unpaid",
+    newValue: next ? "paid" : "unpaid",
+    source: "manual",
+  });
+
+  revalidatePath("/[lang]/invoices", "page");
+  return { ok: true, data: Boolean(next) };
+}
+
+export async function bulkSetInvoicesStatus(
+  ids: string[],
+  status: InvoiceStatus,
+): Promise<ActionResult<{ updated: number }>> {
+  const validIds = uniqueValidIds(ids);
+  if (validIds.length === 0) return { ok: false, error: "請求書が選択されていません" };
+  if (!DOCUMENT_STATUSES.includes(status)) return { ok: false, error: "ステータスの指定が正しくありません" };
+
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+
+  const supabase = await getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("invoices")
+    .update({ status })
+    .in("id", validIds)
+    .eq("organization_id", org.organization_id)
+    .select("id");
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/[lang]/invoices", "page");
+  return { ok: true, data: { updated: data?.length ?? 0 } };
+}
+
+/** 依頼3: 체크박스 일괄 "処理済みにする". status を confirmed 로. */
+export async function bulkMarkInvoicesProcessed(ids: string[]) {
+  return bulkSetInvoicesStatus(ids, "confirmed");
+}
+
+/**
+ * 依頼3: "未処理に戻す". 発行 배지(issued_marked_at)가 있으면 issued로, 없으면 draft로
+ * 되돌린다(대상들의 발행 배지 상태가 다를 수 있어 건별로 계산한다).
+ */
+export async function bulkUnmarkInvoicesProcessed(ids: string[]): Promise<ActionResult<{ updated: number }>> {
+  const validIds = uniqueValidIds(ids);
+  if (validIds.length === 0) return { ok: false, error: "請求書が選択されていません" };
+
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+
+  const supabase = await getSupabaseServerClient();
+  const { data: rows, error: readErr } = await supabase
+    .from("invoices")
+    .select("id, issued_marked_at")
+    .in("id", validIds)
+    .eq("organization_id", org.organization_id);
+  if (readErr) return { ok: false, error: readErr.message };
+
+  let updated = 0;
+  for (const row of rows ?? []) {
+    const { error } = await supabase
+      .from("invoices")
+      .update({ status: row.issued_marked_at ? "issued" : "draft" })
+      .eq("id", row.id);
+    if (!error) updated += 1;
+  }
+
+  revalidatePath("/[lang]/invoices", "page");
+  return { ok: true, data: { updated } };
 }
 
 export async function deleteInvoice(invoiceId: string): Promise<ActionResult> {

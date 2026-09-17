@@ -3,6 +3,7 @@ export const appHrefs = {
   home: "/",
   support: "/support",
   supportInvoiceGuide: "/support/invoice-guide",
+  supportOrderFormGuide: "/support/order-form-guide",
   settingsDocumentDefaults: "/settings/document-defaults",
   settingsCompany: "/settings/company",
   settingsPayment: "/settings/payment",

@@ -38,6 +38,7 @@ import { buildEstimateDetailUi } from "@/lib/documents/build-detail-ui";
 import { getDocumentPreviewPanelLabels } from "@/lib/documents/preview-panel-labels";
 import type { TaxRounding } from "@/lib/tax";
 import type { ClientOption } from "./estimate-form-data";
+import type { ItemOption } from "../documents/new-document-shared";
 import { AiEstimatePanel } from "@/components/ai-estimates/ai-estimate-panel";
 import { taxLabelFromCategory } from "@/lib/ai/estimates/normalize";
 import type { AiEstimateDraft } from "@/lib/ai/estimates/schemas";
@@ -78,9 +79,11 @@ export type EstimateFormInitial = {
 export function EstimateFormClient({
   initial,
   clients,
+  items = [],
 }: {
   initial: EstimateFormInitial;
   clients: ClientOption[];
+  items?: ItemOption[];
 }) {
   const { lang } = useLanguage();
   const ui = getEstimateContent(lang);
@@ -144,6 +147,7 @@ export function EstimateFormClient({
         const taxCategory = taxCategoryFromLabel(r.tax);
         const blank = isBlankLineRow(r);
         return {
+          itemId: blank ? undefined : (r.itemId ?? undefined),
           name: blank ? "" : r.name,
           qty: blank ? 0 : r.qty === "" ? 1 : Number(r.qty),
           unit: blank ? "" : r.unit,
@@ -202,6 +206,7 @@ export function EstimateFormClient({
       initialRows={rowReplacement?.rows ?? (isEdit ? initial.lines : undefined)}
       onTotalsChange={handleTotalsChange}
       onRowsChange={handleRowsChange}
+      items={items}
     />
   );
 

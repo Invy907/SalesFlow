@@ -75,6 +75,28 @@ export async function deleteItem(itemId: string): Promise<ActionResult> {
   return { ok: true, data: undefined };
 }
 
+export async function bulkDeleteItems(ids: string[]): Promise<ActionResult<{ deleted: number }>> {
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const validIds = [...new Set(ids)].filter((id) => typeof id === "string" && UUID_RE.test(id));
+  if (validIds.length === 0) return { ok: false, error: "品目が選択されていません" };
+
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+
+  const supabase = await getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("items")
+    .update({ deleted_at: new Date().toISOString() })
+    .in("id", validIds)
+    .eq("organization_id", org.organization_id)
+    .select("id");
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/[lang]/items", "page");
+  return { ok: true, data: { deleted: data?.length ?? 0 } };
+}
+
 export type BulkItemRow = {
   row: number;
   name: string;

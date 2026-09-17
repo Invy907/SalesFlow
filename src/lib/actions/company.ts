@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getActiveOrganization } from "@/lib/db/organizations";
+import { normalizeHomePage, normalizeListPageSize } from "@/lib/display-settings";
 
 type ActionResult<T = void> =
   | { ok: true; data: T }
@@ -100,6 +101,13 @@ export async function uploadCompanySeal(
   return { ok: true, data: publicUrl };
 }
 
+/**
+ * A numbering rule without a sequence token would hand the same number to every
+ * document, so at least one {name:Y|M|D|A,digits} token is required. The token
+ * name is not checked, matching next_document_number (依頼1).
+ */
+const SEQ_TOKEN_RE = /\{[^{}:]+:[YMDA],\d+\}/;
+
 export async function saveDocumentDefaults(data: {
   numberingRule?: string;
   lineItemLabelName?: string;
@@ -126,6 +134,11 @@ export async function saveDocumentDefaults(data: {
   const supabase = await getSupabaseServerClient();
   const org = await getActiveOrganization();
   if (!org) return { ok: false, error: "No active organization" };
+
+  const numberingRule = data.numberingRule?.trim() ?? "";
+  if (numberingRule && !SEQ_TOKEN_RE.test(numberingRule)) {
+    return { ok: false, error: "{連番:M,3} のような連番トークンが必要です" };
+  }
 
   const { error } = await supabase
     .from("document_defaults")
@@ -172,21 +185,27 @@ export async function saveDocumentDefaults(data: {
   return { ok: true, data: undefined };
 }
 
-export async function updateDisplaySettings(
-  orgId: string,
-  data: { listPageSize?: number; homePageAfterLogin?: string },
-): Promise<ActionResult> {
+export async function updateDisplaySettings(data: {
+  listPageSize?: number;
+  homePageAfterLogin?: string;
+}): Promise<ActionResult> {
   const supabase = await getSupabaseServerClient();
-  const { error } = await supabase
-    .from("display_settings")
-    .update({
-      list_page_size: data.listPageSize,
-      home_page_after_login: data.homePageAfterLogin,
-    })
-    .eq("organization_id", orgId);
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+
+  // 一覧の描画とログイン後の遷移先に使う値なので、候補外は既定値に丸める。
+  const { error } = await supabase.from("display_settings").upsert(
+    {
+      organization_id: org.organization_id,
+      list_page_size: normalizeListPageSize(data.listPageSize),
+      home_page_after_login: normalizeHomePage(data.homePageAfterLogin),
+    },
+    { onConflict: "organization_id" },
+  );
 
   if (error) return { ok: false, error: error.message };
   revalidatePath("/[lang]/settings/display", "page");
+  revalidatePath("/[lang]", "layout");
   return { ok: true, data: undefined };
 }
 

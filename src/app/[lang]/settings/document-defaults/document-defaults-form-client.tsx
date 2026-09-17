@@ -25,13 +25,13 @@ function previewNumbering(rule: string, now = new Date()) {
   const yyyy = String(now.getFullYear());
   const mm = String(now.getMonth() + 1).padStart(2, "0");
   const dd = String(now.getDate()).padStart(2, "0");
-  const m = rule.match(/\{連番:([YMDA]),(\d+)\}/);
+  const m = rule.match(/\{[^{}:]+:([YMDA]),(\d+)\}/);
   const digits = m ? Math.min(9, Math.max(1, Number(m[2]))) : 3;
   return rule
     .replace(/\{Y\}/g, yyyy)
     .replace(/\{M\}/g, mm)
     .replace(/\{D\}/g, dd)
-    .replace(/\{連番:[YMDA],\d+\}/g, "1".padStart(digits, "0"));
+    .replace(/\{[^{}:]+:[YMDA],\d+\}/g, "1".padStart(digits, "0"));
 }
 
 export function DocumentDefaultsFormClient({ initial }: { initial: DocumentDefaultsForm }) {

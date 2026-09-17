@@ -3,7 +3,7 @@ import type { DocumentFilter } from "./estimates";
 
 export async function getDeliveryNotes(orgId: string, filter: DocumentFilter = {}) {
   const supabase = await getSupabaseServerClient();
-  const { clientId, status, statusIn, trashed, from, to, query, page = 1, pageSize = 30 } = filter;
+  const { clientId, status, statusIn, trashed, issueFlag, billedFlag, from, to, query, page = 1, pageSize = 30 } = filter;
 
   let q = supabase
     .from("delivery_notes")
@@ -16,6 +16,8 @@ export async function getDeliveryNotes(orgId: string, filter: DocumentFilter = {
   if (clientId) q = q.eq("client_id", clientId);
   if (status) q = q.eq("status", status);
   if (statusIn?.length) q = q.in("status", statusIn);
+  if (issueFlag !== undefined) q = issueFlag ? q.not("issued_marked_at", "is", null) : q.is("issued_marked_at", null);
+  if (billedFlag !== undefined) q = billedFlag ? q.not("billed_marked_at", "is", null) : q.is("billed_marked_at", null);
   if (from) q = q.gte("issue_date", from);
   if (to) q = q.lte("issue_date", to);
   if (query) q = q.or(`document_number.ilike.%${query}%,subject.ilike.%${query}%`);
