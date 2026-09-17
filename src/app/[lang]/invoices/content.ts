@@ -41,6 +41,7 @@ const labels = {
     selectAll: "すべて選択",
     // 신규 작성 폼
     newTitle: "請求書の新規作成",
+    editAction: "編集",
     draftBadge: "下書き",
     autoNumber: "保存時に自動採番されます",
     billingMonthLabel: "請求月",
@@ -358,6 +359,7 @@ const labels = {
     selectedCount: "{count}건 선택됨",
     selectAll: "전체 선택",
     newTitle: "청구서 신규 작성",
+    editAction: "편집",
     draftBadge: "임시저장",
     autoNumber: "저장할 때 자동으로 채번됩니다",
     billingMonthLabel: "청구 월",
@@ -666,6 +668,7 @@ const labels = {
     selectedCount: "{count} selected",
     selectAll: "Select all",
     newTitle: "Create invoice",
+    editAction: "Edit",
     draftBadge: "Draft",
     autoNumber: "Numbered automatically on save",
     billingMonthLabel: "Billing month",

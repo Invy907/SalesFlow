@@ -4,6 +4,8 @@ export async function getOrders(
   orgId: string,
   opts: {
     statusId?: string;
+    statusIds?: string[];
+    allowNullStatus?: boolean;
     clientId?: string;
     trashed?: boolean;
     query?: string;
@@ -12,7 +14,8 @@ export async function getOrders(
   } = {},
 ) {
   const supabase = await getSupabaseServerClient();
-  const { statusId, clientId, trashed, query, page = 1, pageSize = 30 } = opts;
+  const { statusId, statusIds, allowNullStatus, clientId, trashed, query, page = 1, pageSize = 30 } =
+    opts;
 
   let q = supabase
     .from("orders")
@@ -22,7 +25,16 @@ export async function getOrders(
 
   q = trashed ? q.not("deleted_at", "is", null) : q.is("deleted_at", null);
 
-  if (statusId) q = q.eq("status_id", statusId);
+  if (statusId) {
+    q = q.eq("status_id", statusId);
+  } else if (statusIds && statusIds.length > 0) {
+    const list = statusIds.join(",");
+    if (allowNullStatus) {
+      q = q.or(`status_id.in.(${list}),status_id.is.null`);
+    } else {
+      q = q.in("status_id", statusIds);
+    }
+  }
   if (clientId) q = q.eq("client_id", clientId);
   if (query) q = q.or(`order_number.ilike.%${query}%,subject.ilike.%${query}%`);
 
@@ -86,4 +98,25 @@ export async function getOrderCounts(orgId: string) {
   }
 
   return { byStatus, trashed: trashed.count ?? 0 };
+}
+
+export function aggregateOrderTabCounts(
+  statuses: Array<{ id: string; system_key: string | null }>,
+  byStatus: Record<string, number>,
+  trashed: number,
+) {
+  const unprocessedIds = new Set(
+    statuses.filter((s) => s.system_key === "unprocessed" || s.system_key === null).map((s) => s.id),
+  );
+  const processedIds = new Set(statuses.filter((s) => s.system_key === "processed").map((s) => s.id));
+
+  let unprocessed = byStatus.__none__ ?? 0;
+  let processed = 0;
+  for (const [statusId, count] of Object.entries(byStatus)) {
+    if (statusId === "__none__") continue;
+    if (unprocessedIds.has(statusId)) unprocessed += count;
+    if (processedIds.has(statusId)) processed += count;
+  }
+
+  return { unprocessed, processed, trashed };
 }

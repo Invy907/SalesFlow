@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getActiveOrganization } from "@/lib/db/organizations";
+import { createReceiptSchema, hasContentLineItem, type CreateReceiptInput } from "@/lib/validators/document";
+import { computeDocumentTotals } from "@/lib/tax";
 
 type ActionResult<T = void> =
   | { ok: true; data: T }
@@ -10,6 +12,98 @@ type ActionResult<T = void> =
 
 const DOCUMENT_STATUSES = ["draft", "issued", "sent", "confirmed", "overdue"] as const;
 type ReceiptStatus = (typeof DOCUMENT_STATUSES)[number];
+
+export async function createReceipt(formData: CreateReceiptInput): Promise<ActionResult<string>> {
+  const parsed = createReceiptSchema.safeParse(formData);
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const [field, msgs] of Object.entries(parsed.error.flatten().fieldErrors)) {
+      fieldErrors[field] = msgs?.[0] ?? "Invalid";
+    }
+    return { ok: false, error: "Validation failed", fieldErrors };
+  }
+
+  if (!hasContentLineItem(parsed.data.lineItems)) {
+    return {
+      ok: false,
+      error: "Validation failed",
+      fieldErrors: { lineItems: "明細を1行以上入力してください" },
+    };
+  }
+
+  const supabase = await getSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Unauthorized" };
+
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+
+  const { data: docNum, error: seqErr } = await supabase.rpc("next_document_number", {
+    _org: org.organization_id,
+    _doc_type: "receipt",
+    _issue_date: parsed.data.issueDate.toISOString().slice(0, 10),
+  });
+  if (seqErr) return { ok: false, error: seqErr.message };
+
+  const totals = computeDocumentTotals(parsed.data.lineItems, parsed.data.taxRounding);
+
+  const { data: receipt, error: insertErr } = await supabase
+    .from("receipts")
+    .insert({
+      organization_id: org.organization_id,
+      client_id: parsed.data.clientId ?? null,
+      client_destination_id: parsed.data.clientDestinationId ?? null,
+      document_number: docNum,
+      subject: parsed.data.subject ?? null,
+      issue_date: parsed.data.issueDate.toISOString().slice(0, 10),
+      transaction_date: parsed.data.transactionDate?.toISOString().slice(0, 10) ?? null,
+      linked_invoice_id: parsed.data.linkedInvoiceId ?? null,
+      status: "draft",
+      tax_display: parsed.data.taxDisplay,
+      tax_rounding: parsed.data.taxRounding,
+      withholding_type: parsed.data.withholdingType,
+      template_key: parsed.data.templateKey ?? null,
+      output_locale: parsed.data.outputLocale,
+      client_honorific: parsed.data.clientHonorific,
+      show_client_honorific: parsed.data.clientHonorific !== "none",
+      show_seal: parsed.data.showSeal,
+      template_message: parsed.data.templateMessage ?? null,
+      remarks: parsed.data.remarks ?? null,
+      internal_memo: parsed.data.internalMemo ?? null,
+      recipient_snapshot: parsed.data.recipientSnapshot ?? null,
+      sender_snapshot: parsed.data.senderSnapshot ?? null,
+      subtotal: totals.subtotal,
+      tax_amount: totals.tax,
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
+
+  if (insertErr || !receipt) return { ok: false, error: insertErr?.message ?? "Insert failed" };
+
+  if (parsed.data.lineItems.length > 0) {
+    const lines = parsed.data.lineItems.map((li, idx) => ({
+      document_id: receipt.id,
+      line_no: idx + 1,
+      item_id: li.itemId ?? null,
+      name_snapshot: li.name,
+      qty: li.qty,
+      unit_snapshot: li.unit ?? null,
+      unit_price_snapshot: li.unitPrice,
+      tax_category: li.taxCategory,
+      tax_rate_snapshot: li.taxRateSnapshot,
+      withholding_exempt_snapshot: li.withholdingExempt ?? null,
+    }));
+
+    const { error: lineErr } = await supabase.from("receipt_line_items").insert(lines);
+    if (lineErr) return { ok: false, error: lineErr.message };
+  }
+
+  revalidatePath("/[lang]/receipts", "page");
+  return { ok: true, data: receipt.id };
+}
 
 function uniqueValidIds(ids: string[]): string[] {
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

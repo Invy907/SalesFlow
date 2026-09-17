@@ -13,6 +13,7 @@ import {
   DocumentLineItemsTable,
   EMPTY_LINE_ITEM_TOTALS,
   HonorificField as SharedHonorificField,
+  RecipientPostalCodeField,
   toIsoDate,
   useDocumentDateFields,
   type ItemOption,
@@ -32,6 +33,7 @@ import {
   type DocumentOutputLocale,
 } from "@/lib/documents/output-locale";
 import { getDeliveryNoteContent } from "../content";
+import { getSettingsContent } from "../../settings/content";
 import { DocumentPreviewPanel } from "../../documents/document-live-preview";
 import { buildDeliveryNoteDetailUi } from "@/lib/documents/build-detail-ui";
 import { getDocumentPreviewPanelLabels } from "@/lib/documents/preview-panel-labels";
@@ -113,6 +115,7 @@ export function NewDeliveryNoteClient({
 }) {
   const { lang } = useLanguage();
   const ui = getDeliveryNoteContent(lang);
+  const companyUi = getSettingsContent(lang).company;
   const previewLabels = getDocumentPreviewPanelLabels(lang);
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -382,14 +385,19 @@ export function NewDeliveryNoteClient({
           <>
             <div className="mt-10 max-w-[600px] space-y-5">
               <FormField label={ui.postalCode}>
-                <div className="flex gap-3">
-                  <input
-                    className="field w-full max-w-[180px]"
-                    placeholder={ui.postalCodePlaceholder}
-                    value={form.recipient.postalCode}
-                    onChange={(e) => setRecipient("postalCode", e.target.value)}
-                  />
-                </div>
+                <RecipientPostalCodeField
+                  postalCode={form.recipient.postalCode}
+                  onPostalCodeChange={(v) => setRecipient("postalCode", v)}
+                  onAddressResolved={(addr) => {
+                    setRecipient("postalCode", addr.postalCode);
+                    setRecipient("addressLine1", addr.addressLine1);
+                  }}
+                  lookupLabel={ui.postalCodeLookup}
+                  placeholder={ui.postalCodePlaceholder}
+                  invalidMessage={companyUi.postalCodeInvalid}
+                  notFoundMessage={companyUi.postalCodeLookupFailed}
+                  networkErrorMessage={companyUi.postalCodeLookupNetworkError}
+                />
               </FormField>
 
               <FormField label={ui.address}>
@@ -447,9 +455,6 @@ export function NewDeliveryNoteClient({
                 />
               </FormField>
             </div>
-
-            {lineItemsTable}
-            <RemarksField ui={ui} value={form.remarks} onChange={(v) => set("remarks", v)} />
           </>
         )}
 
@@ -502,31 +507,6 @@ export function NewDeliveryNoteClient({
                   ))}
                 </div>
               </section>
-            </div>
-
-            {lineItemsTable}
-
-            <div className="mt-12">
-              <label className="mb-2 block text-[18px] font-semibold text-slate-800">
-                {ui.remarks}
-              </label>
-              <textarea
-                className="field min-h-[140px]"
-                value={form.remarks}
-                onChange={(e) => set("remarks", e.target.value)}
-              />
-              <div className="mt-2 flex items-center justify-between text-sm text-slate-500">
-                <label className="flex cursor-pointer items-center gap-2">
-                  <input type="checkbox" className="h-4 w-4 accent-[#0A4D34]" />
-                  {ui.documentRemarks}
-                </label>
-                <div className="flex items-center gap-2">
-                  <Link href={appHrefs.settingsDocumentDefaults} className="text-[#0A4D34] underline">
-                    {ui.documentSettings} ↗
-                  </Link>
-                  <span className="text-slate-400">20以内 0/1000</span>
-                </div>
-              </div>
             </div>
           </>
         )}
@@ -600,8 +580,6 @@ export function NewDeliveryNoteClient({
                 </div>
               </div>
             </div>
-
-            {lineItemsTable}
           </>
         )}
         </div>

@@ -211,9 +211,6 @@ export function NewInvoiceClient() {
                 </div>
               </section>
             </div>
-
-            <DocumentLineItemsTable ui={ui} storageKey="invoice-new-line-items" onTotalsChange={setLineItemTotals} />
-            <RemarksField ui={ui} />
           </>
         )}
 
@@ -276,27 +273,6 @@ export function NewInvoiceClient() {
               <Link href={appHrefs.support} className="text-sm text-[#0A4D34] underline">
                 {ui.deliveryDateLink} ↗
               </Link>
-            </div>
-
-            <DocumentLineItemsTable ui={ui} storageKey="invoice-new-line-items" onTotalsChange={setLineItemTotals} />
-
-            <div className="mt-12">
-              <label className="mb-2 block text-[18px] font-semibold text-slate-800">
-                {ui.remarks}
-              </label>
-              <textarea className="field min-h-[140px]" />
-              <div className="mt-2 flex items-center justify-between text-sm text-slate-500">
-                <label className="flex cursor-pointer items-center gap-2">
-                  <input type="checkbox" className="h-4 w-4 accent-[#0A4D34]" />
-                  {ui.documentRemarks}
-                </label>
-                <div className="flex items-center gap-2">
-                  <button className="text-[#0A4D34] underline">
-                    {ui.documentSettings} ↗
-                  </button>
-                  <span className="text-slate-400">20以内 0/1000</span>
-                </div>
-              </div>
             </div>
 
             {/* お振込先 */}
@@ -402,27 +378,6 @@ export function NewInvoiceClient() {
               </Link>
             </div>
 
-            <DocumentLineItemsTable ui={ui} storageKey="invoice-new-line-items" onTotalsChange={setLineItemTotals} />
-
-            <div className="mt-12">
-              <label className="mb-2 block text-[18px] font-semibold text-slate-800">
-                {ui.remarks}
-              </label>
-              <textarea className="field min-h-[140px]" />
-              <div className="mt-2 flex items-center justify-between text-sm text-slate-500">
-                <label className="flex cursor-pointer items-center gap-2">
-                  <input type="checkbox" className="h-4 w-4 accent-[#0A4D34]" />
-                  {ui.documentRemarks}
-                </label>
-                <div className="flex items-center gap-2">
-                  <button className="text-[#0A4D34] underline">
-                    {ui.documentSettings} ↗
-                  </button>
-                  <span className="text-slate-400">20以内 0/1000</span>
-                </div>
-              </div>
-            </div>
-
             {/* お振込先 */}
             <div className="mt-8">
               <SectionTitle title={ui.bankTransferTitle} />
@@ -489,8 +444,6 @@ export function NewInvoiceClient() {
                 </div>
               </div>
             </div>
-
-            <DocumentLineItemsTable ui={ui} storageKey="invoice-new-line-items" onTotalsChange={setLineItemTotals} />
           </>
         )}
       </div>

@@ -427,7 +427,6 @@ export function EstimateFormClient({
                 />
               </label>
             </div>
-            {lineItemsTable}
           </>
         )}
 
@@ -458,7 +457,6 @@ export function EstimateFormClient({
                 <option value="round_half">{ui.roundHalf}</option>
               </select>
             </label>
-            {lineItemsTable}
           </div>
         )}
 
@@ -521,8 +519,6 @@ export function EstimateFormClient({
                 </div>
               </div>
             </div>
-
-            {lineItemsTable}
           </>
         )}
         </div>

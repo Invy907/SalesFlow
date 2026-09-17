@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
-import { ListPageTabs } from "../list-page-shared";
+import { ListPageTabs, ListSearchBar } from "../list-page-shared";
 import { pageContainerClass } from "@/components/page-container";
 import {
   toggleReceiptIssueFlag,
@@ -157,49 +157,33 @@ export function ReceiptsList({
 
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-          <div className="flex flex-col items-start gap-4 border-b border-slate-200 pb-4">
-            <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:justify-end">
-              {!isTrashTab ? (
-                <div className="flex flex-wrap items-center gap-2 text-[13px]">
-                  <FilterToggle
-                    doneLabel={ui.issueBadge.done}
-                    pendingLabel={ui.issueBadge.pending}
-                    value={issueFlag}
-                    onChange={(next) => navigate({ issueFlag: next, page: 1 })}
-                  />
-                </div>
-              ) : null}
-              <div className="flex w-full max-w-full rounded border border-slate-300 bg-white sm:max-w-[520px]">
-                <input
-                  className="min-w-0 flex-1 px-4 py-3 text-[15px] text-slate-700 outline-none placeholder:text-slate-300"
-                  placeholder={ui.searchPlaceholder}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") navigate({ q: search.trim(), page: 1 });
-                  }}
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-end">
+            {!isTrashTab ? (
+              <div className="flex flex-wrap items-center gap-2 text-[13px]">
+                <FilterToggle
+                  doneLabel={ui.issueBadge.done}
+                  pendingLabel={ui.issueBadge.pending}
+                  value={issueFlag}
+                  onChange={(next) => navigate({ issueFlag: next, page: 1 })}
                 />
-                <button type="button" className="border-l border-slate-300 px-4 text-[15px] text-slate-600">
-                  {ui.searchDetail}
-                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => navigate({ q: search.trim(), page: 1 })}
-                className="rounded border border-slate-300 px-5 py-3 text-[15px] font-medium text-slate-700 transition hover:bg-slate-50"
-              >
-                {ui.searchButton}
-              </button>
-            </div>
-
-            <ListPageTabs
-              tabs={ui.tabs}
-              activeIndex={activeTab}
-              onTabChange={(index) => navigate({ tab: index, page: 1 })}
-              align="end"
-              size="lg"
+            ) : null}
+            <ListSearchBar
+              placeholder={ui.searchPlaceholder}
+              searchLabel={ui.searchButton}
+              defaultValue={search}
+              onSearch={(q) => {
+                setSearch(q);
+                navigate({ q, page: 1 });
+              }}
             />
           </div>
+
+          <ListPageTabs
+            tabs={ui.tabs}
+            activeIndex={activeTab}
+            onTabChange={(index) => navigate({ tab: index, page: 1 })}
+          />
 
           {selectedIds.size > 0 ? (
             <div className="sticky top-0 z-10 flex flex-wrap items-center gap-3 rounded border border-[#9DD4BD] bg-[#E8F5EF] px-4 py-3 text-[14px]">

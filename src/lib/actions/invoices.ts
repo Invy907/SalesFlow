@@ -143,6 +143,111 @@ export async function createInvoice(
   return { ok: true, data: invoice.id };
 }
 
+export async function updateInvoice(
+  invoiceId: string,
+  formData: CreateInvoiceInput,
+): Promise<ActionResult> {
+  const parsed = createInvoiceSchema.safeParse(formData);
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const [field, msgs] of Object.entries(parsed.error.flatten().fieldErrors)) {
+      fieldErrors[field] = msgs?.[0] ?? "Invalid";
+    }
+    return { ok: false, error: "Validation failed", fieldErrors };
+  }
+
+  if (!hasContentLineItem(parsed.data.lineItems)) {
+    return {
+      ok: false,
+      error: "Validation failed",
+      fieldErrors: { lineItems: "明細を1行以上入力してください" },
+    };
+  }
+
+  const supabase = await getSupabaseServerClient();
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+
+  const requestedNumber = parsed.data.documentNumber?.trim() ?? "";
+  if (requestedNumber) {
+    const { data: duplicate, error: duplicateError } = await supabase
+      .from("invoices")
+      .select("id")
+      .eq("organization_id", org.organization_id)
+      .eq("document_number", requestedNumber)
+      .neq("id", invoiceId)
+      .limit(1)
+      .maybeSingle();
+    if (duplicateError) return { ok: false, error: duplicateError.message };
+    if (duplicate) {
+      return {
+        ok: false,
+        error: "Validation failed",
+        fieldErrors: { documentNumber: "この請求書番号はすでに使用されています" },
+      };
+    }
+  }
+
+  const totals = computeDocumentTotals(parsed.data.lineItems, parsed.data.taxRounding);
+
+  const { error } = await supabase
+    .from("invoices")
+    .update({
+      client_id: parsed.data.clientId ?? null,
+      client_destination_id: parsed.data.clientDestinationId ?? null,
+      document_number: requestedNumber || undefined,
+      subject: parsed.data.subject ?? null,
+      issue_date: parsed.data.issueDate.toISOString().slice(0, 10),
+      payment_due: parsed.data.paymentDue?.toISOString().slice(0, 10) ?? null,
+      delivery_date: parsed.data.deliveryDate?.toISOString().slice(0, 10) ?? null,
+      billing_month: parsed.data.billingMonth ?? null,
+      tax_display: parsed.data.taxDisplay,
+      tax_rounding: parsed.data.taxRounding,
+      withholding_type: parsed.data.withholdingType,
+      template_key: parsed.data.templateKey ?? null,
+      output_locale: parsed.data.outputLocale,
+      client_honorific: parsed.data.clientHonorific,
+      show_seal: parsed.data.showSeal,
+      show_client_honorific: parsed.data.clientHonorific !== "none",
+      template_message: parsed.data.templateMessage ?? null,
+      remarks: parsed.data.remarks ?? null,
+      internal_memo: parsed.data.internalMemo ?? null,
+      recipient_snapshot: parsed.data.recipientSnapshot ?? null,
+      sender_snapshot: parsed.data.senderSnapshot ?? null,
+      bank_account_ids: parsed.data.bankAccountIds ?? null,
+      subtotal: totals.subtotal,
+      tax_amount: totals.tax,
+    })
+    .eq("id", invoiceId)
+    .eq("organization_id", org.organization_id);
+
+  if (error) return { ok: false, error: error.message };
+
+  await supabase.from("invoice_line_items").delete().eq("document_id", invoiceId);
+
+  if (parsed.data.lineItems.length > 0) {
+    const lines = parsed.data.lineItems.map((li, idx) => ({
+      document_id: invoiceId,
+      line_no: idx + 1,
+      item_id: li.itemId ?? null,
+      name_snapshot: li.name,
+      qty: li.qty,
+      unit_snapshot: li.unit ?? null,
+      unit_price_snapshot: li.unitPrice,
+      tax_category: li.taxCategory,
+      tax_rate_snapshot: li.taxRateSnapshot,
+      withholding_exempt_snapshot: li.withholdingExempt ?? null,
+    }));
+
+    const { error: lineErr } = await supabase.from("invoice_line_items").insert(lines);
+    if (lineErr) return { ok: false, error: lineErr.message };
+  }
+
+  revalidatePath("/[lang]/invoices", "page");
+  revalidatePath(`/[lang]/invoices/${invoiceId}`, "page");
+  return { ok: true, data: undefined };
+}
+
 /**
  * Read one invoice for the in-list preview, so the list can show the document
  * without navigating away. Uses the same mapper as the detail page.

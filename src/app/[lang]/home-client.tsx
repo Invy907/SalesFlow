@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { DocumentTypeIcon } from "@/components/document-type-icons";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
 import {
@@ -16,7 +17,6 @@ import {
   type HomeTaskGroupLabel,
   type KpiKey,
   type KpiTone,
-  type QuickCreateKey,
 } from "./home-content";
 import { getAnnouncementsHref } from "./support/announcements/content";
 import { useCurrentUserName } from "@/lib/use-current-user-name";
@@ -242,7 +242,7 @@ export function HomeClient({ dashboard }: { dashboard: Dashboard }) {
                       className="group relative flex flex-col gap-2 bg-white px-4 py-5 transition hover:bg-slate-50"
                     >
                       <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#E8F5EF] text-[#0A4D34] transition group-hover:bg-[#0A4D34] group-hover:text-white">
-                        <QuickCreateIcon name={item.key} />
+                        <DocumentTypeIcon type={item.key} />
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-[15px] font-semibold text-slate-900">
@@ -468,42 +468,6 @@ function RecentRow({ item, ui }: { item: RecentItem; ui: HomeContent }) {
       </Link>
     </li>
   );
-}
-
-function QuickCreateIcon({ name }: { name: QuickCreateKey }) {
-  switch (name) {
-    case "estimates":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 stroke-current">
-          <path d="M7 4h7l4 4v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z" strokeWidth="1.7" />
-          <path d="M13 4v5h5" strokeWidth="1.7" />
-          <path d="M9 13h6M9 16h4" strokeWidth="1.7" strokeLinecap="round" />
-        </svg>
-      );
-    case "delivery-notes":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 stroke-current">
-          <path d="M3 7h11v9H3z" strokeWidth="1.7" />
-          <path d="M14 10h4l3 3v3h-7z" strokeWidth="1.7" />
-          <circle cx="7.5" cy="18" r="1.5" strokeWidth="1.7" />
-          <circle cx="17" cy="18" r="1.5" strokeWidth="1.7" />
-        </svg>
-      );
-    case "invoices":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 stroke-current">
-          <path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z" strokeWidth="1.7" />
-          <path d="M9 8h6M9 12h6M9 16h4" strokeWidth="1.7" strokeLinecap="round" />
-        </svg>
-      );
-    case "receipts":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 stroke-current">
-          <path d="M5 4h14v17l-2-1.5L15 21l-3-1.5L9 21l-2-1.5L5 21V4Z" strokeWidth="1.7" />
-          <path d="M9 9h6M9 13h6" strokeWidth="1.7" strokeLinecap="round" />
-        </svg>
-      );
-  }
 }
 
 function DocBadgeIcon() {

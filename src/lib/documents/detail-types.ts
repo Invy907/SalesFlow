@@ -55,6 +55,8 @@ export type SalesDocumentDetailUi = {
   documentAmountLabel: string;
   client: string;
   subject: string;
+  /** Formatting pass ①: show subject as "{label}：value" in a larger font (invoices only for now). */
+  emphasizeSubject?: boolean;
   issueDate: string;
   secondaryDateLabel?: string;
   noDate: string;
@@ -71,6 +73,7 @@ export type SalesDocumentDetailUi = {
   previewLead: string;
   backToList: string;
   exportAction: string;
+  editAction?: string;
   exportMenu: {
     download: string;
     excel: string;

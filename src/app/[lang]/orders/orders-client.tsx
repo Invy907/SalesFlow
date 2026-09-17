@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
 import { CreateOrderModal, type OrderLineItemInitial } from "./create-order-modal";
 import { getOrdersContent } from "./content";
+import { ListPageTabs, ListPrimaryButton, ListSearchBar } from "../list-page-shared";
 import { OrderSubNav } from "./order-sub-nav";
 import { StatusAddInlineForm } from "./status-add-inline-form";
+import { createOrderStatus } from "@/lib/actions/orders";
 import type { ClientOptionRow } from "@/lib/db/clients";
 
 export type OrderCreateInitial = {
@@ -45,9 +47,9 @@ const yen = (v: number) => `¥${Math.round(v).toLocaleString("ja-JP")}`;
 
 export function OrdersClient({
   statuses,
-  trashCount,
-  activeStatusId,
-  isTrash,
+  tabCounts,
+  activeTab,
+  subStatusId,
   rows,
   detail,
   query,
@@ -55,9 +57,9 @@ export function OrdersClient({
   createInitial,
 }: {
   statuses: OrderStatusOption[];
-  trashCount: number;
-  activeStatusId: string | null;
-  isTrash: boolean;
+  tabCounts: { unprocessed: number; processed: number; trashed: number };
+  activeTab: number;
+  subStatusId: string | null;
   rows: OrderRow[];
   detail: OrderDetail | null;
   query: string;
@@ -67,155 +69,164 @@ export function OrdersClient({
   const { lang } = useLanguage();
   const ui = getOrdersContent(lang);
   const router = useRouter();
+  const [statusPending, startStatusTransition] = useTransition();
 
   const [isModalOpen, setIsModalOpen] = useState(Boolean(createInitial));
   const [isAddingStatus, setIsAddingStatus] = useState(false);
   const [newStatusName, setNewStatusName] = useState("");
+  const [statusError, setStatusError] = useState<string | null>(null);
   const [search, setSearch] = useState(query);
+  const [extraStatuses, setExtraStatuses] = useState<OrderStatusOption[]>([]);
 
-  const processed = statuses.filter((s) => s.systemKey === "processed");
-  const unprocessed = statuses.filter((s) => s.systemKey === "unprocessed");
-  const custom = statuses.filter((s) => !s.systemKey);
+  const allStatuses = [...statuses, ...extraStatuses];
 
-  const activeStatus = statuses.find((s) => s.id === activeStatusId);
-  const activeLabel = isTrash ? ui.trash : (activeStatus?.name ?? ui.unprocessed);
-  const activeCount = isTrash ? trashCount : rows.length;
+  const tabLabels = [
+    `${ui.unprocessed} ${tabCounts.unprocessed}`,
+    `${ui.processed} ${tabCounts.processed}`,
+    `${ui.trash} ${tabCounts.trashed}`,
+  ];
 
-  function navigate(next: { status?: string; q?: string; orderId?: string | null }) {
+  const subFilterStatuses = allStatuses.filter(
+    (s) => s.systemKey === "unprocessed" || s.systemKey === null,
+  );
+
+  function navigate(next: {
+    tab?: number;
+    status?: string | null;
+    q?: string;
+    orderId?: string | null;
+  }) {
     const params = new URLSearchParams();
-    const status = next.status ?? (isTrash ? "trash" : activeStatusId ?? "");
+    const tab = next.tab ?? activeTab;
+    params.set("tab", String(tab));
     const q = next.q ?? search;
-    if (status) params.set("status", status);
     if (q) params.set("q", q);
+    if (tab === 0 && next.status) params.set("status", next.status);
     const orderId = next.orderId === undefined ? detail?.id : next.orderId;
     if (orderId) params.set("orderId", orderId);
-    router.push(`/orders${params.toString() ? `?${params}` : ""}`);
+    router.push(`/${lang}/orders${params.toString() ? `?${params}` : ""}`);
   }
 
   function cancelAddStatus() {
     setIsAddingStatus(false);
     setNewStatusName("");
+    setStatusError(null);
   }
+
+  function submitAddStatus() {
+    const trimmed = newStatusName.trim();
+    if (!trimmed) return;
+    setStatusError(null);
+    startStatusTransition(async () => {
+      const result = await createOrderStatus(trimmed);
+      if (result.ok) {
+        setExtraStatuses((prev) => [
+          ...prev,
+          { id: result.data.id, name: trimmed, systemKey: null, count: 0 },
+        ]);
+        cancelAddStatus();
+        router.refresh();
+      } else {
+        setStatusError(result.error);
+      }
+    });
+  }
+
+  const listTitle =
+    activeTab === 2
+      ? ui.trash
+      : activeTab === 1
+        ? ui.processed
+        : subFilterStatuses.find((s) => s.id === subStatusId)?.name ?? ui.unprocessed;
 
   return (
     <SalesFlowShell activeItem="orders">
       <OrderSubNav active="management" />
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:pb-16">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <h1 className="text-[32px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
-
-          <div className="flex w-full max-w-full rounded border border-slate-300 bg-white sm:max-w-[520px]">
-            <input
-              className="min-w-0 flex-1 px-4 py-3 text-[15px] text-slate-700 outline-none placeholder:text-slate-300"
-              placeholder={ui.searchPlaceholder}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") navigate({ q: search.trim(), orderId: null });
-              }}
-            />
-            <button className="border-l border-slate-300 px-4 text-[15px] text-slate-600">
-              {ui.searchDetail}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate({ q: search.trim(), orderId: null })}
-              className="border-l border-slate-300 px-5 text-[15px] font-medium text-slate-700 transition hover:bg-slate-50"
-            >
-              {ui.search}
-            </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-[32px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
+            <ListPrimaryButton label={ui.createOrder} onClick={() => setIsModalOpen(true)} />
           </div>
+
+          <ListSearchBar
+            placeholder={ui.searchPlaceholder}
+            searchLabel={ui.search}
+            defaultValue={search}
+            onSearch={(q) => {
+              setSearch(q);
+              navigate({ q, orderId: null });
+            }}
+          />
         </div>
 
-        <div className="mt-6 grid min-h-[720px] grid-cols-1 gap-0 overflow-hidden rounded border border-slate-200 bg-white xl:grid-cols-[240px_320px_1fr]">
-          <aside className="border-b border-slate-200 p-5 xl:border-r xl:border-b-0">
+        <div className="mt-6">
+          <ListPageTabs
+            tabs={tabLabels}
+            activeIndex={activeTab}
+            onTabChange={(index) => navigate({ tab: index, status: null, orderId: null })}
+            align="start"
+            size="md"
+          />
+        </div>
+
+        {activeTab === 0 && subFilterStatuses.length > 0 ? (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => setIsModalOpen(true)}
-              className="w-full rounded bg-[#0A4D34] px-4 py-3.5 text-[15px] font-semibold text-white hover:bg-[#083D29]"
+              onClick={() => navigate({ status: null, orderId: null })}
+              className={[
+                "rounded border px-3 py-1.5 text-[13px] transition",
+                !subStatusId
+                  ? "border-[#1A7A57] bg-[#E8F5EF] font-medium text-slate-800"
+                  : "border-slate-200 text-slate-600 hover:bg-slate-50",
+              ].join(" ")}
             >
-              {ui.createOrder}
+              {ui.unprocessed}
             </button>
+            {subFilterStatuses.map((status) => (
+              <button
+                key={status.id}
+                type="button"
+                onClick={() => navigate({ status: status.id, orderId: null })}
+                className={[
+                  "rounded border px-3 py-1.5 text-[13px] transition",
+                  subStatusId === status.id
+                    ? "border-[#1A7A57] bg-[#E8F5EF] font-medium text-slate-800"
+                    : "border-slate-200 text-slate-600 hover:bg-slate-50",
+                ].join(" ")}
+              >
+                {status.name} {status.count}
+              </button>
+            ))}
+            {isAddingStatus ? (
+              <StatusAddInlineForm
+                placeholder={ui.statusPlaceholder}
+                cancelLabel={ui.cancel}
+                addLabel={ui.add}
+                value={newStatusName}
+                onChange={setNewStatusName}
+                onCancel={cancelAddStatus}
+                onSubmit={submitAddStatus}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsAddingStatus(true)}
+                disabled={statusPending}
+                className="text-[13px] font-medium text-[#0A4D34] hover:underline disabled:opacity-50"
+              >
+                + {ui.addStatus}
+              </button>
+            )}
+            {statusError ? <p className="text-[13px] text-red-600">{statusError}</p> : null}
+          </div>
+        ) : null}
 
-            <div className="mt-8">
-              <p className="text-[13px] text-slate-400">{ui.status}</p>
-              <div className="mt-3 space-y-2">
-                {unprocessed.map((status) => (
-                  <StatusRow
-                    key={status.id}
-                    label={status.name || ui.unprocessed}
-                    count={status.count}
-                    active={!isTrash && activeStatusId === status.id}
-                    onClick={() => navigate({ status: status.id, orderId: null })}
-                    variant="inbox"
-                  />
-                ))}
-
-                {isAddingStatus ? (
-                  <StatusAddInlineForm
-                    placeholder={ui.statusPlaceholder}
-                    cancelLabel={ui.cancel}
-                    addLabel={ui.add}
-                    value={newStatusName}
-                    onChange={setNewStatusName}
-                    onCancel={cancelAddStatus}
-                    onSubmit={cancelAddStatus}
-                  />
-                ) : null}
-
-                {custom.map((status) => (
-                  <StatusRow
-                    key={status.id}
-                    label={status.name}
-                    count={status.count}
-                    active={!isTrash && activeStatusId === status.id}
-                    onClick={() => navigate({ status: status.id, orderId: null })}
-                    variant="inbox"
-                  />
-                ))}
-
-                {custom.length > 0 || isAddingStatus ? (
-                  <div className="border-t border-slate-200 pt-2" />
-                ) : null}
-
-                {processed.map((status) => (
-                  <StatusRow
-                    key={status.id}
-                    label={status.name || ui.processed}
-                    count={status.count}
-                    active={!isTrash && activeStatusId === status.id}
-                    onClick={() => navigate({ status: status.id, orderId: null })}
-                    variant="inbox"
-                  />
-                ))}
-
-                <StatusRow
-                  label={ui.trash}
-                  count={trashCount}
-                  active={isTrash}
-                  onClick={() => navigate({ status: "trash", orderId: null })}
-                  variant="trash"
-                />
-              </div>
-
-              {!isAddingStatus ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsAddingStatus(true);
-                    setNewStatusName("");
-                  }}
-                  className="mt-4 text-[14px] font-medium text-[#0A4D34] hover:underline"
-                >
-                  + {ui.addStatus}
-                </button>
-              ) : null}
-            </div>
-          </aside>
-
+        <div className="mt-6 grid min-h-[720px] grid-cols-1 gap-0 overflow-hidden rounded border border-slate-200 bg-white xl:grid-cols-[320px_1fr]">
           <section className="border-b border-slate-200 xl:border-r xl:border-b-0">
             <div className="border-b border-slate-200 px-4 py-3 text-[15px] font-semibold text-slate-800">
-              {activeLabel} {activeCount}
+              {listTitle} {rows.length}
             </div>
 
             {rows.length === 0 ? (
@@ -269,7 +280,9 @@ export function OrdersClient({
         <CreateOrderModal
           ui={ui.modal}
           lang={lang}
-          statuses={statuses.filter((s) => s.systemKey !== "trash").map((s) => ({ id: s.id, name: s.name }))}
+          statuses={allStatuses
+            .filter((s) => s.systemKey !== "trash")
+            .map((s) => ({ id: s.id, name: s.name }))}
           clients={clients}
           initial={createInitial ?? undefined}
           statusFormLabels={{
@@ -279,7 +292,21 @@ export function OrdersClient({
             addStatus: ui.addStatus,
           }}
           onClose={() => setIsModalOpen(false)}
-          onAddCustomStatus={() => undefined}
+          onAddCustomStatus={(name) => {
+            setStatusError(null);
+            startStatusTransition(async () => {
+              const result = await createOrderStatus(name);
+              if (result.ok) {
+                setExtraStatuses((prev) => [
+                  ...prev,
+                  { id: result.data.id, name, systemKey: null, count: 0 },
+                ]);
+                router.refresh();
+              } else {
+                setStatusError(result.error);
+              }
+            });
+          }}
           onCreated={(orderId) => {
             setIsModalOpen(false);
             navigate({ orderId });
@@ -377,62 +404,5 @@ function OrderDetailPanel({
         )}
       </div>
     </section>
-  );
-}
-
-function StatusRow({
-  label,
-  count,
-  active,
-  variant,
-  onClick,
-}: {
-  label: string;
-  count?: number;
-  active?: boolean;
-  variant: "inbox" | "trash";
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={[
-        "flex w-full cursor-pointer items-center justify-between rounded border px-3 py-2.5 text-left text-[14px] transition",
-        active
-          ? "border-[#1A7A57] bg-white font-medium text-slate-800"
-          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
-      ].join(" ")}
-    >
-      <span className="flex items-center gap-2.5">
-        {variant === "trash" ? <TrashIcon active={active} /> : <InboxIcon active={active} />}
-        <span className="truncate">{label}</span>
-      </span>
-      {count !== undefined ? <span className="tabular-nums">{count}</span> : null}
-    </button>
-  );
-}
-
-function InboxIcon({ active }: { active?: boolean }) {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      aria-hidden="true"
-      className={["h-[18px] w-[18px] fill-current", active ? "text-[#0A4D34]" : "text-slate-400"].join(" ")}
-    >
-      <path d="M2.5 5.5A2.5 2.5 0 0 1 5 3h10a2.5 2.5 0 0 1 2.5 2.5v9A1.5 1.5 0 0 1 16 16H4a1.5 1.5 0 0 1-1.5-1.5v-9ZM5 4.5a1 1 0 0 0-1 1v8.5h12V5.5a1 1 0 0 0-1-1H5Zm2.75 2a.75.75 0 0 1 .75-.75h4a.75.75 0 0 1 0 1.5h-4a.75.75 0 0 1-.75-.75Z" />
-    </svg>
-  );
-}
-
-function TrashIcon({ active }: { active?: boolean }) {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      aria-hidden="true"
-      className={["h-[18px] w-[18px] fill-current", active ? "text-[#0A4D34]" : "text-slate-400"].join(" ")}
-    >
-      <path d="M8.5 3a1 1 0 0 0-1 1v.5H5.75a.75.75 0 0 0 0 1.5h.708l.54 9.18A1.75 1.75 0 0 0 8.69 17h2.62a1.75 1.75 0 0 0 1.742-1.82l.54-9.18h.708a.75.75 0 0 0 0-1.5H12.5V4a1 1 0 0 0-1-1h-3ZM7 5h6l-.52 8.84a.25.25 0 0 1-.249.16H7.77a.25.25 0 0 1-.249-.16L7 5Zm2.25 2.25a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5a.75.75 0 0 1 .75-.75Zm3.5.75a.75.75 0 0 0-1.5 0v4.5a.75.75 0 0 0 1.5 0v-4.5Z" />
-    </svg>
   );
 }

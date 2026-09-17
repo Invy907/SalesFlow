@@ -13,9 +13,9 @@ import {
 import {
   extractPostalDigits,
   formatPostalCode,
-  lookupJapanAddress,
   type PostalLookupError,
 } from "@/lib/japan-postal-code";
+import { lookupJapanPostalCode } from "@/lib/actions/postal";
 import { getSettingsContent } from "../content";
 import {
   SettingsFormField,
@@ -83,7 +83,7 @@ export function CompanyFormClient({ initial }: { initial: CompanyProfileForm }) 
     setPostalLookupError(null);
     setPostalLookupPending(true);
     try {
-      const result = await lookupJapanAddress(postalCode);
+      const result = await lookupJapanPostalCode(postalCode);
       if (!result.ok) {
         setPostalLookupError(postalLookupErrorMessage(result.error, company));
         return;

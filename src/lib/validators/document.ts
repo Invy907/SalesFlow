@@ -112,3 +112,4 @@ export type LineItemInput = z.infer<typeof lineItemSchema>;
 export type CreateEstimateInput = z.infer<typeof createEstimateSchema>;
 export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>;
 export type CreateDeliveryNoteInput = z.infer<typeof createDeliveryNoteSchema>;
+export type CreateReceiptInput = z.infer<typeof createReceiptSchema>;

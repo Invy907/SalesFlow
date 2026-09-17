@@ -25,7 +25,7 @@ import {
   DEFAULT_CLIENT_HONORIFIC,
   type ClientHonorific,
 } from "@/lib/documents/client-honorific";
-import { createInvoice } from "@/lib/actions/invoices";
+import { createInvoice, updateInvoice } from "@/lib/actions/invoices";
 import { taxCategoryFromLabel, taxRateSnapshotFor } from "@/lib/tax";
 import {
   InvoicePreview,
@@ -64,6 +64,7 @@ const TAX_ROUNDING_ORDER: TaxRounding[] = ["round_down", "round_up", "round_half
 const WITHHOLDING_ORDER: WithholdingType[] = ["none", "with_recovery", "without_recovery"];
 
 export type InvoiceFormInitial = {
+  id?: string;
   clientId: string | null;
   clientName: string;
   issueDate: string;
@@ -139,6 +140,7 @@ export function InvoiceFormClient({
 }) {
   const { lang } = useLanguage();
   const ui = getInvoiceContent(lang);
+  const isEdit = Boolean(initial.id);
   const previewLabels = getDocumentPreviewPanelLabels(lang);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>("basic");
@@ -161,7 +163,11 @@ export function InvoiceFormClient({
   const [clientModalOpen, setClientModalOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(true);
   const [showSeal, setShowSeal] = useState(initial.showSeal !== false);
-  const draftPersistenceEnabled = initial.lines.length === 0;
+  // New: only when not duplicating (copyFrom/fromEstimate). Edit: always on, so leaving for
+  // settings and coming back keeps the in-progress edits (draft key is scoped per invoice id).
+  const draftPersistenceEnabled = isEdit || initial.lines.length === 0;
+  const formDraftKey = isEdit ? `invoice-edit-form-v1:${initial.id}` : INVOICE_FORM_DRAFT_KEY;
+  const linesDraftKey = isEdit ? `invoice-edit-line-items:${initial.id}` : INVOICE_LINES_DRAFT_KEY;
   const [draftReady, setDraftReady] = useState(!draftPersistenceEnabled);
   const { primaryDate, setPrimaryDate, secondaryDate, setSecondaryDate } = useDocumentDateFields(
     initial.issueDate || ui.issueDateValue,
@@ -208,17 +214,17 @@ export function InvoiceFormClient({
     };
     let restoredDraft: StoredInvoiceDraft | null = null;
     try {
-      const raw = window.localStorage.getItem(INVOICE_FORM_DRAFT_KEY);
+      const raw = window.localStorage.getItem(formDraftKey);
       if (raw) {
         const draft = JSON.parse(raw) as StoredInvoiceDraft;
         if (draft.savedAt && Date.now() - draft.savedAt <= DRAFT_MAX_AGE_MS) {
           restoredDraft = draft;
         } else {
-          window.localStorage.removeItem(INVOICE_FORM_DRAFT_KEY);
+          window.localStorage.removeItem(formDraftKey);
         }
       }
     } catch {
-      window.localStorage.removeItem(INVOICE_FORM_DRAFT_KEY);
+      window.localStorage.removeItem(formDraftKey);
     }
     const frame = window.requestAnimationFrame(() => {
       const draft = restoredDraft;
@@ -238,7 +244,7 @@ export function InvoiceFormClient({
 
   useEffect(() => {
     if (!draftPersistenceEnabled || !draftReady || typeof window === "undefined") return;
-    window.localStorage.setItem(INVOICE_FORM_DRAFT_KEY, JSON.stringify({
+    window.localStorage.setItem(formDraftKey, JSON.stringify({
       savedAt: Date.now(),
       form,
       primaryDate,
@@ -253,6 +259,7 @@ export function InvoiceFormClient({
     draftPersistenceEnabled,
     draftReady,
     form,
+    formDraftKey,
     outputLocale,
     primaryDate,
     secondaryDate,
@@ -344,7 +351,7 @@ export function InvoiceFormClient({
         };
       });
 
-      const result = await createInvoice({
+      const payload = {
         documentNumber: form.documentNumber.trim() || undefined,
         clientId: form.clientId,
         subject: form.subject,
@@ -377,7 +384,11 @@ export function InvoiceFormClient({
             .map((account) => account.label),
         },
         lineItems,
-      });
+      };
+
+      const result = isEdit
+        ? await updateInvoice(initial.id!, payload)
+        : await createInvoice(payload);
 
       if (!result.ok) {
         setErrors(result.fieldErrors ?? {});
@@ -386,10 +397,10 @@ export function InvoiceFormClient({
       }
 
       if (typeof window !== "undefined") {
-        window.localStorage.removeItem(INVOICE_LINES_DRAFT_KEY);
-        window.localStorage.removeItem(INVOICE_FORM_DRAFT_KEY);
+        window.localStorage.removeItem(linesDraftKey);
+        window.localStorage.removeItem(formDraftKey);
       }
-      router.push(`/${lang}/invoices`);
+      router.push(isEdit ? `/${lang}/invoices/${initial.id}` : `/${lang}/invoices`);
       router.refresh();
     });
   }
@@ -399,11 +410,13 @@ export function InvoiceFormClient({
       <div className="mx-auto w-full max-w-[1680px] px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-28 lg:px-8 lg:py-10 lg:pb-32">
         <div className="flex flex-wrap items-baseline gap-4">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[30px]">
-            {ui.newTitle}
+            {isEdit ? ui.editAction : ui.newTitle}
           </h1>
+          {!isEdit ? (
           <span className="flex items-center gap-1 rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">
             {ui.draftBadge}
           </span>
+          ) : null}
           <Link href={getSupportHref(lang, "invoice-guide")} className="text-sm text-[#0A4D34] underline">
             {ui.guideLink}
           </Link>
@@ -877,7 +890,8 @@ export function InvoiceFormClient({
         {/* Shared by every tab: remounting per tab would drop what is being typed. */}
         <DocumentLineItemsTable
           ui={ui}
-          storageKey={initial.lines.length > 0 ? undefined : INVOICE_LINES_DRAFT_KEY}
+          storageKey={isEdit ? linesDraftKey : initial.lines.length > 0 ? undefined : INVOICE_LINES_DRAFT_KEY}
+          preferDraftOverInitialRows={isEdit}
           initialRows={initial.lines.length > 0 ? initial.lines : undefined}
           onTotalsChange={handleTotalsChange}
           onRowsChange={handleRowsChange}

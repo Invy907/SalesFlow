@@ -78,7 +78,15 @@ export function SalesDocumentPreview({
               <p className="text-[14px] text-slate-600">TEL: {recipient.phone}</p>
             ) : null}
             {detail.subject ? (
-              <p className="mt-2 text-[14px] text-slate-600">{detail.subject}</p>
+              <p
+                className={
+                  ui.emphasizeSubject
+                    ? "mt-2 text-[18px] font-medium text-slate-700"
+                    : "mt-2 text-[14px] text-slate-600"
+                }
+              >
+                {ui.emphasizeSubject ? `${ui.subject}：${detail.subject}` : detail.subject}
+              </p>
             ) : null}
             {ui.secondaryDateLabel && secondaryDateLabel ? (
               <p className="mt-1 text-[14px] text-slate-600">

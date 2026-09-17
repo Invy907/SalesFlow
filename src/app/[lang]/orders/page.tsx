@@ -1,5 +1,6 @@
 import { requireActiveOrg } from "@/lib/guards";
 import {
+  aggregateOrderTabCounts,
   getOrderById,
   getOrderCounts,
   getOrderStatuses,
@@ -51,14 +52,21 @@ export default async function OrdersPage({
   searchParams,
 }: {
   params: Promise<{ lang: string }>;
-  searchParams: Promise<{ status?: string; q?: string; orderId?: string; fromEstimate?: string; openCreate?: string }>;
+  searchParams: Promise<{
+    tab?: string;
+    status?: string;
+    q?: string;
+    orderId?: string;
+    fromEstimate?: string;
+    openCreate?: string;
+  }>;
 }) {
   const { lang } = await params;
   const scope = await requireActiveOrg(lang);
   const sp = await searchParams;
   const query = sp.q?.trim() || undefined;
 
-  const [statuses, counts, clients] = await Promise.all([
+  const [statusRows, counts, clients] = await Promise.all([
     getOrderStatuses(scope.orgId),
     getOrderCounts(scope.orgId),
     getClientOptions(scope.orgId),
@@ -69,22 +77,43 @@ export default async function OrdersPage({
       ? await buildOrderInitialFromEstimate(scope.orgId, sp.fromEstimate)
       : null;
 
-  const options: OrderStatusOption[] = statuses.map((s) => ({
+  const options: OrderStatusOption[] = statusRows.map((s) => ({
     id: s.id as string,
     name: (s.name as string) ?? "",
     systemKey: (s.system_key as string | null) ?? null,
     count: counts.byStatus[s.id as string] ?? 0,
   }));
 
-  const fallback =
-    options.find((s) => s.systemKey === "unprocessed") ?? options.find((s) => s.systemKey !== TRASH);
+  const tabCounts = aggregateOrderTabCounts(
+    statusRows.map((s) => ({ id: s.id as string, system_key: s.system_key as string | null })),
+    counts.byStatus,
+    counts.trashed,
+  );
+
   const requested = sp.status;
-  const isTrash = requested === TRASH;
-  const activeStatusId = isTrash ? null : (requested ?? fallback?.id ?? null);
+  const isTrashLegacy = requested === TRASH;
+  let activeTab = 0;
+  if (isTrashLegacy || sp.tab === "2") activeTab = 2;
+  else if (sp.tab === "1") activeTab = 1;
+  else if (sp.tab === "2") activeTab = 2;
+
+  const unprocessedStatusIds = options
+    .filter((s) => s.systemKey === "unprocessed" || s.systemKey === null)
+    .map((s) => s.id);
+  const processedStatusIds = options.filter((s) => s.systemKey === "processed").map((s) => s.id);
+
+  const subStatusId = activeTab === 0 && requested && requested !== TRASH ? requested : undefined;
 
   const { orders } = await getOrders(scope.orgId, {
-    statusId: activeStatusId ?? undefined,
-    trashed: isTrash,
+    trashed: activeTab === 2,
+    statusId: subStatusId,
+    statusIds:
+      activeTab === 0 && !subStatusId
+        ? unprocessedStatusIds
+        : activeTab === 1
+          ? processedStatusIds
+          : undefined,
+    allowNullStatus: activeTab === 0 && !subStatusId,
     query,
     pageSize: 100,
   });
@@ -104,40 +133,40 @@ export default async function OrdersPage({
     };
   });
 
-  const selectedId =
-    sp.orderId && rows.some((r) => r.id === sp.orderId) ? sp.orderId : null;
+  const selectedId = sp.orderId ?? null;
   const selectedRaw = selectedId ? await getOrderById(selectedId) : null;
 
-  const detail: OrderDetail | null = selectedRaw
-    ? {
-        id: selectedRaw.id as string,
-        orderNumber: (selectedRaw.order_number as string) ?? "",
-        clientName: ((selectedRaw.clients as { name?: string } | null)?.name as string) ?? "",
-        subject: (selectedRaw.subject as string) ?? "",
-        orderDate: (selectedRaw.order_date as string) ?? "",
-        deliveryDate: (selectedRaw.delivery_date as string) ?? "",
-        statusName:
-          ((selectedRaw.order_statuses as { name?: string } | null)?.name as string) ?? "",
-        comment: (selectedRaw.comment as string) ?? "",
-        total: Number(selectedRaw.total ?? 0),
-        lineItems: ((selectedRaw.order_line_items as Record<string, unknown>[]) ?? []).map(
-          (li) => ({
-            id: li.id as string,
-            name: (li.name_snapshot as string) ?? "",
-            qty: Number(li.qty ?? 0),
-            unitPrice: Number(li.unit_price_snapshot ?? 0),
-            amount: Number(li.line_subtotal ?? 0),
-          }),
-        ),
-      }
-    : null;
+  const detail: OrderDetail | null =
+    selectedRaw && selectedRaw.organization_id === scope.orgId
+      ? {
+          id: selectedRaw.id as string,
+          orderNumber: (selectedRaw.order_number as string) ?? "",
+          clientName: ((selectedRaw.clients as { name?: string } | null)?.name as string) ?? "",
+          subject: (selectedRaw.subject as string) ?? "",
+          orderDate: (selectedRaw.order_date as string) ?? "",
+          deliveryDate: (selectedRaw.delivery_date as string) ?? "",
+          statusName:
+            ((selectedRaw.order_statuses as { name?: string } | null)?.name as string) ?? "",
+          comment: (selectedRaw.comment as string) ?? "",
+          total: Number(selectedRaw.total ?? 0),
+          lineItems: ((selectedRaw.order_line_items as Record<string, unknown>[]) ?? []).map(
+            (li) => ({
+              id: li.id as string,
+              name: (li.name_snapshot as string) ?? "",
+              qty: Number(li.qty ?? 0),
+              unitPrice: Number(li.unit_price_snapshot ?? 0),
+              amount: Number(li.line_subtotal ?? 0),
+            }),
+          ),
+        }
+      : null;
 
   return (
     <OrdersClient
       statuses={options}
-      trashCount={counts.trashed}
-      activeStatusId={activeStatusId}
-      isTrash={isTrash}
+      tabCounts={tabCounts}
+      activeTab={activeTab}
+      subStatusId={subStatusId ?? null}
       rows={rows}
       detail={detail}
       query={query ?? ""}

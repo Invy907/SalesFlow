@@ -17,6 +17,7 @@ import { formatSalesDocumentStatus } from "@/lib/document-status";
 import { getEstimateContent } from "../content";
 import { EstimateDocumentPreview } from "../estimate-document-preview";
 import { downloadSalesDocumentXlsx } from "@/lib/documents/export-spreadsheet";
+import { printSalesDocument } from "@/lib/documents/print-sales-document";
 import type { DocumentOutputLocale } from "@/lib/documents/output-locale";
 import {
   clientHonorificSuffix,
@@ -235,14 +236,14 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
         return;
       case "download":
         setToast(ui.actions.downloaded);
-        window.print();
+        printSalesDocument();
         return;
       case "excel":
         downloadEstimateExcel();
         return;
       case "print":
         setToast(ui.actions.printing);
-        window.print();
+        printSalesDocument();
         return;
       case "share":
         setModal("share");

@@ -83,6 +83,7 @@ export function CreateOrderModal({
   const [newStatusName, setNewStatusName] = useState("");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   function cancelAddStatus() {
     setIsAddingStatus(false);
@@ -101,6 +102,7 @@ export function CreateOrderModal({
 
   function handleSave() {
     setError(null);
+    setFieldErrors({});
     startTransition(async () => {
       const lineItems = rows
         .filter((r) => !isBlankLineRow(r))
@@ -131,6 +133,7 @@ export function CreateOrderModal({
         onCreated(result.data);
       } else {
         setError(result.error);
+        if (result.fieldErrors) setFieldErrors(result.fieldErrors);
       }
     });
   }
@@ -254,6 +257,13 @@ export function CreateOrderModal({
           </div>
 
           {error ? <p className="mt-2 text-[13px] text-red-600">{error}</p> : null}
+          {Object.keys(fieldErrors).length > 0 ? (
+            <ul className="mt-2 list-inside list-disc text-[13px] text-red-600">
+              {Object.entries(fieldErrors).map(([key, msg]) => (
+                <li key={key}>{msg}</li>
+              ))}
+            </ul>
+          ) : null}
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-2.5">

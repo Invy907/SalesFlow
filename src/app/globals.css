@@ -105,6 +105,15 @@ select.field-select {
 }
 
 @media print {
+  body.salesflow-printing-document * {
+    visibility: hidden !important;
+  }
+
+  body.salesflow-printing-document .sales-document-print,
+  body.salesflow-printing-document .sales-document-print * {
+    visibility: visible !important;
+  }
+
   body:has(.sales-document-print) * {
     visibility: hidden !important;
   }
@@ -122,6 +131,7 @@ select.field-select {
     background: #fff;
   }
 
+  body.salesflow-printing-document .sales-document-print,
   .sales-document-print {
     position: absolute !important;
     inset: 0 auto auto 0 !important;
@@ -130,6 +140,7 @@ select.field-select {
     background: #fff !important;
   }
 
+  body.salesflow-printing-document .sales-document-print > div,
   .sales-document-print > div {
     max-width: none !important;
     box-shadow: none !important;

@@ -104,6 +104,56 @@ export async function createOrder(formData: CreateOrderInput): Promise<ActionRes
   return { ok: true, data: order.id };
 }
 
+export async function createOrderStatus(name: string): Promise<ActionResult<{ id: string }>> {
+  const trimmed = name.trim();
+  if (!trimmed) return { ok: false, error: "ステータス名を入力してください" };
+  if (trimmed.length > 40) return { ok: false, error: "ステータス名は40文字以内で入力してください" };
+
+  const supabase = await getSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Unauthorized" };
+
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+
+  const { data: existing, error: dupErr } = await supabase
+    .from("order_statuses")
+    .select("id")
+    .eq("organization_id", org.organization_id)
+    .ilike("name", trimmed)
+    .limit(1)
+    .maybeSingle();
+  if (dupErr) return { ok: false, error: dupErr.message };
+  if (existing) return { ok: false, error: "同じ名前のステータスがすでにあります" };
+
+  const { data: orderRow, error: orderErr } = await supabase
+    .from("order_statuses")
+    .select("display_order")
+    .eq("organization_id", org.organization_id)
+    .order("display_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (orderErr) return { ok: false, error: orderErr.message };
+
+  const nextOrder = (orderRow?.display_order as number | null | undefined) ?? 0;
+  const { data: inserted, error } = await supabase
+    .from("order_statuses")
+    .insert({
+      organization_id: org.organization_id,
+      name: trimmed,
+      display_order: nextOrder + 1,
+      is_system: false,
+      system_key: null,
+    })
+    .select("id")
+    .single();
+
+  if (error || !inserted) return { ok: false, error: error?.message ?? "Insert failed" };
+
+  revalidatePath("/[lang]/orders", "page");
+  return { ok: true, data: { id: inserted.id as string } };
+}
+
 export async function deleteOrder(orderId: string): Promise<ActionResult> {
   const supabase = await getSupabaseServerClient();
   const { error } = await supabase

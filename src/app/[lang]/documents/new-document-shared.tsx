@@ -12,6 +12,8 @@ import { appHrefs } from "@/lib/app-hrefs";
 import { DateFieldInput } from "../estimates/date-field-input";
 import { toDateInputValue } from "../estimates/date-field-utils";
 import { TAX_CATEGORY_TO_LABEL, type TaxCategory } from "@/lib/tax";
+import { extractPostalDigits } from "@/lib/japan-postal-code";
+import { lookupJapanPostalCode } from "@/lib/actions/postal";
 
 export type DocumentTabKey = string;
 
@@ -105,6 +107,8 @@ type LineItemsTableProps = {
   onRowsChange?: (rows: LineItemRow[]) => void;
   initialRows?: LineItemRow[];
   storageKey?: string;
+  /** Prefer the storageKey draft over initialRows (DB value) — used by the edit screen. */
+  preferDraftOverInitialRows?: boolean;
   compact?: boolean;
   initialRowCount?: number;
   hideSummaryRows?: boolean;
@@ -116,6 +120,9 @@ type TaxRateSelectProps = {
   value?: string;
   onChange?: (value: string) => void;
 };
+
+/** How long a draft saved with preferDraftOverInitialRows (edit screen) stays valid. */
+const LINE_ITEMS_DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 const TAX_RATE_OPTIONS = [
   "10%",
@@ -328,6 +335,79 @@ export function FormField({ label, required, children }: FormFieldProps) {
       </div>
       {children}
     </label>
+  );
+}
+
+export function RecipientPostalCodeField({
+  postalCode,
+  onPostalCodeChange,
+  onAddressResolved,
+  lookupLabel,
+  placeholder,
+  invalidMessage,
+  notFoundMessage,
+  networkErrorMessage,
+}: {
+  postalCode: string;
+  onPostalCodeChange: (value: string) => void;
+  onAddressResolved: (address: { postalCode: string; addressLine1: string }) => void;
+  lookupLabel: string;
+  placeholder?: string;
+  invalidMessage: string;
+  notFoundMessage: string;
+  networkErrorMessage: string;
+}) {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function runLookup(code: string) {
+    setError(null);
+    setPending(true);
+    try {
+      const result = await lookupJapanPostalCode(code);
+      if (!result.ok) {
+        const msg =
+          result.error === "invalid"
+            ? invalidMessage
+            : result.error === "not_found"
+              ? notFoundMessage
+              : networkErrorMessage;
+        setError(msg);
+        return;
+      }
+      onPostalCodeChange(result.formattedPostalCode);
+      onAddressResolved({
+        postalCode: result.formattedPostalCode,
+        addressLine1: result.addressLine1,
+      });
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div>
+      <div className="flex gap-3">
+        <input
+          className="field w-full max-w-[180px]"
+          placeholder={placeholder}
+          value={postalCode}
+          onChange={(e) => onPostalCodeChange(e.target.value)}
+          onBlur={() => {
+            if (extractPostalDigits(postalCode).length === 7) void runLookup(postalCode);
+          }}
+        />
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => void runLookup(postalCode)}
+          className="rounded border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 disabled:opacity-60"
+        >
+          {pending ? "…" : lookupLabel}
+        </button>
+      </div>
+      {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
+    </div>
   );
 }
 
@@ -664,6 +744,7 @@ export function CommonLineItemsTable({
   onRowsChange,
   initialRows,
   storageKey,
+  preferDraftOverInitialRows = false,
   compact = false,
   initialRowCount,
   hideSummaryRows = false,
@@ -678,7 +759,9 @@ export function CommonLineItemsTable({
   const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
-    if (initialRows?.length) {
+    // Normally initialRows (DB value) wins. Only the edit screen (preferDraftOverInitialRows)
+    // prefers a saved draft over it.
+    if (initialRows?.length && !preferDraftOverInitialRows) {
       setRows(initialRows);
       setHasLoaded(true);
       return;
@@ -692,12 +775,18 @@ export function CommonLineItemsTable({
     try {
       const raw = window.localStorage.getItem(storageKey);
       if (raw) {
-        const saved = JSON.parse(raw) as { rows?: LineItemRow[]; bulkTax?: string };
-        if (saved.rows?.length) {
-          setRows(saved.rows);
-        }
-        if (saved.bulkTax) {
-          setBulkTax(saved.bulkTax);
+        const saved = JSON.parse(raw) as { rows?: LineItemRow[]; bulkTax?: string; savedAt?: number };
+        const stale =
+          preferDraftOverInitialRows &&
+          typeof saved.savedAt === "number" &&
+          Date.now() - saved.savedAt > LINE_ITEMS_DRAFT_MAX_AGE_MS;
+        if (!stale) {
+          if (saved.rows?.length) {
+            setRows(saved.rows);
+          }
+          if (saved.bulkTax) {
+            setBulkTax(saved.bulkTax);
+          }
         }
       }
     } catch {
@@ -705,7 +794,9 @@ export function CommonLineItemsTable({
     }
 
     setHasLoaded(true);
-  }, [initialRows, storageKey]);
+  // Restore once on mount only (the mode doesn't change during the session).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!storageKey || !hasLoaded || typeof window === "undefined") {
@@ -717,6 +808,7 @@ export function CommonLineItemsTable({
       JSON.stringify({
         rows,
         bulkTax,
+        savedAt: Date.now(),
       }),
     );
   }, [bulkTax, hasLoaded, rows, storageKey]);
@@ -1061,6 +1153,7 @@ export type LineItemsUiContent = {
 export function DocumentLineItemsTable({
   ui,
   storageKey,
+  preferDraftOverInitialRows,
   topNotice,
   onTotalsChange,
   onRowsChange,
@@ -1072,6 +1165,7 @@ export function DocumentLineItemsTable({
 }: {
   ui: LineItemsUiContent;
   storageKey?: string;
+  preferDraftOverInitialRows?: boolean;
   topNotice?: ReactNode;
   onTotalsChange?: (totals: LineItemTotals) => void;
   onRowsChange?: (rows: LineItemRow[]) => void;
@@ -1095,6 +1189,7 @@ export function DocumentLineItemsTable({
       unitPlaceholder={ui.unit}
       deleteRowLabel={ui.deleteRow}
       storageKey={storageKey}
+      preferDraftOverInitialRows={preferDraftOverInitialRows}
       topNotice={topNotice}
       onTotalsChange={onTotalsChange}
       onRowsChange={onRowsChange}

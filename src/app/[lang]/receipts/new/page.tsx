@@ -1,4 +1,5 @@
 import { requireActiveOrg } from "@/lib/guards";
+import { getClientOptions } from "@/lib/db/clients";
 import { getItems } from "@/lib/db/items";
 import type { ItemOption } from "../../documents/new-document-shared";
 import { NewReceiptClient } from "./new-receipt-client";
@@ -22,6 +23,9 @@ export default async function NewReceiptPage({
 }) {
   const { lang } = await params;
   const scope = await requireActiveOrg(lang);
-  const itemList = await getItems(scope.orgId, { pageSize: 500 });
-  return <NewReceiptClient items={toItemOptions(itemList.items)} />;
+  const [clients, itemList] = await Promise.all([
+    getClientOptions(scope.orgId),
+    getItems(scope.orgId, { pageSize: 500 }),
+  ]);
+  return <NewReceiptClient clients={clients} items={toItemOptions(itemList.items)} />;
 }

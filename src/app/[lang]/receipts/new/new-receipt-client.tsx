@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useState, useTransition } from "react";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
 import { appHrefs } from "@/lib/app-hrefs";
@@ -12,6 +13,7 @@ import {
   DocumentLineItemsTable,
   EMPTY_LINE_ITEM_TOTALS,
   HonorificField as SharedHonorificField,
+  RecipientPostalCodeField,
   SenderDetailFields,
   toIsoDate,
   useDocumentDateFields,
@@ -34,14 +36,38 @@ import { getReceiptContent } from "../content";
 import { DocumentPreviewPanel } from "../../documents/document-live-preview";
 import { buildReceiptDetailUi } from "@/lib/documents/build-detail-ui";
 import { getDocumentPreviewPanelLabels } from "@/lib/documents/preview-panel-labels";
-import type { TaxRounding } from "@/lib/tax";
+import { taxCategoryFromLabel, type TaxRounding } from "@/lib/tax";
+import { createReceipt } from "@/lib/actions/receipts";
+import type { ClientOptionRow } from "@/lib/db/clients";
+import { getSettingsContent } from "../../settings/content";
 
 type TabKey = "basic" | "recipient" | "tax" | "template";
 type TemplateType = "standard" | "envelope" | null;
 
 const TAX_ROUNDING_ORDER: TaxRounding[] = ["round_down", "round_up", "round_half"];
 
+type RecipientState = {
+  postalCode: string;
+  addressLine1: string;
+  addressLine2: string;
+  companyName: string;
+  department: string;
+  contact: string;
+  phone: string;
+};
+
+const EMPTY_RECIPIENT: RecipientState = {
+  postalCode: "",
+  addressLine1: "",
+  addressLine2: "",
+  companyName: "",
+  department: "",
+  contact: "",
+  phone: "",
+};
+
 type PreviewForm = {
+  clientId: string | null;
   clientName: string;
   documentNumber: string;
   subject: string;
@@ -49,12 +75,27 @@ type PreviewForm = {
   templateMessage: string;
   remarks: string;
   taxRounding: TaxRounding;
+  recipient: RecipientState;
 };
 
-export function NewReceiptClient({ items = [] }: { items?: ItemOption[] }) {
+function isBlankLineRow(row: LineItemRow) {
+  return !row.name && !row.qty && !row.unit && !row.price;
+}
+
+export function NewReceiptClient({
+  clients = [],
+  items = [],
+}: {
+  clients?: ClientOptionRow[];
+  items?: ItemOption[];
+}) {
   const { lang } = useLanguage();
   const ui = getReceiptContent(lang);
+  const companyUi = getSettingsContent(lang).company;
   const previewLabels = getDocumentPreviewPanelLabels(lang);
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>("basic");
   const [selectedTemplate, setSelectedTemplate] = useState<"standard" | "envelope">("standard");
@@ -70,6 +111,7 @@ export function NewReceiptClient({ items = [] }: { items?: ItemOption[] }) {
 
   // 프리뷰에 그대로 반영해야 하는 입력만 상태로 들고 있는다.
   const [form, setForm] = useState<PreviewForm>({
+    clientId: null,
     clientName: "",
     documentNumber: ui.receiptNumberValue,
     subject: "",
@@ -77,9 +119,77 @@ export function NewReceiptClient({ items = [] }: { items?: ItemOption[] }) {
     templateMessage: "",
     remarks: "",
     taxRounding: "round_down",
+    recipient: { ...EMPTY_RECIPIENT },
   });
   const set = <K extends keyof PreviewForm>(key: K, value: PreviewForm[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
+  const setRecipient = (key: keyof RecipientState, value: string) =>
+    setForm((f) => ({ ...f, recipient: { ...f.recipient, [key]: value } }));
+
+  const applyClient = useCallback((option: ClientOptionRow | null, typedName: string) => {
+    setForm((f) => {
+      if (!option) return { ...f, clientName: typedName, clientId: null };
+      return {
+        ...f,
+        clientName: option.name,
+        clientId: option.id,
+        recipient: {
+          ...f.recipient,
+          postalCode: option.postalCode ?? "",
+          addressLine1: option.addressLine1 ?? "",
+          addressLine2: option.addressLine2 ?? "",
+          companyName: option.name,
+          department: option.department ?? "",
+          contact: "",
+          phone: option.phone ?? "",
+        },
+      };
+    });
+  }, []);
+
+  function handleSave() {
+    setError(null);
+    startTransition(async () => {
+      const lineItems = rows.map((r) => {
+        const taxCategory = taxCategoryFromLabel(r.tax);
+        return isBlankLineRow(r)
+          ? { name: "", qty: 0, unit: "", unitPrice: 0, taxCategory, taxRateSnapshot: 0 }
+          : {
+              itemId: r.itemId ?? undefined,
+              name: r.name,
+              qty: r.qty === "" ? 1 : Number(r.qty),
+              unit: r.unit,
+              unitPrice: r.price === "" ? 0 : Number(r.price),
+              taxCategory,
+              taxRateSnapshot: 0,
+            };
+      });
+
+      const result = await createReceipt({
+        clientId: form.clientId,
+        subject: form.subject,
+        issueDate: new Date(toIsoDate(primaryDate)),
+        transactionDate: secondaryDate ? new Date(toIsoDate(secondaryDate)) : null,
+        taxDisplay: "separate",
+        taxRounding: form.taxRounding,
+        withholdingType: "none",
+        templateKey: "standard",
+        outputLocale,
+        clientHonorific,
+        showSeal: true,
+        templateMessage: form.templateMessage,
+        remarks: form.remarks,
+        recipientSnapshot: form.recipient,
+        lineItems,
+      });
+
+      if (result.ok) {
+        router.push(`/${lang}/receipts/${result.data}`);
+      } else {
+        setError(result.error);
+      }
+    });
+  }
 
   const handleRowsChange = useCallback((next: LineItemRow[]) => setRows(next), []);
   const handleTotalsChange = useCallback((next: LineItemTotals) => setLineItemTotals(next), []);
@@ -153,9 +263,18 @@ export function NewReceiptClient({ items = [] }: { items?: ItemOption[] }) {
                     <div className="flex gap-2">
                       <input
                         className="field flex-1"
+                        list="sf-receipt-client-options"
                         value={form.clientName}
-                        onChange={(e) => set("clientName", e.target.value)}
+                        onChange={(e) => {
+                          const name = e.target.value;
+                          applyClient(clients.find((c) => c.name === name) ?? null, name);
+                        }}
                       />
+                      <datalist id="sf-receipt-client-options">
+                        {clients.map((c) => (
+                          <option key={c.id} value={c.name} />
+                        ))}
+                      </datalist>
                       {clientHonorific !== "none" ? (
                       <SharedHonorificField
                         honorific={clientHonorificSuffix(clientHonorific, outputLocale)}
@@ -238,49 +357,70 @@ export function NewReceiptClient({ items = [] }: { items?: ItemOption[] }) {
 
         {/* 送付先 탭 */}
         {activeTab === "recipient" && (
-          <>
-            <div className="mt-10 max-w-[600px] space-y-5">
-              <FormField label={ui.postalCode}>
-                <div className="flex gap-3">
-                  <input
-                    className="field w-full max-w-[180px]"
-                    placeholder={ui.postalCodePlaceholder}
-                  />
-                  <button className="rounded border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700">
-                    {ui.postalCodeLookup}
-                  </button>
-                </div>
-              </FormField>
+          <div className="mt-10 max-w-[600px] space-y-5">
+            <FormField label={ui.postalCode}>
+              <RecipientPostalCodeField
+                postalCode={form.recipient.postalCode}
+                onPostalCodeChange={(v) => setRecipient("postalCode", v)}
+                onAddressResolved={(addr) => {
+                  setRecipient("postalCode", addr.postalCode);
+                  setRecipient("addressLine1", addr.addressLine1);
+                }}
+                lookupLabel={ui.postalCodeLookup}
+                placeholder={ui.postalCodePlaceholder}
+                invalidMessage={companyUi.postalCodeInvalid}
+                notFoundMessage={companyUi.postalCodeLookupFailed}
+                networkErrorMessage={companyUi.postalCodeLookupNetworkError}
+              />
+            </FormField>
 
-              <FormField label={ui.address}>
-                <input className="field" />
-                <input className="field mt-2" />
-              </FormField>
+            <FormField label={ui.address}>
+              <input
+                className="field"
+                value={form.recipient.addressLine1}
+                onChange={(e) => setRecipient("addressLine1", e.target.value)}
+              />
+              <input
+                className="field mt-2"
+                value={form.recipient.addressLine2}
+                onChange={(e) => setRecipient("addressLine2", e.target.value)}
+              />
+            </FormField>
 
-              <FormField label={ui.recipientName}>
-                <input className="field" placeholder={ui.companyNamePlaceholder} />
-                <input className="field mt-2" placeholder={ui.departmentPlaceholder} />
-                <input className="field mt-2" placeholder={ui.sectionPlaceholder} />
-                <div className="mt-2 flex gap-2">
-                  <input className="field flex-1" placeholder={ui.contactPlaceholder} />
-                  {clientHonorific !== "none" ? (
-                      <SharedHonorificField
-                        honorific={clientHonorificSuffix(clientHonorific, outputLocale)}
-                      />
-                    ) : null}
-                </div>
-                <ClientHonorificSelect
-                  value={clientHonorific}
-                  onChange={setClientHonorific}
-                  uiLocale={lang}
-                  outputLocale={outputLocale}
+            <FormField label={ui.recipientName}>
+              <input
+                className="field"
+                placeholder={ui.companyNamePlaceholder}
+                value={form.recipient.companyName}
+                onChange={(e) => setRecipient("companyName", e.target.value)}
+              />
+              <input
+                className="field mt-2"
+                placeholder={ui.departmentPlaceholder}
+                value={form.recipient.department}
+                onChange={(e) => setRecipient("department", e.target.value)}
+              />
+              <div className="mt-2 flex gap-2">
+                <input
+                  className="field flex-1"
+                  placeholder={ui.contactPlaceholder}
+                  value={form.recipient.contact}
+                  onChange={(e) => setRecipient("contact", e.target.value)}
                 />
-              </FormField>
-            </div>
-
-            {lineItemsTable}
-            <RemarksField ui={ui} value={form.remarks} onChange={(v) => set("remarks", v)} />
-          </>
+                {clientHonorific !== "none" ? (
+                  <SharedHonorificField
+                    honorific={clientHonorificSuffix(clientHonorific, outputLocale)}
+                  />
+                ) : null}
+              </div>
+              <ClientHonorificSelect
+                value={clientHonorific}
+                onChange={setClientHonorific}
+                uiLocale={lang}
+                outputLocale={outputLocale}
+              />
+            </FormField>
+          </div>
         )}
 
         {/* 課税設定 탭 */}
@@ -332,27 +472,6 @@ export function NewReceiptClient({ items = [] }: { items?: ItemOption[] }) {
                   ))}
                 </div>
               </section>
-            </div>
-
-            {lineItemsTable}
-
-            <div className="mt-12">
-              <label className="mb-2 block text-[18px] font-semibold text-slate-800">{ui.remarks}</label>
-              <textarea
-                className="field min-h-[140px]"
-                value={form.remarks}
-                onChange={(e) => set("remarks", e.target.value)}
-              />
-              <div className="mt-2 flex items-center justify-between text-sm text-slate-500">
-                <label className="flex cursor-pointer items-center gap-2">
-                  <input type="checkbox" className="h-4 w-4 accent-[#0A4D34]" />
-                  {ui.documentRemarks}
-                </label>
-                <div className="flex items-center gap-2">
-                  <button className="text-[#0A4D34] underline">{ui.documentSettings} ↗</button>
-                  <span className="text-slate-400">20以内 0/1000</span>
-                </div>
-              </div>
             </div>
           </>
         )}
@@ -429,8 +548,6 @@ export function NewReceiptClient({ items = [] }: { items?: ItemOption[] }) {
                 </div>
               </div>
             </div>
-
-            {lineItemsTable}
           </>
         )}
         </div>
@@ -461,12 +578,20 @@ export function NewReceiptClient({ items = [] }: { items?: ItemOption[] }) {
         </div>
       </div>
 
+      {error ? (
+        <p className="fixed bottom-24 left-4 right-4 z-40 mx-auto max-w-lg rounded border border-red-200 bg-red-50 px-4 py-2 text-center text-[14px] text-red-700">
+          {error}
+        </p>
+      ) : null}
+
       <DocumentBottomBar
         subtotalLabel={ui.subtotal}
         taxLabel={ui.tax}
         totalLabel={ui.total}
         saveLabel={ui.save}
         totals={lineItemTotals}
+        onSave={handleSave}
+        pending={pending}
       />
 
       {/* 템플릿 미리보기 모달 */}

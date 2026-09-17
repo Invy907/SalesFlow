@@ -13,6 +13,7 @@ import {
 } from "@/lib/documents/client-honorific";
 import { sendInvoiceEmail, markInvoiceMailed, shareInvoice, revokeShareInvoice } from "@/lib/actions/invoices";
 import { formatSalesDocumentStatus } from "@/lib/document-status";
+import { printSalesDocument } from "@/lib/documents/print-sales-document";
 
 type ExportAction = "download" | "excel" | "print" | "email" | "mail" | "share";
 
@@ -109,7 +110,7 @@ export function SalesDocumentDetailClient({
       [documentUi.subject, detail.subject || "—"],
       [documentUi.issueDate, detail.issueDate],
     ];
-    if (documentUi.secondaryDateLabel) {
+    if (documentUi.secondaryDateLabel && (!documentUi.emphasizeSubject || detail.secondaryDate)) {
       fields.push([
         documentUi.secondaryDateLabel,
         detail.secondaryDate || documentUi.noDate,
@@ -227,14 +228,14 @@ export function SalesDocumentDetailClient({
         return;
       case "download":
         setToast(ui.actions.downloaded);
-        window.print();
+        printSalesDocument();
         return;
       case "excel":
         downloadExcel();
         return;
       case "print":
         setToast(ui.actions.printing);
-        window.print();
+        printSalesDocument();
         return;
     }
   }
@@ -253,7 +254,7 @@ export function SalesDocumentDetailClient({
         <div className="no-print mt-2 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <h1 className="text-[34px] font-bold tracking-tight text-slate-900">{ui.detailTitle}</h1>
 
-          <div className="relative" ref={exportMenuRef}>
+          <div className="relative flex flex-wrap items-center gap-3" ref={exportMenuRef}>
             <button
               type="button"
               onClick={() => setIsExportMenuOpen((prev) => !prev)}
@@ -261,6 +262,14 @@ export function SalesDocumentDetailClient({
             >
               {ui.exportAction}
             </button>
+            {isInvoice && ui.editAction ? (
+              <Link
+                href={`/${lang}/invoices/${detail.id}/edit`}
+                className="rounded border border-slate-300 bg-white px-6 py-3 text-[18px] font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                {ui.editAction}
+              </Link>
+            ) : null}
 
             {isExportMenuOpen ? (
               <div className="absolute right-0 top-[72px] z-30 w-[320px] rounded-lg border border-slate-200 bg-white p-4 shadow-[0_12px_35px_rgba(15,23,42,0.18)]">
@@ -304,7 +313,7 @@ export function SalesDocumentDetailClient({
           <div className="tabular-nums">{yen(detail.total)}</div>
           <div className="text-slate-700">{ui.issueDate}</div>
           <div>{detail.issueDate}</div>
-          {ui.secondaryDateLabel ? (
+          {ui.secondaryDateLabel && (!ui.emphasizeSubject || detail.secondaryDate) ? (
             <>
               <div className="text-slate-700">{ui.secondaryDateLabel}</div>
               <div>{detail.secondaryDate || ui.noDate}</div>

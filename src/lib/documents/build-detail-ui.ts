@@ -32,6 +32,7 @@ type InvoiceContentSlice = {
   shareExpires?: string;
   mailedToast?: string;
   emailModal?: SalesDocumentDetailUi["emailModal"];
+  editAction?: string;
 };
 
 export function buildInvoiceDetailUi(locale: string, ui: InvoiceContentSlice): SalesDocumentDetailUi {
@@ -43,6 +44,7 @@ export function buildInvoiceDetailUi(locale: string, ui: InvoiceContentSlice): S
     documentAmountLabel: ui.invoiceAmount,
     client: ui.client,
     subject: ui.subject,
+    emphasizeSubject: true,
     issueDate: ui.issueDate,
     secondaryDateLabel: ui.paymentDue,
     noDate: ui.noDate,
@@ -59,6 +61,7 @@ export function buildInvoiceDetailUi(locale: string, ui: InvoiceContentSlice): S
     previewLead: ui.previewLead,
     backToList: ui.backToList,
     exportAction: exportUi.exportAction,
+    editAction: ui.editAction,
     exportMenu: {
       ...exportUi.exportMenu,
       email: ui.exportMenuEmail,
