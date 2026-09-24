@@ -4,9 +4,13 @@ import Link from "next/link";
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SalesFlowShell } from "@/components/salesflow-shell";
+import { ModalDialog } from "@/components/modal-dialog";
 import { useLanguage } from "@/contexts/language-context";
 import {
   DocumentBottomBar,
+  SenderDetailFields,
+  RecipientPostalCodeField,
+  type SenderDetails,
   DocumentDateFieldRow,
   DocumentLineItemsTable,
   EMPTY_LINE_ITEM_TOTALS,
@@ -36,11 +40,13 @@ import { getEstimateContent } from "./content";
 import { DocumentPreviewPanel } from "../documents/document-live-preview";
 import { buildEstimateDetailUi } from "@/lib/documents/build-detail-ui";
 import { getDocumentPreviewPanelLabels } from "@/lib/documents/preview-panel-labels";
-import type { TaxRounding } from "@/lib/tax";
+import type { TaxRounding, TaxDisplay } from "@/lib/tax";
+import { getSettingsContent } from "../settings/content";
 import type { ClientOption } from "./estimate-form-data";
 import type { ItemOption } from "../documents/new-document-shared";
+import { nextAppliedSuggestionIds } from "@/components/ai-estimates/applied-suggestion-ids";
 import { AiEstimatePanel } from "@/components/ai-estimates/ai-estimate-panel";
-import { taxLabelFromCategory } from "@/lib/ai/estimates/normalize";
+import { applyAiDraftToForm, isMeaningfulAiFormRow, type AiDraftApplyOptions } from "@/lib/ai/estimates/apply-draft";
 import type { AiEstimateDraft } from "@/lib/ai/estimates/schemas";
 
 type TabKey = "basic" | "recipient" | "tax" | "template";
@@ -57,6 +63,9 @@ export type EstimateFormInitial = {
   documentNumber: string;
   subject: string;
   senderCompanyName: string;
+  sender?: SenderDetails;
+  showSeal?: boolean;
+  sealUrl?: string | null;
   recipient: {
     postalCode: string;
     addressLine1: string;
@@ -87,6 +96,7 @@ export function EstimateFormClient({
 }) {
   const { lang } = useLanguage();
   const ui = getEstimateContent(lang);
+  const companyUi = getSettingsContent(lang).company;
   const previewLabels = getDocumentPreviewPanelLabels(lang);
   const router = useRouter();
 
@@ -107,6 +117,7 @@ export function EstimateFormClient({
   const [rows, setRows] = useState<LineItemRow[]>(initial.lines);
   const [rowReplacement, setRowReplacement] = useState<{ version: number; rows: LineItemRow[] } | undefined>();
   const [form, setForm] = useState(initial);
+  const [aiSuggestionIds, setAiSuggestionIds] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -149,15 +160,17 @@ export function EstimateFormClient({
         return {
           itemId: blank ? undefined : (r.itemId ?? undefined),
           name: blank ? "" : r.name,
-          qty: blank ? 0 : r.qty === "" ? 1 : Number(r.qty),
+          qty: blank ? 0 : r.qty.trim() === "" ? 1 : Number(r.qty.replace(/,/g, "")),
           unit: blank ? "" : r.unit,
           unitPrice: blank ? 0 : r.price === "" ? 0 : Number(r.price.replace(/,/g, "")),
           taxCategory,
           taxRateSnapshot: taxRateSnapshotFor(taxCategory),
+          withholdingExempt: r.withholdingExempt,
         };
       });
 
       const payload = {
+        aiSuggestionIds,
         clientId: form.clientId,
         subject: form.subject,
         issueDate: new Date(toIsoDate(primaryDate)),
@@ -168,11 +181,11 @@ export function EstimateFormClient({
         templateKey: selectedTemplate,
         outputLocale,
         clientHonorific,
-        showSeal: true,
+        showSeal: initial.showSeal !== false,
         templateMessage: form.templateMessage,
         remarks: form.remarks,
         recipientSnapshot: { ...form.recipient, clientName: form.clientName },
-        senderSnapshot: { companyName: form.senderCompanyName },
+        senderSnapshot: { ...form.sender, companyName: form.senderCompanyName },
         lineItems,
       };
 
@@ -182,14 +195,14 @@ export function EstimateFormClient({
 
       if (!result.ok) {
         setErrors(result.fieldErrors ?? {});
-        setError(result.error);
+        setError([result.error, ...Object.values(result.fieldErrors ?? {})].filter(Boolean).join(" · "));
         return;
       }
 
       const id = initial.id ?? (result.data as string);
-      if (!initial.id && typeof window !== "undefined") {
-        window.localStorage.removeItem("estimate-new-line-items");
-      }
+      try {
+        if (!initial.id) window.localStorage.removeItem("estimate-new-line-items");
+      } catch { /* Saving is successful even when browser storage is unavailable. */ }
       router.push(`/${lang}/estimates/${id}`);
       router.refresh();
     });
@@ -204,34 +217,35 @@ export function EstimateFormClient({
       ui={ui}
       storageKey={isEdit ? undefined : "estimate-new-line-items"}
       initialRows={rowReplacement?.rows ?? (isEdit ? initial.lines : undefined)}
+      taxRounding={form.taxRounding as TaxRounding}
+      taxDisplay={form.taxDisplay as TaxDisplay}
+      documentType="estimate"
       onTotalsChange={handleTotalsChange}
       onRowsChange={handleRowsChange}
+      compact={previewOpen}
       items={items}
     />
   );
 
-  function applyAiDraft(draft: AiEstimateDraft) {
-    const nextRows = draft.lines.map((line) => ({
-      name: line.name,
-      qty: String(line.qty),
-      unit: line.unit,
-      price: String(line.unitPrice),
-      tax: taxLabelFromCategory(line.taxCategory),
-    }));
-    setForm((current) => ({
-      ...current,
-      subject: draft.subject || current.subject,
-      templateMessage: draft.templateMessage || current.templateMessage,
-      remarks: draft.remarks || current.remarks,
-    }));
-    setRows(nextRows);
-    setRowReplacement((current) => ({ version: (current?.version ?? 0) + 1, rows: nextRows }));
+  function applyAiDraft(draft: AiEstimateDraft, options: AiDraftApplyOptions, suggestionId: string) {
+    if (pending) return { ok: false as const, error: "form_busy" };
+    const nextIds = nextAppliedSuggestionIds(aiSuggestionIds, suggestionId, options);
+    if (!nextIds) return { ok: false as const, error: "suggestion_limit" };
+    const result = applyAiDraftToForm({ subject: form.subject, templateMessage: form.templateMessage, remarks: form.remarks, rows }, draft, options);
+    if (!result.ok) return result;
+    setForm((current) => ({ ...current, subject: result.value.subject, templateMessage: result.value.templateMessage, remarks: result.value.remarks }));
+    if (options.lineIndexes.length) {
+      setRows(result.value.rows);
+      setRowReplacement((current) => ({ version: (current?.version ?? 0) + 1, rows: result.value.rows }));
+    }
+    setAiSuggestionIds(nextIds);
     setActiveTab("basic");
+    return { ok: true as const };
   }
 
   return (
     <SalesFlowShell activeItem="estimates">
-      <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-28 lg:px-8 lg:py-10 lg:pb-32">
+      <div className="mx-auto w-full max-w-[1680px] px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-28 lg:px-8 lg:py-10 lg:pb-32">
         <div className="flex flex-wrap items-center gap-4">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[30px]">
             {isEdit ? ui.editAction : ui.newTitle}
@@ -249,6 +263,8 @@ export function EstimateFormClient({
           clientId={form.clientId}
           clientName={form.clientName}
           subject={form.subject}
+          taxMode={form.taxDisplay === "included" ? "included" : "excluded"}
+          existingLineCount={rows.filter(isMeaningfulAiFormRow).length}
           onApply={applyAiDraft}
         />
 
@@ -278,21 +294,20 @@ export function EstimateFormClient({
           </div>
         </div>
 
-        {activeTab === "basic" && (
-          <>
-            <div className="mt-10 grid gap-8 xl:grid-cols-2">
+        <div className={activeTab === "basic" ? "" : "hidden"}>
+            <div className={`mt-10 grid gap-8 ${previewOpen ? "grid-cols-1" : "xl:grid-cols-2"}`}>
               <section>
-                <h2 className="border-b border-slate-200 pb-3 text-[24px] font-semibold text-slate-900">
+                <h2 className="border-b border-slate-200 pb-3 text-xl font-semibold text-slate-900 [overflow-wrap:anywhere] sm:text-[24px]">
                   {ui.estimateInfo}
                 </h2>
                 <div className="mt-5 space-y-5">
-                  <label className="block">
+                  <label className="block min-w-0">
                     <span className="mb-2 block text-[16px] font-semibold text-slate-800">
                       {ui.client}
                     </span>
                     <div className="flex gap-2">
                       <input
-                        className="field flex-1"
+                        className="field min-w-0 flex-1"
                         list="estimate-client-options"
                         value={form.clientName}
                         onChange={(e) => {
@@ -302,6 +317,18 @@ export function EstimateFormClient({
                             ...f,
                             clientName: name,
                             clientId: match?.id ?? null,
+                            recipient: match ? {
+                              postalCode: match.postalCode ?? "",
+                              addressLine1: match.addressLine1 ?? "",
+                              addressLine2: match.addressLine2 ?? "",
+                              companyName: match.name,
+                              department: match.department ?? "",
+                              name: "",
+                              contact: "",
+                            } : f.clientId ? {
+                              postalCode: "", addressLine1: "", addressLine2: "",
+                              companyName: name, department: "", name: "", contact: "",
+                            } : f.recipient,
                           }));
                         }}
                       />
@@ -343,19 +370,20 @@ export function EstimateFormClient({
                     ]}
                   />
                   {err("issueDate")}
+                  {err("expiryDate")}
 
-                  <label className="block">
+                  <label className="block min-w-0">
                     <span className="mb-2 block text-[16px] font-semibold text-slate-800">
                       {ui.estimateNumber}
                     </span>
                     <input
                       className="field bg-slate-50 text-slate-500"
                       readOnly
-                      value={form.documentNumber || ui.estimateHint}
+                      value={form.documentNumber || ui.autoNumber}
                     />
                   </label>
 
-                  <label className="block">
+                  <label className="block min-w-0">
                     <span className="mb-2 block text-[16px] font-semibold text-slate-800">
                       {ui.subject}
                     </span>
@@ -371,11 +399,11 @@ export function EstimateFormClient({
               </section>
 
               <section>
-                <h2 className="border-b border-slate-200 pb-3 text-[24px] font-semibold text-slate-900">
+                <h2 className="border-b border-slate-200 pb-3 text-xl font-semibold text-slate-900 [overflow-wrap:anywhere] sm:text-[24px]">
                   {ui.recipientInfo}
                 </h2>
                 <div className="mt-5 space-y-5">
-                  <label className="block">
+                  <label className="block min-w-0">
                     <span className="mb-2 block text-[16px] font-semibold text-slate-800">
                       {ui.companyName}
                     </span>
@@ -385,6 +413,8 @@ export function EstimateFormClient({
                       onChange={(e) => set("senderCompanyName", e.target.value)}
                     />
                   </label>
+                  <SenderDetailFields storagePrefix="estimateSender" buttonLabel={ui.detailLink}
+                    value={form.sender} onChange={(sender) => set("sender", sender)} />
                 </div>
               </section>
             </div>
@@ -399,21 +429,24 @@ export function EstimateFormClient({
                 onChange={(e) => set("remarks", e.target.value)}
               />
             </label>
-          </>
-        )}
+        </div>
 
         {activeTab === "recipient" && (
           <>
             <div className="mt-10 max-w-[600px] space-y-5">
-              <label className="block">
+              <label className="block min-w-0">
                 <span className="mb-2 block font-semibold">{ui.postalCode}</span>
-                <input
-                  className="field w-full max-w-[180px]"
-                  value={form.recipient.postalCode}
-                  onChange={(e) => setRecipient("postalCode", e.target.value)}
+                <RecipientPostalCodeField
+                  postalCode={form.recipient.postalCode}
+                  onPostalCodeChange={(value) => setRecipient("postalCode", value)}
+                  onAddressResolved={({ postalCode, addressLine1 }) => setForm((current) => ({ ...current, recipient: { ...current.recipient, postalCode, addressLine1 } }))}
+                  lookupLabel={companyUi.postalCodeLookup}
+                  invalidMessage={companyUi.postalCodeInvalid}
+                  notFoundMessage={companyUi.postalCodeLookupFailed}
+                  networkErrorMessage={companyUi.postalCodeLookupNetworkError}
                 />
               </label>
-              <label className="block">
+              <label className="block min-w-0">
                 <span className="mb-2 block font-semibold">{ui.address}</span>
                 <input
                   className="field"
@@ -426,6 +459,17 @@ export function EstimateFormClient({
                   onChange={(e) => setRecipient("addressLine2", e.target.value)}
                 />
               </label>
+              {([
+                ["companyName", ui.companyNamePlaceholder],
+                ["department", ui.departmentPlaceholder],
+                ["name", ui.namePlaceholder],
+                ["contact", ui.contactPlaceholder],
+              ] as const).map(([key, label]) => (
+                <label key={key} className="block min-w-0">
+                  <span className="mb-2 block font-semibold">{label}</span>
+                  <input className="field" value={form.recipient[key]} onChange={(event) => setRecipient(key, event.target.value)} />
+                </label>
+              ))}
             </div>
           </>
         )}
@@ -462,7 +506,7 @@ export function EstimateFormClient({
 
         {activeTab === "template" && (
           <>
-            <div className="mt-10 grid gap-8 xl:grid-cols-[280px_1fr]">
+            <div className="mt-10 grid gap-8 xl:grid-cols-[280px_minmax(0,1fr)]">
               <div className="flex flex-col items-center gap-3">
                 <button
                   type="button"
@@ -493,6 +537,8 @@ export function EstimateFormClient({
                   {ui.templateNote}{" "}
                   <Link
                     href={`/${lang}/settings/document-defaults`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-[#0A4D34] underline"
                   >
                     ↗ {ui.templateSettingsLink}
@@ -530,7 +576,7 @@ export function EstimateFormClient({
               onClose={() => setPreviewOpen(false)}
               ui={buildEstimateDetailUi(outputLocale, getEstimateContent(outputLocale))}
               input={{
-                documentNumber: form.documentNumber || ui.estimateHint,
+                documentNumber: form.documentNumber || ui.autoNumber,
                 clientName: form.clientName,
                 clientHonorific,
                 subject: form.subject,
@@ -539,8 +585,21 @@ export function EstimateFormClient({
                 outputLocale,
                 templateMessage: form.templateMessage,
                 remarks: form.remarks,
+                recipient: { ...form.recipient, section: form.recipient.name },
                 senderCompanyName: form.senderCompanyName,
+                senderPostalCode: form.sender?.postalCode,
+                senderAddressLine1: form.sender?.addressLine1,
+                senderAddressLine2: form.sender?.addressLine2,
+                senderAddressLine3: form.sender?.addressLine3,
+                senderTel: form.sender?.tel,
+                senderFax: form.sender?.fax,
+                senderEmail: form.sender?.email,
+                senderRegistrationNumber: form.sender?.registrationNumber,
+                showSeal: initial.showSeal !== false,
+                sealUrl: initial.sealUrl,
                 taxRounding: form.taxRounding as TaxRounding,
+                taxDisplay: form.taxDisplay as TaxDisplay,
+                documentType: "estimate",
                 rows,
               }}
             />
@@ -550,6 +609,7 @@ export function EstimateFormClient({
       </div>
 
       <DocumentBottomBar
+        taxDisplay={form.taxDisplay as TaxDisplay}
         subtotalLabel={ui.subtotal}
         taxLabel={ui.tax}
         totalLabel={ui.total}
@@ -561,32 +621,33 @@ export function EstimateFormClient({
       />
 
       {previewModal !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="relative mx-4 flex max-h-[90vh] w-full max-w-[680px] flex-col rounded-lg bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-              <h2 className="text-[20px] font-semibold text-slate-900">
+        <ModalDialog label={previewModal === "standard" ? ui.templateStandard : ui.templateEnvelope} onClose={() => setPreviewModal(null)} className="max-w-[680px]">
+          <div className="relative flex max-h-[calc(100dvh-2rem)] w-full flex-col rounded-lg bg-white shadow-2xl">
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-6 sm:py-4">
+              <h2 className="min-w-0 text-lg font-semibold text-slate-900 [overflow-wrap:anywhere] sm:text-[20px]">
                 {previewModal === "standard" ? ui.templateStandard : ui.templateEnvelope}
               </h2>
               <button
                 type="button"
                 onClick={() => setPreviewModal(null)}
-                className="text-2xl leading-none text-slate-400 hover:text-slate-600"
+                aria-label={lang === "ko" ? "닫기" : lang === "en" ? "Close" : "閉じる"}
+                className="flex h-10 w-10 shrink-0 items-center justify-center text-2xl leading-none text-slate-400 hover:text-slate-600"
               >
                 ×
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="min-h-0 flex-1 overflow-auto p-3 sm:p-6">
               <EstimatePreview
                 ui={ui}
                 outputLocale={outputLocale}
                 clientHonorific={clientHonorific}
               />
             </div>
-            <div className="flex items-center justify-end gap-4 border-t border-slate-200 px-6 py-4">
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-slate-200 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
               <button
                 type="button"
                 onClick={() => setPreviewModal(null)}
-                className="rounded border border-slate-300 px-8 py-3 text-[15px] font-medium text-slate-700 hover:bg-slate-50"
+                className="rounded border border-slate-300 px-4 py-3 text-sm sm:px-8 sm:text-[15px] font-medium text-slate-700 hover:bg-slate-50"
               >
                 {ui.templateModalCancel}
               </button>
@@ -596,13 +657,13 @@ export function EstimateFormClient({
                   setSelectedTemplate(previewModal);
                   setPreviewModal(null);
                 }}
-                className="rounded bg-[#0A4D34] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#083D29]"
+                className="rounded bg-[#0A4D34] px-4 py-3 text-sm sm:px-8 sm:text-[15px] font-semibold text-white hover:bg-[#083D29]"
               >
                 {ui.templateModalSelect}
               </button>
             </div>
           </div>
-        </div>
+        </ModalDialog>
       )}
     </SalesFlowShell>
   );
@@ -611,7 +672,7 @@ export function EstimateFormClient({
 function SectionTitle({ title }: { title: string }) {
   return (
     <div className="border-b border-slate-200 pb-3">
-      <h2 className="text-[24px] font-semibold text-slate-900">{title}</h2>
+      <h2 className="text-xl font-semibold text-slate-900 [overflow-wrap:anywhere] sm:text-[24px]">{title}</h2>
     </div>
   );
 }
@@ -626,11 +687,11 @@ function FormField({
   children: React.ReactNode;
 }) {
   return (
-    <div className="block">
-      <div className="mb-2 flex items-center gap-2 text-[16px] font-semibold text-slate-800">
+    <div className="block min-w-0">
+      <div className="mb-2 flex flex-wrap items-center gap-2 text-[16px] font-semibold text-slate-800">
         <span>{label}</span>
         {required ? (
-          <span className="rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">{required}</span>
+          <span className="shrink-0 rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">{required}</span>
         ) : null}
       </div>
       {children}

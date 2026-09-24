@@ -1,3 +1,4 @@
+import type { TaxDisplay, DocumentTotals } from "@/lib/tax";
 import type { SpreadsheetLineItem } from "./export-spreadsheet";
 import type { ClientHonorific } from "./client-honorific";
 import type { DocumentOutputLocale } from "./output-locale";
@@ -18,6 +19,9 @@ export type SalesDocumentDetail = {
   remarks: string;
   subtotal: number;
   tax: number;
+  taxDisplay?: TaxDisplay;
+  withholding?: number;
+  taxBreakdown?: DocumentTotals["breakdown"];
   total: number;
   lines: SpreadsheetLineItem[];
   recipient?: {

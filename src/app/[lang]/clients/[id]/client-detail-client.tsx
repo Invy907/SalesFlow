@@ -86,11 +86,11 @@ export function ClientDetailClient({
 
   const infoRows: Array<{ label: string; value: string | null }> = [
     { label: ui.tableHeaders[0], value: client.name },
-    { label: "フリガナ", value: client.furigana },
-    { label: "管理コード", value: client.managementCode },
-    { label: "部署・担当者", value: client.department },
-    { label: "メール", value: client.email },
-    { label: "電話番号", value: client.phone },
+    { label: ui.modal.furigana, value: client.furigana },
+    { label: ui.modal.managementCode, value: client.managementCode },
+    { label: ui.modal.department, value: client.department },
+    { label: ui.modal.email, value: client.email },
+    { label: ui.modal.phone, value: client.phone },
     { label: "FAX", value: client.fax },
   ];
 
@@ -116,19 +116,19 @@ export function ClientDetailClient({
           </Link>
         </div>
 
-        <h1 className="text-[32px] font-bold tracking-tight text-slate-900">{client.name}</h1>
+        <h1 className="[overflow-wrap:anywhere] text-[28px] sm:text-[32px] font-bold tracking-tight text-slate-900">{client.name}</h1>
 
-        <div className="mt-6 grid grid-cols-1 gap-x-8 gap-y-3 rounded border border-slate-200 bg-white p-6 sm:grid-cols-[160px_1fr]">
+        <div className="mt-6 grid grid-cols-1 gap-x-8 gap-y-3 rounded border border-slate-200 bg-white p-4 sm:p-6 sm:grid-cols-[160px_minmax(0,1fr)]">
           {infoRows.map((row) => (
             <div key={row.label} className="contents">
               <div className="text-[14px] font-medium text-slate-500">{row.label}</div>
-              <div className="text-[15px] text-slate-800">{row.value || "—"}</div>
+              <div className="min-w-0 [overflow-wrap:anywhere] text-[15px] text-slate-800">{row.value || "—"}</div>
             </div>
           ))}
           {client.memo ? (
             <>
-              <div className="text-[14px] font-medium text-slate-500">メモ</div>
-              <div className="whitespace-pre-line text-[15px] text-slate-800">{client.memo}</div>
+              <div className="text-[14px] font-medium text-slate-500">{ui.modal.memo}</div>
+              <div className="whitespace-pre-line [overflow-wrap:anywhere] text-[15px] text-slate-800">{client.memo}</div>
             </>
           ) : null}
         </div>
@@ -137,14 +137,14 @@ export function ClientDetailClient({
           <h2 className="text-[20px] font-bold text-slate-900">{d.documentsTitle}</h2>
         </div>
 
-        <div className="mt-4 flex gap-6 border-b border-slate-200 text-[15px] text-slate-500">
+        <div className="mt-4 flex gap-6 overflow-x-auto border-b border-slate-200 text-[15px] text-slate-500">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key)}
               className={[
-                "border-b-[3px] px-1 pb-3 font-medium",
+                "shrink-0 whitespace-nowrap border-b-[3px] px-1 pb-3 font-medium",
                 activeTab === tab.key ? "border-[#1A7A57] text-slate-900" : "border-transparent",
               ].join(" ")}
             >
@@ -153,7 +153,7 @@ export function ClientDetailClient({
           ))}
         </div>
 
-        <div className="mt-3 overflow-x-auto rounded border border-slate-200 bg-white">
+        <div tabIndex={0} role="region" aria-label={d.documentsTitle} className="mt-3 overflow-x-auto rounded border border-slate-200 bg-white">
           {activeTab === "estimate" ? (
             estimates.length === 0 ? (
               <div className="flex min-h-[160px] items-center justify-center text-[15px] text-slate-400">{d.noDocuments}</div>
@@ -172,11 +172,11 @@ export function ClientDetailClient({
                   {estimates.map((doc) => (
                     <tr key={doc.id} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70">
                       <td className="px-4 py-3">
-                        <Link href={doc.href} className="font-medium text-[#0A4D34] hover:underline">{doc.documentNumber}</Link>
+                        <Link href={doc.href} className="inline-block max-w-[200px] font-medium text-[#0A4D34] [overflow-wrap:anywhere] hover:underline">{doc.documentNumber}</Link>
                       </td>
-                      <td className="px-4 py-3 text-slate-700">{doc.subject || "—"}</td>
-                      <td className="px-4 py-3 text-slate-600">{doc.issueDate}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-slate-700">{yen(doc.total)}</td>
+                      <td className="max-w-[300px] px-4 py-3 text-slate-700 [overflow-wrap:anywhere]">{doc.subject || "—"}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-slate-600">{doc.issueDate}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right tabular-nums text-slate-700">{yen(doc.total)}</td>
                       <td className="px-4 py-3">
                         <StatusBadge
                           active={doc.issued}
@@ -220,11 +220,11 @@ export function ClientDetailClient({
                   {deliveryNotes.map((doc) => (
                     <tr key={doc.id} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70">
                       <td className="px-4 py-3">
-                        <Link href={doc.href} className="font-medium text-[#0A4D34] hover:underline">{doc.documentNumber}</Link>
+                        <Link href={doc.href} className="inline-block max-w-[200px] font-medium text-[#0A4D34] [overflow-wrap:anywhere] hover:underline">{doc.documentNumber}</Link>
                       </td>
-                      <td className="px-4 py-3 text-slate-700">{doc.subject || "—"}</td>
-                      <td className="px-4 py-3 text-slate-600">{doc.issueDate}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-slate-700">{yen(doc.total)}</td>
+                      <td className="max-w-[300px] px-4 py-3 text-slate-700 [overflow-wrap:anywhere]">{doc.subject || "—"}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-slate-600">{doc.issueDate}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right tabular-nums text-slate-700">{yen(doc.total)}</td>
                       <td className="px-4 py-3">
                         <StatusBadge
                           active={doc.issued}
@@ -266,11 +266,11 @@ export function ClientDetailClient({
                   {invoices.map((doc) => (
                     <tr key={doc.id} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70">
                       <td className="px-4 py-3">
-                        <Link href={doc.href} className="font-medium text-[#0A4D34] hover:underline">{doc.documentNumber}</Link>
+                        <Link href={doc.href} className="inline-block max-w-[200px] font-medium text-[#0A4D34] [overflow-wrap:anywhere] hover:underline">{doc.documentNumber}</Link>
                       </td>
-                      <td className="px-4 py-3 text-slate-700">{doc.subject || "—"}</td>
-                      <td className="px-4 py-3 text-slate-600">{doc.issueDate}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-slate-700">{yen(doc.total)}</td>
+                      <td className="max-w-[300px] px-4 py-3 text-slate-700 [overflow-wrap:anywhere]">{doc.subject || "—"}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-slate-600">{doc.issueDate}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right tabular-nums text-slate-700">{yen(doc.total)}</td>
                       <td className="px-4 py-3">
                         <StaticBadge
                           active={doc.issued}

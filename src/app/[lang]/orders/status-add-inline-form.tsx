@@ -22,7 +22,7 @@ export function StatusAddInlineForm({
   const canSubmit = value.trim().length > 0;
 
   return (
-    <div className="space-y-2 py-1">
+    <div className="w-full min-w-0 max-w-xs space-y-2 py-1">
       <input
         className="field w-full border-[#1A7A57] ring-1 ring-[#1A7A57]"
         placeholder={placeholder}
@@ -44,7 +44,7 @@ export function StatusAddInlineForm({
       <p className="text-right text-xs text-slate-400">
         {value.length}/{STATUS_MAX_LENGTH}
       </p>
-      <div className="flex items-center justify-between pt-1">
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
         <button
           type="button"
           onClick={onCancel}

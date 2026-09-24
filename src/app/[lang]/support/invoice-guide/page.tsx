@@ -24,7 +24,7 @@ export default function InvoiceGuidePage() {
 
   return (
     <SalesFlowShell activeItem="support">
-      <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
+      <div className="mx-auto w-full min-w-0 [overflow-wrap:anywhere] max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
         <Link
           href={getSupportHref(lang, "top")}
           className="inline-flex items-center gap-1 text-sm text-slate-500 transition hover:text-[#0A4D34]"
@@ -33,16 +33,16 @@ export default function InvoiceGuidePage() {
         </Link>
 
         <div className="mt-4 flex flex-wrap items-baseline gap-4">
-          <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
+          <h1 className="text-2xl font-bold sm:text-[30px] tracking-tight text-slate-900">{ui.title}</h1>
           <span className="rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">
             Guide
           </span>
         </div>
         <p className="mt-3 max-w-[760px] text-[15px] leading-7 text-slate-600">{ui.intro}</p>
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
-          <div>
-            <div className="-mx-4 flex min-w-max gap-4 overflow-x-auto border-b border-slate-200 px-4 text-base text-slate-500 sm:mx-0 sm:gap-8 sm:px-0 sm:text-[18px]">
+        <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+          <div className="min-w-0">
+            <div className="-mx-4 flex min-w-0 max-w-[calc(100%+2rem)] gap-4 overflow-x-auto border-b border-slate-200 px-4 text-base text-slate-500 sm:mx-0 sm:max-w-full sm:gap-8 sm:px-0 sm:text-[18px]">
               {tabs.map((tab) => (
                 <button
                   key={tab.key}
@@ -91,7 +91,7 @@ export default function InvoiceGuidePage() {
             </div>
           </div>
 
-          <aside className="space-y-5 lg:sticky lg:top-8">
+          <aside className="space-y-5 xl:sticky xl:top-8">
             <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
               <div className="bg-[#dbe8f3] px-5 py-3.5">
                 <h2 className="text-[16px] font-semibold text-slate-800">{ui.legalTitle}</h2>

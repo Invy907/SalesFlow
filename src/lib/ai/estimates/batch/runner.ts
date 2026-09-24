@@ -20,6 +20,8 @@ import {
   type BatchSource,
 } from "./repository";
 import { validateExtraction } from "./validate";
+import type { EstimateExtractionProvider } from "../extraction-provider";
+import { isLocalDocumentMime, LocalDocumentParseError, localDocumentErrorMessage, parseLocalDocument } from "../local-document-parser";
 
 export interface RunExtractionOptions {
   command: Extract<BatchCommand, "smoke" | "pilot" | "ingest" | "retry">;
@@ -27,6 +29,7 @@ export interface RunExtractionOptions {
   all: boolean;
   resume: boolean;
   sourceId?: string;
+  forceRetry?: boolean;
 }
 
 export interface BatchResult {
@@ -52,6 +55,7 @@ function estimatedCostMicroUsd(
 
 function safeError(error: unknown): GeminiBatchError {
   if (error instanceof GeminiBatchError) return error;
+  if (error instanceof LocalDocumentParseError) return new GeminiBatchError("파일의 열 이름, 행 수와 값 형식을 확인하거나 검수 화면에서 직접 입력해 주세요.", "schema", false, error.code);
   return new GeminiBatchError(
     "배치 내부 처리 실패",
     "unknown",
@@ -91,34 +95,54 @@ async function processJob(input: {
   job: BatchJob;
   runId: string;
   repository: AiEstimateBatchRepository;
-  provider: GeminiEstimateProvider;
+  provider: EstimateExtractionProvider;
   env: BatchEnv;
   geminiEnv: GeminiEnv;
 }): Promise<boolean> {
   const { runId, repository, provider, env, geminiEnv } = input;
   let job = input.job;
-  const model = job.attempt > 1 ? geminiEnv.retryModel : geminiEnv.extractionModel;
+  let model = job.attempt > 1 ? geminiEnv.retryModel : geminiEnv.extractionModel;
+  let providerName = provider.provider;
   let source: BatchSource | null = null;
   try {
     source = await repository.getSource(job.source_id);
+    const local = isLocalDocumentMime(source.mime_type);
+    if (local) { model = "salesflow-file-parser-v1"; providerName = "local"; }
+    await repository.assertProcessingAllowed(source, !local);
+    if (source.status !== "processing") return false;
     const data = await repository.downloadSource(source);
-    const extracted = await provider.extract({
+    const currentSource = await repository.getSource(source.id);
+    if (currentSource.status !== "processing") return false;
+    await repository.assertProcessingAllowed(currentSource, !local);
+    const documentKind = currentSource.document_kind ?? "estimate";
+    const extractionInput = {
       data,
       mimeType: source.mime_type ?? "application/pdf",
       displayName: `estimate-${source.id}`,
       pageCount: source.page_count,
-      model,
-    });
+      model, documentKind,
+    };
+    const localStarted = Date.now();
+    const localResult = local ? await parseLocalDocument(extractionInput) : null;
+    const extracted = localResult ? { result: localResult, rawOutput: localResult, model,
+      inputTokens: 0, outputTokens: 0, latencyMs: Date.now() - localStarted } : await provider.extract(extractionInput);
+    if (extracted.result.documentKind && extracted.result.documentKind !== documentKind) throw new GeminiBatchError("문서 종류가 원본 설정과 일치하지 않습니다.", "schema", true, "document_kind_mismatch");
+    extracted.result.documentKind = documentKind;
+    if ((documentKind === "design" || documentKind === "work_scope") && extracted.result.lines.length) throw new GeminiBatchError("문맥 자료에 가격 명세가 포함되었습니다.", "schema", true, "context_contains_prices");
     job = await repository.advanceJobStatus(job, "extracted");
     const validation = validateExtraction(extracted.result, {
       confidenceThreshold: env.confidenceThreshold,
       totalToleranceMinorUnits: env.totalToleranceMinorUnits,
     });
     job = await repository.advanceJobStatus(job, "validating");
+    if (validation.normalized.document.currency && validation.normalized.document.currency !== "JPY") {
+      throw new GeminiBatchError("현재 견적은 JPY 통화만 지원합니다. 원본 통화를 확인해 주세요.", "schema", false, "unsupported_currency");
+    }
     const reviewExtraction = toReviewExtraction(validation.normalized, source.title);
-    if (!reviewExtraction.lines.length) validation.reviewReasons.push("missing_lines");
+    if (!reviewExtraction.lines.length && documentKind !== "design" && documentKind !== "work_scope") validation.reviewReasons.push("missing_lines");
 
-    await repository.recordExtraction({
+    const persisted = await repository.recordExtraction({
+      provider: providerName,
       job,
       source,
       runId,
@@ -134,9 +158,10 @@ async function processJob(input: {
       estimatedCostMicroUsd: estimatedCostMicroUsd(env, extracted.inputTokens, extracted.outputTokens),
       latencyMs: extracted.latencyMs,
     });
-    return true;
+    return persisted;
   } catch (error) {
     await repository.recordFailure({
+      provider: providerName,
       job,
       source,
       runId,
@@ -145,17 +170,20 @@ async function processJob(input: {
       extractionVersion: EXTRACTION_SCHEMA_VERSION,
       error: safeError(error),
     });
+    if (source && error instanceof LocalDocumentParseError) await repository.prepareManualReview(source, localDocumentErrorMessage(error.code));
+    if (source && error instanceof GeminiBatchError && error.code === "image_size_limit") await repository.prepareManualReview(source, error.message);
     return false;
   }
 }
 
 export async function runExtractionBatch(
   repository: AiEstimateBatchRepository,
-  provider: GeminiEstimateProvider,
+  provider: EstimateExtractionProvider,
   env: BatchEnv,
   geminiEnv: GeminiEnv,
   options: RunExtractionOptions,
 ): Promise<BatchResult> {
+  await repository.assertProcessingAllowed();
   const promptVersion = extractionPromptFingerprint();
   const runId = await repository.createRun({
     command: options.command,
@@ -180,7 +208,7 @@ export async function runExtractionBatch(
     if (reservations >= maximum) return null;
     reservations += 1;
     try {
-      const jobs = await repository.claimJobs(runId, worker, 1);
+      const jobs = await repository.claimJobs(runId, worker, 1, options.sourceId);
       if (!jobs[0]) {
         reservations -= 1;
         return null;
@@ -196,15 +224,16 @@ export async function runExtractionBatch(
     if (options.command !== "retry" && !options.resume && !options.sourceId) {
       registration = await registerLocalSources(repository, env, options.limit);
     }
-    if (!options.resume) {
+    {
       queued = await repository.queueJobs({
-        retryOnly: options.command === "retry",
+        retryOnly: options.command === "retry" || options.resume,
         limit: options.limit,
         maxAttempt: env.maxRetry,
         sourceId: options.sourceId,
+        forceRetry: options.forceRetry ?? (options.command === "retry" && Boolean(options.sourceId)),
       });
     }
-    await Promise.all(Array.from({ length: env.concurrency }, async (_, index) => {
+    const workers = await Promise.allSettled(Array.from({ length: env.concurrency }, async (_, index) => {
       const worker = `${os.hostname()}:${process.pid}:${index + 1}`;
       for (;;) {
         const job = await nextJob(worker);
@@ -215,6 +244,8 @@ export async function runExtractionBatch(
         else failed += 1;
       }
     }));
+    const rejected = workers.find((worker) => worker.status === "rejected");
+    if (rejected?.status === "rejected") throw rejected.reason;
   } catch (error) {
     runStatus = "failed";
     throw error;
@@ -257,12 +288,16 @@ export async function reindexApprovedSources(
   geminiEnv: GeminiEnv,
   limit: number,
 ): Promise<{ embedded: number; priceStats: number }> {
-  const chunks = await repository.listUnembeddedChunks(limit);
+  const chunks = await repository.listUnembeddedChunks(limit, geminiEnv.embeddingModel);
   let embedded = 0;
   for (const chunk of chunks) {
+    const example = Array.isArray(chunk.ai_estimate_examples) ? chunk.ai_estimate_examples[0] : chunk.ai_estimate_examples;
+    if (!example) continue;
+    const source = await repository.getSource(example.source_id);
+    if (source.status !== "approved") continue;
+    await repository.assertExternalProcessingAllowed(source);
     const vector = await provider.embed(chunk.content);
-    await repository.saveEmbedding(chunk, vector, geminiEnv.embeddingModel);
-    embedded += 1;
+    if (await repository.saveEmbedding(chunk, vector, geminiEnv.embeddingModel)) embedded += 1;
   }
   const priceStats = await repository.rebuildPriceStats();
   return { embedded, priceStats };

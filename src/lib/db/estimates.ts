@@ -1,3 +1,4 @@
+import { getDocumentSearchClause } from "./document-search";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -31,7 +32,8 @@ export async function getEstimates(orgId: string, filter: DocumentFilter = {}) {
     .from("estimates")
     .select("*, clients(id, name)", { count: "exact" })
     .eq("organization_id", orgId)
-    .order("issue_date", { ascending: false });
+    .order("issue_date", { ascending: false })
+    .order("id", { ascending: false });
 
   if (trashed) {
     q = q.not("deleted_at", "is", null);
@@ -46,7 +48,7 @@ export async function getEstimates(orgId: string, filter: DocumentFilter = {}) {
   if (orderFlag !== undefined) q = orderFlag ? q.not("ordered_at", "is", null) : q.is("ordered_at", null);
   if (from) q = q.gte("issue_date", from);
   if (to) q = q.lte("issue_date", to);
-  if (query) q = q.or(`document_number.ilike.%${query}%,subject.ilike.%${query}%`);
+  if (query) q = q.or(await getDocumentSearchClause(orgId, query));
 
   const start = (page - 1) * pageSize;
   q = q.range(start, start + pageSize - 1);

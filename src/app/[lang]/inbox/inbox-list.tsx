@@ -72,19 +72,18 @@ export function InboxList({
   const ui = getInboxContent(lang);
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [toast, setToast] = useState("");
+  const [toast, setToast] = useState(() => initialToast === "connected" ? ui.gmail.connectedToast : initialToast ?? "");
   const [search, setSearch] = useState(query);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   useEffect(() => {
     if (!initialToast) return;
-    if (initialToast === "connected") {
-      setToast(ui.gmail.connectedToast);
-    } else {
-      setToast(initialToast);
-    }
-    router.replace(`/${lang}/inbox${unreadOnly ? "?unread=1" : ""}`, { scroll: false });
-  }, [initialToast, lang, router, ui.gmail.connectedToast, unreadOnly]);
+    const params = new URLSearchParams();
+    if (unreadOnly) params.set("unread", "1");
+    if (query) params.set("q", query);
+    if (page > 1) params.set("page", String(page));
+    router.replace(`/inbox${params.size ? `?${params}` : ""}`, { scroll: false });
+  }, [initialToast, router, unreadOnly, query, page]);
 
   useEffect(() => {
     if (!toast) return;
@@ -148,7 +147,7 @@ export function InboxList({
         ) : (
           <div className="mb-6 rounded border border-slate-200 bg-slate-50 px-5 py-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
+              <div className="min-w-0 [overflow-wrap:anywhere]">
                 <p className="text-[14px] font-semibold text-slate-800">
                   {ui.gmail.connected}: {gmailConnection.googleEmail}
                 </p>
@@ -168,7 +167,7 @@ export function InboxList({
                   </p>
                 ) : null}
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex shrink-0 flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={handleSync}
@@ -192,7 +191,7 @@ export function InboxList({
 
         {gmailConnection && !gmailConnection.canSend ? (
           <div className="mb-6 flex flex-col gap-3 rounded border border-amber-200 bg-amber-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
+            <div className="min-w-0 [overflow-wrap:anywhere]">
               <p className="text-[14px] font-semibold text-amber-900">
                 {ui.gmail.sendScopeMissingTitle}
               </p>
@@ -251,11 +250,11 @@ export function InboxList({
         </div>
 
         {rows.length === 0 ? (
-          <div className="mt-20 flex min-h-[420px] items-center justify-center text-[20px] text-slate-300">
+          <div className="mt-8 flex min-h-[240px] items-center justify-center px-4 text-center text-[18px] text-slate-500">
             {ui.empty}
           </div>
         ) : (
-          <div className="mt-6 overflow-x-auto rounded border border-slate-200 bg-white">
+          <div className="mt-6 min-w-0 overflow-x-auto rounded border border-slate-200 bg-white" tabIndex={0} role="region" aria-label={ui.title}>
             <table className="w-full min-w-[760px] border-collapse text-[15px]">
               <thead>
                 <tr className="border-b border-slate-200 bg-[#f8fafc] text-left">
@@ -285,13 +284,13 @@ export function InboxList({
                     </td>
                     <td
                       className={[
-                        "px-4 py-4",
+                        "max-w-[400px] px-4 py-4 [overflow-wrap:anywhere]",
                         row.isRead ? "text-slate-600" : "font-semibold text-slate-900",
                       ].join(" ")}
                     >
-                      {row.subject || ui.noSubject}
+                      <Link href={`/${lang}/inbox/${row.id}`} className="hover:underline">{row.subject || ui.noSubject}</Link>
                     </td>
-                    <td className="px-4 py-4 tabular-nums text-slate-600">
+                    <td className="whitespace-nowrap px-4 py-4 tabular-nums text-slate-600">
                       {formatReceivedAt(lang, row.createdAt)}
                     </td>
                     <td className="px-4 py-4">
@@ -339,7 +338,7 @@ export function InboxList({
       {toast ? (
         <div
           role="status"
-          className="fixed bottom-8 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900/90 px-6 py-3 text-[15px] text-white shadow-lg"
+          className="fixed bottom-8 left-1/2 z-50 w-max max-w-[calc(100%_-_2rem)] -translate-x-1/2 rounded-xl bg-slate-900/90 px-6 py-3 text-center text-[15px] text-white [overflow-wrap:anywhere] shadow-lg"
         >
           {toast}
         </div>

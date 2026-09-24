@@ -1,3 +1,5 @@
+import { mapSalesDocumentDetail } from "@/lib/documents/map-document-detail";
+import type { TaxDisplay } from "@/lib/tax";
 import { notFound } from "next/navigation";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { SalesDocumentPreview } from "@/components/sales-document-preview";
@@ -46,6 +48,10 @@ export default async function SharedInvoicePage({
       ? await getSealUrlForOrg(invoice.organization_id as string | null)
       : null;
 
+  const mapped = mapSalesDocumentDetail(
+    { ...invoice, id: String(invoice.id ?? "") }, lines,
+    { companyName: "", tel: "", email: "" }, { documentType: "invoice" },
+  );
   const preview: SalesDocumentDetail = {
     id: String(invoice.id ?? ""),
     documentNumber: String(invoice.document_number ?? ""),
@@ -61,6 +67,9 @@ export default async function SharedInvoicePage({
     remarks: String(invoice.remarks ?? ""),
     subtotal: Number(invoice.subtotal ?? 0),
     tax: Number(invoice.tax_amount ?? 0),
+    taxDisplay: (invoice.tax_display as TaxDisplay | null) ?? "separate",
+    withholding: Number(invoice.withholding_amount ?? 0),
+    taxBreakdown: mapped.taxBreakdown,
     total: Number(invoice.total ?? 0),
     lines: lines.map((line, index) => ({
       lineNo: Number(line.line_no ?? index + 1),
@@ -68,6 +77,7 @@ export default async function SharedInvoicePage({
       qty: Number(line.qty ?? 0),
       unit: String(line.unit_snapshot ?? ""),
       unitPrice: Number(line.unit_price_snapshot ?? 0),
+      taxCategory: mapped.lines[index]?.taxCategory,
     })),
     recipient: {
       postalCode: recipient.postalCode ?? "",
@@ -97,7 +107,7 @@ export default async function SharedInvoicePage({
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 px-4 py-10">
+    <div className="min-h-screen bg-slate-100 px-2 py-4 sm:px-4 sm:py-10">
       <div className="mx-auto w-full max-w-[1100px]">
         <SalesDocumentPreview detail={preview} ui={ui} />
       </div>

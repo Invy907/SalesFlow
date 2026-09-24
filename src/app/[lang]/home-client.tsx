@@ -126,18 +126,18 @@ export function HomeClient({ dashboard }: { dashboard: Dashboard }) {
       <div className="bg-[#f4f7fb]">
         <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
           <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-slate-500">
                 {ui.todayLabel} · {today || "—"}
               </p>
-              <h1 className="mt-1 text-[28px] font-bold tracking-tight text-slate-900">
+              <h1 className="mt-1 [overflow-wrap:anywhere] text-[24px] sm:text-[28px] font-bold tracking-tight text-slate-900">
                 {greeting},{" "}
                 <span className="text-[#0A4D34]">{userName || ui.userName}</span>
                 {ui.greeting.suffix}
               </h1>
             </div>
 
-            <div ref={menuRef} className="relative">
+            <div ref={menuRef} className="relative shrink-0">
               <button
                 type="button"
                 onClick={() => setMenuOpen((open) => !open)}
@@ -148,7 +148,7 @@ export function HomeClient({ dashboard }: { dashboard: Dashboard }) {
               </button>
 
               {menuOpen ? (
-                <div className="absolute right-0 top-[52px] z-20 w-[240px] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
+                <div className="absolute left-0 top-[52px] z-20 w-[240px] max-w-[calc(100vw-2rem)] sm:left-auto sm:right-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
                   <div className="border-b border-slate-100 bg-slate-50 px-4 py-2.5 text-xs font-semibold text-slate-500">
                     {ui.newMenuTitle}
                   </div>
@@ -170,7 +170,7 @@ export function HomeClient({ dashboard }: { dashboard: Dashboard }) {
             </div>
           </header>
 
-          <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {(Object.keys(ui.kpiLabels) as KpiKey[]).map((key) => (
               <KpiCard
                 key={key}
@@ -185,7 +185,7 @@ export function HomeClient({ dashboard }: { dashboard: Dashboard }) {
 
           <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] lg:items-start">
             <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-              <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
                 <div>
                   <h2 className="text-[18px] font-semibold text-slate-900">
                     {ui.tasks.title}
@@ -244,7 +244,7 @@ export function HomeClient({ dashboard }: { dashboard: Dashboard }) {
                       <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#E8F5EF] text-[#0A4D34] transition group-hover:bg-[#0A4D34] group-hover:text-white">
                         <DocumentTypeIcon type={item.key} />
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="text-[15px] font-semibold text-slate-900">
                           {item.label}
                         </span>
@@ -281,7 +281,7 @@ export function HomeClient({ dashboard }: { dashboard: Dashboard }) {
 
           <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
             <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-              <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
                 <h2 className="text-[18px] font-semibold text-slate-900">
                   {ui.recent.title}
                 </h2>
@@ -307,7 +307,7 @@ export function HomeClient({ dashboard }: { dashboard: Dashboard }) {
             </section>
 
             <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-              <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
                 <h2 className="text-[18px] font-semibold text-slate-900">
                   {ui.notices.title}
                 </h2>
@@ -363,12 +363,12 @@ function KpiCard({
   return (
     <Link
       href={href}
-      className="group block rounded-lg border border-slate-200 bg-white p-5 transition hover:border-[#0A4D34]/40 hover:shadow-sm"
+      className="group block min-w-0 rounded-lg border border-slate-200 bg-white p-5 transition hover:border-[#0A4D34]/40 hover:shadow-sm"
     >
       <p className="text-[12px] font-medium tracking-wide text-slate-500 uppercase">{label}</p>
       <p
         className={[
-          "mt-3 text-[26px] font-bold leading-none tracking-tight",
+          "mt-3 break-all text-[clamp(1.125rem,2.4vw,1.625rem)] font-bold leading-tight tracking-tight",
           kpiToneStyles[tone],
         ].join(" ")}
       >
@@ -412,15 +412,15 @@ function TaskGroup({
             <li key={`${group.key}-${item.docKind}-${item.id}`}>
               <Link
                 href={item.href}
-                className="flex items-center gap-4 rounded-md border border-slate-100 bg-slate-50/60 px-3 py-2.5 transition hover:border-slate-200 hover:bg-white"
+                className="flex flex-col items-start gap-2 rounded-md sm:flex-row sm:items-center sm:gap-4 border border-slate-100 bg-slate-50/60 px-3 py-2.5 transition hover:border-slate-200 hover:bg-white"
               >
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 max-w-full sm:flex-1">
                   <p className="truncate text-[14px] font-semibold text-slate-900">
                     {item.clientName || "—"}
                   </p>
                   <p className="truncate text-[12px] text-slate-500">{docLine}</p>
                 </div>
-                <div className="text-right">
+                <div className="min-w-0 max-w-full [overflow-wrap:anywhere] sm:text-right">
                   <p className="text-[14px] font-semibold text-slate-900">{yen(item.amount)}</p>
                   <span
                     className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ${tone.pill}`}
@@ -450,7 +450,7 @@ function RecentRow({ item, ui }: { item: RecentItem; ui: HomeContent }) {
 
   return (
     <li>
-      <Link href={item.href} className="flex items-center gap-4 px-5 py-4 transition hover:bg-slate-50">
+      <Link href={item.href} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-4 transition sm:flex-nowrap sm:gap-4 sm:px-5 hover:bg-slate-50">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
           <DocBadgeIcon />
         </div>
@@ -458,7 +458,7 @@ function RecentRow({ item, ui }: { item: RecentItem; ui: HomeContent }) {
           <p className="truncate text-[14px] font-semibold text-slate-900">{docLine}</p>
           <p className="truncate text-[13px] text-slate-500">{item.clientName || "—"}</p>
         </div>
-        <div className="text-right">
+        <div className="w-full min-w-0 max-w-full pl-12 [overflow-wrap:anywhere] sm:w-auto sm:pl-0 sm:text-right">
           <p className="text-[14px] font-semibold text-slate-900">{yen(item.amount)}</p>
           <p className="text-[12px] text-slate-500">
             {ui.statusLabels[item.status] ?? item.status} ·{" "}

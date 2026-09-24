@@ -63,12 +63,12 @@ export function DocumentDefaultsFormClient({ initial }: { initial: DocumentDefau
     <SalesFlowShell activeItem="settings">
       <SettingsSubNav active="document-defaults" />
 
-      <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-20 sm:px-6 sm:py-8 sm:pb-24 lg:px-8 lg:py-10 lg:pb-28">
-        <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{doc.title}</h1>
+      <div className="mx-auto w-full min-w-0 [overflow-wrap:anywhere] max-w-[1260px] px-4 py-6 pb-20 sm:px-6 sm:py-8 sm:pb-24 lg:px-8 lg:py-10 lg:pb-28">
+        <h1 className="text-2xl font-bold sm:text-[30px] tracking-tight text-slate-900">{doc.title}</h1>
         <p className="mt-4 max-w-[900px] text-[15px] leading-7 text-slate-600">{doc.intro}</p>
 
         <div className="mt-10 space-y-8">
-          <section className="overflow-hidden rounded border border-slate-200 bg-white px-6 py-6">
+          <section className="overflow-hidden rounded border border-slate-200 bg-white px-4 py-5 sm:px-6 sm:py-6">
             <SettingsSectionHeader title={doc.commonSection} />
             <h3 className="mt-6 text-[18px] font-semibold text-slate-900">{doc.numberingTitle}</h3>
             <p className="mt-2 text-sm text-slate-500">{doc.numberingDesc}</p>
@@ -110,7 +110,7 @@ export function DocumentDefaultsFormClient({ initial }: { initial: DocumentDefau
             </div>
           </section>
 
-          <section className="overflow-hidden rounded border border-slate-200 bg-white px-6 py-6 space-y-4">
+          <section className="overflow-hidden rounded border border-slate-200 bg-white px-4 py-5 sm:px-6 sm:py-6 space-y-4">
             <h3 className="text-[18px] font-semibold">{doc.sections.estimate}</h3>
             <textarea
               className="field min-h-[80px]"
@@ -125,7 +125,7 @@ export function DocumentDefaultsFormClient({ initial }: { initial: DocumentDefau
             />
           </section>
 
-          <section className="overflow-hidden rounded border border-slate-200 bg-white px-6 py-6 space-y-4">
+          <section className="overflow-hidden rounded border border-slate-200 bg-white px-4 py-5 sm:px-6 sm:py-6 space-y-4">
             <h3 className="text-[18px] font-semibold">{doc.sections.invoice}</h3>
             <textarea
               className="field min-h-[80px]"

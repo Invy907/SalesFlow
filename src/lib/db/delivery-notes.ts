@@ -1,3 +1,4 @@
+import { getDocumentSearchClause } from "./document-search";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import type { DocumentFilter } from "./estimates";
 
@@ -9,7 +10,8 @@ export async function getDeliveryNotes(orgId: string, filter: DocumentFilter = {
     .from("delivery_notes")
     .select("*, clients(id, name)", { count: "exact" })
     .eq("organization_id", orgId)
-    .order("issue_date", { ascending: false });
+    .order("issue_date", { ascending: false })
+    .order("id", { ascending: false });
 
   q = trashed ? q.not("deleted_at", "is", null) : q.is("deleted_at", null);
 
@@ -20,7 +22,7 @@ export async function getDeliveryNotes(orgId: string, filter: DocumentFilter = {
   if (billedFlag !== undefined) q = billedFlag ? q.not("billed_marked_at", "is", null) : q.is("billed_marked_at", null);
   if (from) q = q.gte("issue_date", from);
   if (to) q = q.lte("issue_date", to);
-  if (query) q = q.or(`document_number.ilike.%${query}%,subject.ilike.%${query}%`);
+  if (query) q = q.or(await getDocumentSearchClause(orgId, query));
 
   const start = (page - 1) * pageSize;
   q = q.range(start, start + pageSize - 1);

@@ -53,7 +53,7 @@ export function ItemForm({ initial }: { initial: ItemFormValues }) {
       const payload = {
         name: values.name,
         unit: values.unit,
-        unitPrice: Number(values.unitPrice),
+        unitPrice: Number(values.unitPrice.replace(/,/g, "").trim()),
         taxCategory: values.taxCategory,
         withholdingExempt: values.withholdingExempt,
       };
@@ -79,7 +79,7 @@ export function ItemForm({ initial }: { initial: ItemFormValues }) {
     <SalesFlowShell activeItem="items">
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{form.title}</h1>
+          <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{values.id ? (lang === "ko" ? "품목 수정" : lang === "en" ? "Edit item" : "品目の編集") : form.title}</h1>
           <Link
             href={`/${lang}${getItemsHref(lang, "list")}`}
             className="text-[15px] text-[#0A4D34] hover:underline"
@@ -89,7 +89,7 @@ export function ItemForm({ initial }: { initial: ItemFormValues }) {
         </div>
 
         <div className="mt-8 max-w-[760px] rounded border border-slate-200 bg-white">
-          <div className="divide-y divide-slate-200 px-6 py-2 md:px-8">
+          <div className="divide-y divide-slate-200 px-4 py-2 sm:px-6 md:px-8">
             <ItemFormSection label={form.itemName} required={form.required} hint={form.itemNameHint}>
               <input
                 className="field"
@@ -113,13 +113,13 @@ export function ItemForm({ initial }: { initial: ItemFormValues }) {
             <ItemFormSection label={form.unitPrice} hint={form.unitPriceHint}>
               <div className="flex items-center gap-3">
                 <input
-                  className="field max-w-[280px]"
+                  className="field min-w-0 max-w-[280px] flex-1"
                   inputMode="numeric"
                   maxLength={15}
                   value={values.unitPrice}
                   onChange={(e) => setValues((v) => ({ ...v, unitPrice: e.target.value }))}
                 />
-                <span className="text-[15px] text-slate-700">{form.yen}</span>
+                <span className="shrink-0 text-[15px] text-slate-700">{form.yen}</span>
               </div>
               {err("unitPrice")}
             </ItemFormSection>
@@ -136,9 +136,9 @@ export function ItemForm({ initial }: { initial: ItemFormValues }) {
                       name="taxRate"
                       checked={values.taxCategory === option.value}
                       onChange={() => setValues((v) => ({ ...v, taxCategory: option.value }))}
-                      className="h-4 w-4 accent-[#0A4D34]"
+                      className="h-4 w-4 shrink-0 accent-[#0A4D34]"
                     />
-                    <span className="flex items-center gap-2">
+                    <span className="flex min-w-0 flex-wrap items-center gap-2">
                       {option.label}
                       {option.help ? (
                         <span title={option.help} className="text-xs text-slate-400">?</span>
@@ -158,7 +158,7 @@ export function ItemForm({ initial }: { initial: ItemFormValues }) {
                   onChange={(e) =>
                     setValues((v) => ({ ...v, withholdingExempt: e.target.checked }))
                   }
-                  className="h-4 w-4 accent-[#0A4D34]"
+                  className="h-4 w-4 shrink-0 accent-[#0A4D34]"
                 />
                 {form.withholdingExempt}
               </label>
@@ -166,7 +166,7 @@ export function ItemForm({ initial }: { initial: ItemFormValues }) {
           </div>
 
           <div className="border-t border-slate-200 px-6 py-6 md:px-8">
-            {message ? <p className="mb-3 text-sm text-red-600">{message}</p> : null}
+            {message ? <p role="alert" className="mb-3 text-sm text-red-600">{message}</p> : null}
             <button
               type="button"
               onClick={handleSave}
@@ -195,7 +195,7 @@ function ItemFormSection({
 }) {
   return (
     <div className="py-6">
-      <div className="mb-3 flex items-center gap-2">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         <span className="text-[16px] font-semibold text-slate-800">{label}</span>
         {required ? <RequiredBadge label={required} /> : null}
       </div>

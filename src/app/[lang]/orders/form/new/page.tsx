@@ -1,160 +1,27 @@
-"use client";
+import { notFound } from "next/navigation";
+import { requireActiveOrg } from "@/lib/guards";
+import { getCompanyProfile } from "@/lib/db/company";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { TAX_CATEGORY_TO_LABEL } from "@/lib/tax";
+import NewOrderFormClient, { type OrderFormInitial } from "./new-order-form-client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { SalesFlowShell } from "@/components/salesflow-shell";
-import { useLanguage } from "@/contexts/language-context";
-import { getCompanyProfile, isCompanyProfileComplete } from "@/lib/company-profile";
-import { DateFieldInput } from "../../../estimates/date-field-input";
-import { RequiredBadge } from "../../../list-page-shared";
-import { SettingsEmailAlert } from "../../../settings/settings-shared";
-import { getOrdersContent } from "../../content";
-import { OrderFormLineItemsTable } from "../../order-form-line-items";
-import { OrderMainInner } from "../../order-main-inner";
-import { OrderSubNav } from "../../order-sub-nav";
+export const dynamic = "force-dynamic";
 
-export default function NewOrderFormPage() {
-  const { lang } = useLanguage();
-  const ui = getOrdersContent(lang);
-  const form = ui.form.new;
-  const router = useRouter();
-  const [ready, setReady] = useState(false);
-  const [companyName, setCompanyName] = useState("");
-  const [client, setClient] = useState("");
-  const [subject, setSubject] = useState("");
-  const [expirationMode, setExpirationMode] = useState<"date" | "none">("none");
-  const [expirationDate, setExpirationDate] = useState("");
-
-  useEffect(() => {
-    if (!isCompanyProfileComplete()) {
-      router.replace("/settings/company?from=order-form");
-      return;
-    }
-
-    const profile = getCompanyProfile();
-    setCompanyName(profile?.companyNameLine1 ?? "");
-    setReady(true);
-  }, [lang, router]);
-
-  if (!ready) {
-    return (
-      <SalesFlowShell activeItem="orders">
-        <OrderSubNav active="form" />
-        <OrderMainInner>
-          <div className="pt-6" />
-        </OrderMainInner>
-      </SalesFlowShell>
-    );
+export default async function NewOrderFormPage({ params, searchParams }: { params: Promise<{ lang: string }>; searchParams: Promise<{ copyFrom?: string }> }) {
+  const { lang } = await params;
+  const scope = await requireActiveOrg(lang);
+  const profile = await getCompanyProfile(scope.orgId);
+  const { copyFrom } = await searchParams;
+  let initial: OrderFormInitial | undefined;
+  if (copyFrom) {
+    const supabase = await getSupabaseServerClient();
+    const { data, error } = await supabase.from("order_forms").select("*, order_form_line_items(*)")
+      .eq("id", copyFrom).eq("organization_id", scope.orgId).is("deleted_at", null).maybeSingle();
+    if (error || !data) notFound();
+    initial = {
+      name: data.name ?? "", subject: data.subject ?? "", expirationMode: data.expiration_mode === "date" ? "date" : "none", expirationDate: data.expiration_date ?? "",
+      rows: data.order_form_line_items.sort((a, b) => a.line_no - b.line_no).map((line) => ({ name: line.name_snapshot, unit: line.unit_snapshot ?? "", price: String(line.unit_price_snapshot), tax: TAX_CATEGORY_TO_LABEL[line.tax_category] })),
+    };
   }
-
-  return (
-    <SalesFlowShell activeItem="orders">
-      <OrderSubNav active="form" />
-
-      <OrderMainInner>
-        <div className="pt-6">
-          <SettingsEmailAlert
-            title={ui.form.emailAlert.title}
-            body={ui.form.emailAlert.body}
-            buttonLabel={ui.form.emailAlert.button}
-          />
-
-          <h1 className="text-[26px] font-bold tracking-tight text-slate-900">{form.title}</h1>
-
-          <div className="mt-8 grid grid-cols-2 gap-x-12 gap-y-6">
-            <div>
-              <FieldLabel label={form.companyName} />
-              <p className="mt-2 text-[15px] text-slate-800">{companyName || "—"}</p>
-            </div>
-
-            <div>
-              <FieldLabel label={form.logo} />
-              <p className="mt-2 text-[15px] text-slate-500">{form.logoEmpty}</p>
-            </div>
-
-            <div>
-              <FieldLabel label={form.client} required={form.required} />
-              <input
-                className="mt-2 w-full rounded border border-slate-300 px-3 py-2.5 text-[15px] text-slate-800 outline-none focus:border-[#3AA87A]"
-                value={client}
-                onChange={(event) => setClient(event.target.value)}
-              />
-            </div>
-
-            <div>
-              <FieldLabel label={form.expiration} />
-              <div className="mt-3 space-y-3">
-                <label className="flex items-center gap-3 text-[15px] text-slate-800">
-                  <input
-                    type="radio"
-                    name="expirationMode"
-                    checked={expirationMode === "date"}
-                    onChange={() => setExpirationMode("date")}
-                    className="h-4 w-4 accent-[#0A4D34]"
-                  />
-                  <DateFieldInput
-                    value={expirationDate}
-                    onChange={setExpirationDate}
-                    placeholder={form.noDate}
-                    variant="field"
-                  />
-                </label>
-                <label className="flex items-center gap-3 text-[15px] text-slate-800">
-                  <input
-                    type="radio"
-                    name="expirationMode"
-                    checked={expirationMode === "none"}
-                    onChange={() => setExpirationMode("none")}
-                    className="h-4 w-4 accent-[#0A4D34]"
-                  />
-                  {form.noExpiration}
-                </label>
-              </div>
-            </div>
-
-            <div className="col-span-2">
-              <FieldLabel label={form.subject} required={form.required} />
-              <div className="relative mt-2">
-                <input
-                  className="w-full rounded border border-slate-300 px-3 py-2.5 pr-16 text-[15px] text-slate-800 outline-none focus:border-[#3AA87A]"
-                  maxLength={70}
-                  value={subject}
-                  onChange={(event) => setSubject(event.target.value)}
-                />
-                <span className="pointer-events-none absolute bottom-2.5 right-3 text-[12px] text-slate-400">
-                  {form.charCount(subject.length, 70)}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-10">
-            <OrderFormLineItemsTable
-              headers={form.itemHeaders}
-              unitPlaceholder={form.unitPlaceholder}
-              addRowLabel={form.addRow}
-            />
-          </div>
-
-          <div className="mt-12 flex justify-center pb-8">
-            <button
-              type="button"
-              className="w-full rounded bg-[#0A4D34] px-8 py-3.5 text-[16px] font-semibold text-white transition hover:bg-[#083D29] sm:w-auto sm:min-w-[280px]"
-            >
-              {form.save}
-            </button>
-          </div>
-        </div>
-      </OrderMainInner>
-    </SalesFlowShell>
-  );
-}
-
-function FieldLabel({ label, required }: { label: string; required?: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-[15px] font-semibold text-slate-800">{label}</span>
-      {required ? <RequiredBadge label={required} /> : null}
-    </div>
-  );
+  return <NewOrderFormClient key={copyFrom ?? "new"} companyName={profile?.company_name_line1 ?? ""} hasLogo={Boolean(profile?.logo_path)} initial={initial} />;
 }

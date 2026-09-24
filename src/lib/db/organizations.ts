@@ -4,9 +4,12 @@ import { cookies } from "next/headers";
 /** 현재 로그인 유저가 속한 조직 목록 */
 export async function getUserOrganizations() {
   const supabase = await getSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
   const { data, error } = await supabase
     .from("organization_members")
     .select("organizations(*), role")
+    .eq("user_id", user.id)
     .order("created_at", { ascending: true });
 
   if (error) throw new Error(error.message);
@@ -19,9 +22,12 @@ export async function getActiveOrganization() {
   const activeOrgId = cookieStore.get("salesflow-active-org")?.value;
 
   const supabase = await getSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
   const { data: memberships, error } = await supabase
     .from("organization_members")
     .select("organization_id, role, organizations(id, name, plan, slug)")
+    .eq("user_id", user.id)
     .order("created_at", { ascending: true });
 
   if (error) throw new Error(error.message);
@@ -39,7 +45,7 @@ export async function getOrgMembers(orgId: string) {
   const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase
     .from("organization_members")
-    .select("*, profiles(id, email, display_name, avatar_url)")
+    .select("*")
     .eq("organization_id", orgId);
 
   if (error) throw new Error(error.message);

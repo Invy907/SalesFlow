@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { documentRecipientName, parseListInteger } from "@/lib/document-list-state";
 import { requireActiveOrg } from "@/lib/guards";
 import { getListPageSize } from "@/lib/display-settings.server";
 import { getDeliveryNotes } from "@/lib/db/delivery-notes";
@@ -28,12 +30,12 @@ export default async function DeliveryNotesPage({
   const scope = await requireActiveOrg(lang);
   const pageSize = await getListPageSize(scope.orgId);
   const sp = await searchParams;
-  const tab = Math.min(2, Math.max(0, Number(sp.tab ?? "0") || 0));
-  const page = Math.max(1, Number(sp.page ?? "1") || 1);
+  const tab = parseListInteger(sp.tab, 0, 2);
+  const page = parseListInteger(sp.page, 1);
   const query = sp.q?.trim() || undefined;
   const filter = TAB_FILTERS[tab];
-  const issueFlag = parseFlag(sp.issueFlag);
-  const billedFlag = parseFlag(sp.billedFlag);
+  const issueFlag = tab === 2 ? undefined : parseFlag(sp.issueFlag);
+  const billedFlag = tab === 2 ? undefined : parseFlag(sp.billedFlag);
 
   const { deliveryNotes, total } = await getDeliveryNotes(scope.orgId, {
     statusIn: filter.statusIn ? [...filter.statusIn] : undefined,
@@ -45,10 +47,21 @@ export default async function DeliveryNotesPage({
     pageSize,
   });
 
+  const lastPage = Math.max(1, Math.ceil(total / pageSize));
+  if (page > lastPage) {
+    const params = new URLSearchParams();
+    if (tab) params.set("tab", String(tab));
+    if (query) params.set("q", query);
+    if (issueFlag !== undefined) params.set("issueFlag", issueFlag ? "1" : "0");
+    if (billedFlag !== undefined) params.set("billedFlag", billedFlag ? "1" : "0");
+    if (lastPage > 1) params.set("page", String(lastPage));
+    redirect(`/${lang}/delivery-notes${params.size ? `?${params}` : ""}`);
+  }
+
   const rows: DeliveryNoteListRow[] = deliveryNotes.map((d) => ({
     id: d.id as string,
     documentNumber: (d.document_number as string) ?? "",
-    clientName: ((d.clients as { name?: string } | null)?.name as string) ?? "",
+    clientName: documentRecipientName(d.recipient_snapshot, (d.clients as { name?: string } | null)?.name),
     subject: (d.subject as string) ?? "",
     issueDate: (d.issue_date as string) ?? "",
     deliveryDate: (d.delivery_date as string) ?? "",
@@ -60,6 +73,7 @@ export default async function DeliveryNotesPage({
 
   return (
     <DeliveryNotesList
+      key={JSON.stringify([tab, page, query, issueFlag, billedFlag])}
       rows={rows}
       total={total}
       page={page}

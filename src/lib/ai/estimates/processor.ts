@@ -1,61 +1,51 @@
 import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { canWriteOrganizationBusinessData } from "@/lib/organization-permissions";
+import { extractionConfig, makeExtractionProvider } from "./extraction-provider";
+import { isLocalDocumentMime } from "./local-document-parser";
+import { AiEstimateBatchRepository } from "./batch/repository";
+import { runExtractionBatch } from "./batch/runner";
+import { manualReviewScaffold, sourceProcessingEnv } from "./lifecycle";
 
-/**
- * Safe default processor. It never sends a customer's document outside SalesFlow.
- * A separately approved provider adapter can replace this boundary later.
- */
-export async function prepareUploadedEstimateForReview(sourceId: string) {
+/** Upload/retry boundary: permission + organization opt-in precede any provider call. */
+export async function prepareUploadedEstimateForReview(sourceId: string, actorUserId?: string, options: { retry?: boolean } = {}) {
   const supabase = createSupabaseAdminClient();
-  const { data: source, error } = await supabase
-    .from("ai_estimate_sources")
-    .select("id, organization_id, title")
-    .eq("id", sourceId)
-    .single();
-
+  const { data: source, error } = await supabase.from("ai_estimate_sources")
+    .select("id, organization_id, title, status, uploaded_by, visibility, mime_type, document_kind").eq("id", sourceId).single();
   if (error || !source) throw new Error(error?.message ?? "AI source not found");
-
-  const placeholder = {
-    clientName: "",
-    clientId: null,
-    subject: source.title,
-    issueDate: null,
-    templateMessage: "",
-    remarks: "",
-    rawText: "",
-    confidence: 0,
-    lines: [
-      {
-        name: "확인 필요",
-        qty: 1,
-        unit: "",
-        unitPrice: 0,
-        taxCategory: "standard_10",
-        confidence: 0,
-        reason: "원본 견적을 확인해 주세요.",
-      },
-    ],
-    warnings: ["외부 AI 전송이 비활성화되어 있습니다. 원본을 보며 추출 내용을 검수해 주세요."],
-  };
-
-  const { error: extractionError } = await supabase.from("ai_estimate_extractions").upsert(
-    {
-      organization_id: source.organization_id,
-      source_id: source.id,
-      extracted_data: placeholder,
-      confidence: 0,
-      provider: "manual-review",
-      model: null,
-      source_of_truth: "legacy",
-    },
-    { onConflict: "source_id" },
-  );
-  if (extractionError) throw new Error(extractionError.message);
-
-  const { error: statusError } = await supabase
-    .from("ai_estimate_sources")
-    .update({ status: "review_required", error_message: null })
-    .eq("id", sourceId);
-  if (statusError) throw new Error(statusError.message);
+  if (source.status === "approved" || source.status === "excluded") return;
+  const actor = actorUserId ?? source.uploaded_by;
+  const { data: member, error: memberError } = await supabase.from("organization_members").select("role")
+    .eq("organization_id", source.organization_id).eq("user_id", actor).maybeSingle();
+  if (memberError || !canWriteOrganizationBusinessData(member?.role)
+    || (actor !== source.uploaded_by && member?.role !== "owner" && member?.role !== "admin")) return;
+  const { data: extraction } = await supabase.from("ai_estimate_extractions").select("source_of_truth").eq("source_id", sourceId).maybeSingle();
+  // A retry must never discard human input, even before it has been approved.
+  if (extraction?.source_of_truth === "human") return;
+  const { data: settings, error: settingsError } = await supabase.from("ai_estimate_settings")
+    .select("enabled, allow_external_processing, allow_private_sources").eq("organization_id", source.organization_id).maybeSingle();
+  if (settingsError) throw new Error(settingsError.message);
+  // A new organization has no settings row: local processing is enabled by default.
+  if (settings?.enabled === false) return;
+  if (source.visibility === "private" && (!settings?.allow_private_sources || actor !== source.uploaded_by)) return;
+  const local = isLocalDocumentMime(source.mime_type);
+  const configuration = extractionConfig(process.env);
+  const providerAllowed = settings?.enabled && settings.allow_external_processing
+    && (source.visibility !== "private" || (settings.allow_private_sources && actor === source.uploaded_by));
+  if (!local && (!configuration || !providerAllowed)) {
+    const { error: manualError } = await supabase.rpc("ai_estimate_prepare_manual_review", {
+      p_source_id: sourceId, p_extraction: manualReviewScaffold(source.title, source.document_kind ?? "estimate"),
+    });
+    if (manualError) throw new Error(manualError.message);
+    return;
+  }
+  const env = sourceProcessingEnv(source.organization_id, actor);
+  const model = configuration?.model ?? "salesflow-file-parser-v1";
+  const providerEnv = { apiKey: configuration?.apiKey ?? "", extractionModel: model,
+    retryModel: configuration?.provider === "gemini" ? process.env.GEMINI_RETRY_MODEL?.trim() || "gemini-3.8-flash" : model,
+    embeddingModel: process.env.GEMINI_EMBEDDING_MODEL?.trim() || "gemini-embedding-001" };
+  await runExtractionBatch(new AiEstimateBatchRepository(env), makeExtractionProvider(configuration), env, providerEnv, {
+    command: "ingest", limit: 1, all: false, resume: false, sourceId, forceRetry: options.retry ?? false,
+  });
 }

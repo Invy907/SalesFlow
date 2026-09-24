@@ -18,7 +18,6 @@ import {
 import { EstimatePreview, EstimateThumbnail } from "../../documents/document-previews";
 import { getEstimateContent } from "../content";
 
-type Locale = "ja" | "ko" | "en";
 type TabKey = "basic" | "recipient" | "tax" | "template";
 type TemplateType = "standard" | "envelope" | null;
 

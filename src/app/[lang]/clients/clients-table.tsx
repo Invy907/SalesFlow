@@ -165,7 +165,7 @@ export function ClientsTable({
 
         {error ? <p className="mt-4 text-[14px] text-red-600">{error}</p> : null}
 
-        <div className="mt-4 flex items-center justify-between">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <label className="flex items-center gap-2 text-[14px] text-slate-600">
             <input
               type="checkbox"
@@ -178,7 +178,7 @@ export function ClientsTable({
           <CsvDownloadLink label={ui.csvDownload} onDownload={rows.length ? handleCsv : undefined} />
         </div>
 
-        <div className="mt-6 overflow-x-auto rounded border border-slate-200 bg-white">
+        <div role="region" tabIndex={0} aria-label={ui.title} className="mt-6 min-w-0 overflow-x-auto rounded border border-slate-200 bg-white">
           <table className="w-full min-w-[760px] border-collapse text-[15px]">
             <thead>
               <tr className="border-b border-slate-200 bg-[#f8fafc] text-left">
@@ -205,7 +205,7 @@ export function ClientsTable({
                       <button
                         type="button"
                         onClick={() => setEditing(client)}
-                        className="font-medium text-[#0A4D34] hover:underline"
+                        className="max-w-[240px] text-left font-medium text-[#0A4D34] [overflow-wrap:anywhere] hover:underline"
                       >
                         {client.name}
                         {ui.honorific ? ` ${ui.honorific}` : ""}
@@ -230,8 +230,8 @@ export function ClientsTable({
                         <StarIcon />
                       </button>
                     </td>
-                    <td className="px-4 py-4 text-slate-500">{client.managementCode || "—"}</td>
-                    <td className="px-4 py-4 text-slate-500">
+                    <td className="max-w-[260px] px-4 py-4 text-slate-500 [overflow-wrap:anywhere]">{client.managementCode || "—"}</td>
+                    <td className="max-w-[260px] px-4 py-4 text-slate-500 [overflow-wrap:anywhere]">
                       {client.destination.mailingLine1 || client.destination.addressLine1 || "—"}
                     </td>
                     <td className="px-4 py-4">
@@ -245,7 +245,7 @@ export function ClientsTable({
                             {ui.createDocument}
                           </button>
                           {docMenuFor === client.id ? (
-                            <div className="absolute left-0 top-full z-20 mt-1 w-40 rounded border border-slate-200 bg-white py-1 shadow-lg">
+                            <div className="mt-2 grid min-w-40 gap-1 rounded border border-slate-200 bg-slate-50 py-1">
                               {documentMenuLinks(client.id).map((item) => (
                                 <Link
                                   key={item.key}

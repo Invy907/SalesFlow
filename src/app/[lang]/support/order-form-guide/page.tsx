@@ -93,7 +93,7 @@ export default function OrderFormGuidePage() {
 
   return (
     <SalesFlowShell activeItem="support">
-      <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
+      <div className="mx-auto w-full min-w-0 [overflow-wrap:anywhere] max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
         <Link
           href={getSupportHref(lang, "top")}
           className="inline-flex items-center gap-1 text-sm text-slate-500 transition hover:text-[#0A4D34]"
@@ -103,12 +103,12 @@ export default function OrderFormGuidePage() {
 
         <div className="mt-6 text-center">
           <p className="text-[15px] font-medium text-[#0A4D34]">{landing.subtitle}</p>
-          <h1 className="mt-3 whitespace-pre-line text-[34px] font-bold leading-tight text-[#0A4D34]">
+          <h1 className="mt-3 whitespace-pre-line text-[28px] sm:text-[34px] font-bold leading-tight text-[#0A4D34]">
             {landing.title}
           </h1>
         </div>
 
-        <div className="mt-14 grid grid-cols-3 gap-10">
+        <div className="mt-10 grid grid-cols-1 gap-8 md:mt-14 md:grid-cols-3 md:gap-10">
           {landing.features.map((feature, index) => (
             <div key={feature.title} className="text-center">
               <div className="mx-auto flex h-[88px] w-[88px] items-center justify-center rounded-full bg-[#0A4D34] text-white">
@@ -124,7 +124,7 @@ export default function OrderFormGuidePage() {
 
         <div className="border-t border-slate-200 pt-12">
           <h2 className="text-center text-[22px] font-bold text-[#0A4D34]">{landing.howTitle}</h2>
-          <div className="mt-10 grid grid-cols-3 gap-8">
+          <div className="mt-10 grid grid-cols-1 gap-8 md:grid-cols-3">
             {landing.steps.map((step, index) => (
               <div key={step.title} className="text-center">
                 <div className="mx-auto flex h-[140px] w-full max-w-[260px] items-center justify-center rounded border border-slate-200 bg-[#f5f7fa] p-4">

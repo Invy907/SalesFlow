@@ -28,7 +28,7 @@ export function AuthCard({
   const isSignIn = variant === "sign-in";
 
   return (
-    <div className={isSignIn ? "w-full" : "w-full max-w-[420px]"}>
+    <div className={isSignIn ? "w-full min-w-0 [overflow-wrap:anywhere]" : "w-full min-w-0 max-w-[420px] [overflow-wrap:anywhere]"}>
       {!isSignIn && (
         <div className="mb-8 flex justify-center">
           <Link href={`/${lang}`} className="group flex items-center gap-2.5">
@@ -49,8 +49,8 @@ export function AuthCard({
       <div
         className={
           isSignIn
-            ? "rounded-3xl border border-white/80 bg-white/85 p-8 shadow-xl shadow-slate-900/[0.06] ring-1 ring-slate-200/50 backdrop-blur-xl sm:p-9 lg:p-10"
-            : "rounded-2xl border border-slate-200 bg-white p-8 shadow-sm"
+            ? "rounded-3xl border border-white/80 bg-white/85 p-5 shadow-xl shadow-slate-900/[0.06] ring-1 ring-slate-200/50 backdrop-blur-xl sm:p-9 lg:p-10"
+            : "rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8"
         }
       >
         <div className={isSignIn ? "mb-7" : "mb-6"}>
@@ -117,7 +117,7 @@ export function AuthInput({
   const toggleLabels = passwordToggleLabels[locale];
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex min-w-0 flex-col gap-2">
       <label htmlFor={inputId} className="text-sm font-medium text-slate-700">
         {label}
       </label>
@@ -131,10 +131,9 @@ export function AuthInput({
         {isPassword ? (
           <button
             type="button"
-            tabIndex={-1}
             onClick={() => setVisible((current) => !current)}
             aria-label={visible ? toggleLabels.hide : toggleLabels.show}
-            className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 transition-colors hover:text-slate-600"
+            className="absolute inset-y-0 right-0 flex min-w-11 items-center justify-center px-3 text-slate-400 transition-colors hover:text-slate-600"
           >
             {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
@@ -160,12 +159,12 @@ export function AuthSubmitButton({ children, pending, premium }: AuthSubmitButto
       aria-busy={pending}
       className={
         premium
-          ? "flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1A7A57] via-[#1A7A57] to-teal-500 text-sm font-semibold text-white shadow-lg shadow-[#1A7A57]/25 transition-all duration-200 hover:from-[#0A4D34] hover:via-[#0A4D34] hover:to-teal-600 hover:shadow-[#1A7A57]/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A4D34] disabled:cursor-not-allowed disabled:from-[#6BBF9E] disabled:via-[#6BBF9E] disabled:to-teal-300 disabled:shadow-none"
-          : "flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#1A7A57] text-sm font-semibold text-white transition-colors hover:bg-[#0A4D34] disabled:bg-[#6BBF9E]"
+          ? "flex min-h-12 w-full px-3 py-3 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1A7A57] via-[#1A7A57] to-teal-500 text-sm font-semibold text-white shadow-lg shadow-[#1A7A57]/25 transition-all duration-200 hover:from-[#0A4D34] hover:via-[#0A4D34] hover:to-teal-600 hover:shadow-[#1A7A57]/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A4D34] disabled:cursor-not-allowed disabled:from-[#6BBF9E] disabled:via-[#6BBF9E] disabled:to-teal-300 disabled:shadow-none"
+          : "flex min-h-12 w-full px-3 py-3 items-center justify-center gap-2 rounded-lg bg-[#1A7A57] text-sm font-semibold text-white transition-colors hover:bg-[#0A4D34] disabled:bg-[#6BBF9E]"
       }
     >
       {pending && (
-        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <svg className="h-4 w-4 shrink-0 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden>
           <circle
             className="opacity-25"
             cx="12"
@@ -231,11 +230,11 @@ export function GoogleSignInButton({
       aria-busy={loading}
       className={
         premium
-          ? "flex h-12 w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200/90 bg-white text-sm font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:-translate-y-px hover:border-slate-300 hover:bg-slate-50/80 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
-          : "flex h-12 w-full items-center justify-center gap-2.5 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          ? "flex min-h-12 w-full px-3 py-3 items-center justify-center gap-2.5 rounded-xl border border-slate-200/90 bg-white text-sm font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:-translate-y-px hover:border-slate-300 hover:bg-slate-50/80 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+          : "flex min-h-12 w-full px-3 py-3 items-center justify-center gap-2.5 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
       }
     >
-      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
+      <svg className="shrink-0" width="18" height="18" viewBox="0 0 24 24" aria-hidden>
         <path
           d="M21.8 12.2c0-.8-.1-1.5-.2-2.2H12v4.2h5.5a4.7 4.7 0 0 1-2 3.1v2.6h3.2c1.9-1.8 3.1-4.5 3.1-7.7Z"
           fill="#4285F4"

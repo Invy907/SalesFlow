@@ -35,10 +35,15 @@ export function LanguageProvider({
 }) {
   const [lang, setLangState] = useState<AppLocale>(initialLang);
 
-  useEffect(() => {
+  const [previousInitialLang, setPreviousInitialLang] = useState(initialLang);
+  if (initialLang !== previousInitialLang) {
+    setPreviousInitialLang(initialLang);
     setLangState(initialLang);
-    persistLocale(initialLang);
-  }, [initialLang]);
+  }
+
+  useEffect(() => {
+    persistLocale(lang);
+  }, [lang]);
 
   const setLang = (newLang: AppLocale) => {
     persistLocale(newLang);

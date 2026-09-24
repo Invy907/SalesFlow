@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation";
 import { buildEditInvoiceInitial } from "../../invoice-form-data";
 import { InvoiceFormClient } from "../../invoice-form-client";
 
@@ -11,7 +10,6 @@ export default async function EditInvoicePage({
 }) {
   const { lang, id } = await params;
 
-  try {
     const { initial, clients, bankAccounts, sealUrl, items } = await buildEditInvoiceInitial(lang, id);
     return (
       <InvoiceFormClient
@@ -22,7 +20,4 @@ export default async function EditInvoicePage({
         items={items}
       />
     );
-  } catch {
-    notFound();
-  }
 }

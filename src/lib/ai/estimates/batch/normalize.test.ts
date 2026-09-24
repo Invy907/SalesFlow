@@ -68,3 +68,28 @@ test("기존 검수 UI 형태로 안전하게 변환한다", () => {
   assert.equal(review.lines[0].name, "  ボラード 設置 ");
   assert.equal(review.lines[0].taxCategory, "standard_10");
 });
+
+
+test("내세 총액에 세금을 이중으로 더하지 않는다", () => {
+  const input = sample();
+  input.totals.taxMode = "included";
+  input.totals.printedTotal = 2000;
+  assert.equal(normalizeExtraction(input).totals.computedTotal, 2000);
+});
+
+test("검수 양식에서 할인 단가와 원본 세금 기준을 보존한다", () => {
+  const input = sample();
+  input.lines[0].unitPrice = -100;
+  const review = toReviewExtraction(normalizeExtraction(input), "할인");
+  assert.equal(review.lines[0].unitPrice, -100);
+  assert.equal(review.currency, "JPY");
+  assert.equal(review.taxMode, "excluded");
+});
+
+test("8% 표기만으로 경감세율을 단정하지 않는다", () => {
+  const input = sample();
+  input.lines[0].printedTaxRatePercent = 8;
+  const review = toReviewExtraction(normalizeExtraction(input), "세율 확인");
+  assert.equal(review.lines[0].taxCategory, "follow_company");
+  assert.ok(review.warnings.some((warning) => warning.includes("8%")));
+});

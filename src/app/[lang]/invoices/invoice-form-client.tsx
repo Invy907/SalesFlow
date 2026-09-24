@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SalesFlowShell } from "@/components/salesflow-shell";
+import { ModalDialog } from "@/components/modal-dialog";
 import { appHrefs } from "@/lib/app-hrefs";
 import { getSupportHref } from "@/app/[lang]/support/content";
 import { useLanguage } from "@/contexts/language-context";
@@ -26,7 +27,7 @@ import {
   type ClientHonorific,
 } from "@/lib/documents/client-honorific";
 import { createInvoice, updateInvoice } from "@/lib/actions/invoices";
-import { taxCategoryFromLabel, taxRateSnapshotFor } from "@/lib/tax";
+import { taxCategoryFromLabel, taxRateSnapshotFor, type TaxDisplay } from "@/lib/tax";
 import {
   InvoicePreview,
   InvoiceTemplateMiniPreview,
@@ -153,6 +154,11 @@ export function InvoiceFormClient({
   );
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<TemplateKey | null>(null);
+  const previewTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const closeTemplatePreview = () => {
+    setPreviewTemplate(null);
+    requestAnimationFrame(() => previewTriggerRef.current?.focus());
+  };
   const [lineItemTotals, setLineItemTotals] = useState<LineItemTotals>(EMPTY_LINE_ITEM_TOTALS);
   const [rows, setRows] = useState<LineItemRow[]>(initial.lines);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -180,6 +186,7 @@ export function InvoiceFormClient({
     documentNumber: initial.documentNumber,
     subject: initial.subject,
     senderCompanyName: initial.senderCompanyName,
+    sender: initial.sender ?? {},
     billingMonth: initial.billingMonth,
     recipient: {
       postalCode: initial.recipient?.postalCode ?? "",
@@ -223,12 +230,14 @@ export function InvoiceFormClient({
           window.localStorage.removeItem(formDraftKey);
         }
       }
-    } catch {
-      window.localStorage.removeItem(formDraftKey);
-    }
+    } catch { /* Ignore unreadable drafts. */ }
     const frame = window.requestAnimationFrame(() => {
       const draft = restoredDraft;
-      if (draft?.form) setForm((current) => ({ ...current, ...draft.form }));
+      if (draft?.form) setForm((current) => ({
+        ...current, ...draft.form,
+        recipient: { ...current.recipient, ...draft.form?.recipient },
+        sender: { ...current.sender, ...draft.form?.sender },
+      }));
       if (draft?.primaryDate) setPrimaryDate(draft.primaryDate);
       if (typeof draft?.secondaryDate === "string") setSecondaryDate(draft.secondaryDate);
       if (draft?.selectedTemplate) setSelectedTemplate(draft.selectedTemplate);
@@ -244,7 +253,8 @@ export function InvoiceFormClient({
 
   useEffect(() => {
     if (!draftPersistenceEnabled || !draftReady || typeof window === "undefined") return;
-    window.localStorage.setItem(formDraftKey, JSON.stringify({
+    try {
+      window.localStorage.setItem(formDraftKey, JSON.stringify({
       savedAt: Date.now(),
       form,
       primaryDate,
@@ -253,7 +263,8 @@ export function InvoiceFormClient({
       outputLocale,
       clientHonorific,
       showSeal,
-    }));
+      }));
+    } catch { /* Keep editing when storage is unavailable. */ }
   }, [
     clientHonorific,
     draftPersistenceEnabled,
@@ -289,7 +300,10 @@ export function InvoiceFormClient({
    */
   const applyClient = useCallback((option: InvoiceClientOption | null, typedName: string) => {
     setForm((f) => {
-      if (!option) return { ...f, clientName: typedName, clientId: null };
+      if (!option) return {
+        ...f, clientName: typedName, clientId: null,
+        recipient: f.clientId ? { postalCode: "", addressLine1: "", addressLine2: "", companyName: typedName, department: "", section: "", contact: "", phone: "" } : f.recipient,
+      };
       return {
         ...f,
         clientName: option.name,
@@ -343,11 +357,12 @@ export function InvoiceFormClient({
         return {
           itemId: blank ? undefined : (r.itemId ?? undefined),
           name: blank ? "" : r.name,
-          qty: blank ? 0 : r.qty === "" ? 1 : Number(r.qty),
+          qty: blank ? 0 : r.qty.trim() === "" ? 1 : Number(r.qty.replace(/,/g, "")),
           unit: blank ? "" : r.unit,
           unitPrice: blank ? 0 : r.price === "" ? 0 : Number(r.price.replace(/,/g, "")),
           taxCategory,
           taxRateSnapshot: taxRateSnapshotFor(taxCategory),
+          withholdingExempt: r.withholdingExempt,
         };
       });
 
@@ -370,15 +385,8 @@ export function InvoiceFormClient({
         bankAccountIds: form.bankAccountIds,
         recipientSnapshot: { ...form.recipient, clientName: form.clientName },
         senderSnapshot: {
+          ...form.sender,
           companyName: form.senderCompanyName,
-          postalCode: initial.sender?.postalCode ?? "",
-          addressLine1: initial.sender?.addressLine1 ?? "",
-          addressLine2: initial.sender?.addressLine2 ?? "",
-          addressLine3: initial.sender?.addressLine3 ?? "",
-          tel: initial.sender?.tel ?? "",
-          fax: initial.sender?.fax ?? "",
-          email: initial.sender?.email ?? "",
-          registrationNumber: initial.sender?.registrationNumber ?? "",
           bankAccounts: bankAccounts
             .filter((account) => form.bankAccountIds.includes(account.id))
             .map((account) => account.label),
@@ -392,14 +400,14 @@ export function InvoiceFormClient({
 
       if (!result.ok) {
         setErrors(result.fieldErrors ?? {});
-        setError(result.error);
+        setError([result.error, ...Object.values(result.fieldErrors ?? {})].filter(Boolean).join(" · "));
         return;
       }
 
-      if (typeof window !== "undefined") {
+      try {
         window.localStorage.removeItem(linesDraftKey);
         window.localStorage.removeItem(formDraftKey);
-      }
+      } catch { /* Saving is successful even when browser storage is unavailable. */ }
       router.push(isEdit ? `/${lang}/invoices/${initial.id}` : `/${lang}/invoices`);
       router.refresh();
     });
@@ -432,7 +440,7 @@ export function InvoiceFormClient({
         <div
           className={
             previewOpen
-              ? "grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(480px,600px)] xl:items-start"
+              ? "grid gap-8 2xl:grid-cols-[minmax(0,1fr)_600px] 2xl:items-start"
               : ""
           }
         >
@@ -464,7 +472,7 @@ export function InvoiceFormClient({
                   <FormField label={ui.client} required={ui.required}>
                     <div className="flex gap-2">
                       <input
-                        className="field flex-1"
+                        className="field min-w-0 flex-1"
                         list="sf-invoice-client-options"
                         value={form.clientName}
                         onChange={(e) => {
@@ -577,7 +585,7 @@ export function InvoiceFormClient({
                       onChange={(e) => set("senderCompanyName", e.target.value)}
                     />
                   </FormField>
-                  <SenderDetailFields storagePrefix="invoiceSender" buttonLabel={ui.detailLink} />
+                  <SenderDetailFields storagePrefix="invoiceSender" buttonLabel={ui.detailLink} value={form.sender} onChange={(sender) => set("sender", sender)} />
                 </div>
               </section>
             </div>
@@ -634,7 +642,7 @@ export function InvoiceFormClient({
                   />
                   <div className="mt-2 flex gap-2">
                     <input
-                      className="field flex-1"
+                      className="field min-w-0 flex-1"
                       placeholder={ui.contactPlaceholder}
                       value={form.recipient.contact}
                       onChange={(e) => setRecipient("contact", e.target.value)}
@@ -711,6 +719,7 @@ export function InvoiceFormClient({
                             type="checkbox"
                             className="mt-1 h-4 w-4 accent-[#0A4D34]"
                             checked={form.bankAccountIds.includes(account.id)}
+                            disabled={form.bankAccountIds.length >= 3 && !form.bankAccountIds.includes(account.id)}
                             onChange={(e) => {
                               const next = e.target.checked
                                 ? [...form.bankAccountIds, account.id]
@@ -818,7 +827,7 @@ export function InvoiceFormClient({
         </div>
 
         <div className={activeTab === "template" ? "" : "hidden"}>
-            <div className="mt-10 grid gap-8 xl:grid-cols-[280px_1fr]">
+            <div className="mt-10 grid gap-8 xl:grid-cols-[280px_minmax(0,1fr)]">
               <div className="flex flex-col items-center gap-3">
                 <button
                   onClick={() => setGalleryOpen(true)}
@@ -896,6 +905,10 @@ export function InvoiceFormClient({
           onTotalsChange={handleTotalsChange}
           onRowsChange={handleRowsChange}
           compact={previewOpen}
+          taxRounding={form.taxRounding}
+          taxDisplay={form.taxDisplay}
+          withholdingType={form.withholdingType}
+          documentType="invoice"
           items={items}
         />
 
@@ -903,7 +916,7 @@ export function InvoiceFormClient({
         </div>
 
         {previewOpen ? (
-          <aside className="min-w-0 xl:sticky xl:top-6">
+          <aside className="min-w-0 2xl:sticky 2xl:top-6">
             <DocumentPreviewPanel
               uiLocale={lang}
               onClose={() => setPreviewOpen(false)}
@@ -923,17 +936,20 @@ export function InvoiceFormClient({
                   .filter((account) => form.bankAccountIds.includes(account.id))
                   .map((account) => account.label),
                 senderCompanyName: form.senderCompanyName,
-                senderPostalCode: initial.sender?.postalCode,
-                senderAddressLine1: initial.sender?.addressLine1,
-                senderAddressLine2: initial.sender?.addressLine2,
-                senderAddressLine3: initial.sender?.addressLine3,
-                senderTel: initial.sender?.tel,
-                senderFax: initial.sender?.fax,
-                senderEmail: initial.sender?.email,
-                senderRegistrationNumber: initial.sender?.registrationNumber,
+                senderPostalCode: form.sender?.postalCode,
+                senderAddressLine1: form.sender?.addressLine1,
+                senderAddressLine2: form.sender?.addressLine2,
+                senderAddressLine3: form.sender?.addressLine3,
+                senderTel: form.sender?.tel,
+                senderFax: form.sender?.fax,
+                senderEmail: form.sender?.email,
+                senderRegistrationNumber: form.sender?.registrationNumber,
                 sealUrl,
                 showSeal,
                 taxRounding: form.taxRounding,
+                taxDisplay: form.taxDisplay,
+                withholdingType: form.withholdingType,
+                documentType: "invoice",
                 rows,
               }}
             />
@@ -951,30 +967,40 @@ export function InvoiceFormClient({
       ) : null}
 
       {galleryOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="relative mx-4 flex max-h-[90vh] w-full max-w-[820px] flex-col rounded-lg bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-              <h2 className="text-[20px] font-semibold text-slate-900">{ui.templateChangeTitle}</h2>
+        <ModalDialog
+          label={previewTemplate ? ui.templateList.find((template) => template.key === previewTemplate)?.name ?? ui.templateChangeTitle : ui.templateChangeTitle}
+          onClose={previewTemplate ? closeTemplatePreview : () => setGalleryOpen(false)}
+          className={previewTemplate ? "max-w-[680px]" : "max-w-[820px]"}
+        >
+          <div className={previewTemplate ? "hidden" : "relative flex max-h-[calc(100dvh-2rem)] w-full flex-col rounded-lg bg-white shadow-2xl"}>
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-6 sm:py-4">
+              <h2 className="min-w-0 text-lg font-semibold text-slate-900 [overflow-wrap:anywhere] sm:text-[20px]">{ui.templateChangeTitle}</h2>
               <button
+                type="button"
                 onClick={() => setGalleryOpen(false)}
-                className="text-2xl leading-none text-slate-400 hover:text-slate-600"
+                aria-label={lang === "ko" ? "닫기" : lang === "en" ? "Close" : "閉じる"}
+                className="flex h-10 w-10 shrink-0 items-center justify-center text-2xl leading-none text-slate-400 hover:text-slate-600"
               >
                 ×
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="grid grid-cols-3 gap-4">
+            <div className="min-h-0 flex-1 overflow-auto p-3 sm:p-6">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
                 {ui.templateList.map((tmpl) => (
                   <button
+                    type="button"
                     key={tmpl.key}
-                    onClick={() => setPreviewTemplate(tmpl.key)}
+                    onClick={(event) => {
+                      previewTriggerRef.current = event.currentTarget;
+                      setPreviewTemplate(tmpl.key);
+                    }}
                     className={[
                       "flex flex-col overflow-hidden rounded border-2 transition hover:shadow-md",
                       selectedTemplate === tmpl.key ? "border-[#1A7A57]" : "border-slate-200",
                     ].join(" ")}
                   >
-                    <div className="flex-1 bg-white">
+                    <div className="w-full flex-1 bg-white">
                       <InvoiceTemplateMiniPreview
                         ui={ui}
                         outputLocale={outputLocale}
@@ -991,60 +1017,64 @@ export function InvoiceFormClient({
 
             <div className="flex items-center justify-end border-t border-slate-200 px-6 py-4">
               <button
+                type="button"
                 onClick={() => setGalleryOpen(false)}
-                className="rounded border border-slate-300 px-8 py-3 text-[15px] font-medium text-slate-700 hover:bg-slate-50"
+                className="rounded border border-slate-300 px-4 py-3 text-sm sm:px-8 sm:text-[15px] font-medium text-slate-700 hover:bg-slate-50"
               >
                 {ui.templateModalCancel}
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {previewTemplate !== null && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
-          <div className="relative mx-4 flex max-h-[90vh] w-full max-w-[680px] flex-col rounded-lg bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-              <h2 className="text-[20px] font-semibold text-slate-900">
+          {previewTemplate !== null && (
+          <div className="relative flex max-h-[calc(100dvh-2rem)] w-full flex-col rounded-lg bg-white shadow-2xl">
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-6 sm:py-4">
+              <h2 className="min-w-0 text-lg font-semibold text-slate-900 [overflow-wrap:anywhere] sm:text-[20px]">
                 {ui.templateList.find((t) => t.key === previewTemplate)?.name}
               </h2>
               <button
-                onClick={() => setPreviewTemplate(null)}
-                className="text-2xl leading-none text-slate-400 hover:text-slate-600"
+                type="button"
+                autoFocus
+                onClick={closeTemplatePreview}
+                aria-label={lang === "ko" ? "닫기" : lang === "en" ? "Close" : "閉じる"}
+                className="flex h-10 w-10 shrink-0 items-center justify-center text-2xl leading-none text-slate-400 hover:text-slate-600"
               >
                 ×
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="min-h-0 flex-1 overflow-auto p-3 sm:p-6">
               <InvoicePreview
                 ui={ui}
                 outputLocale={outputLocale}
                 clientHonorific={clientHonorific}
               />
             </div>
-            <div className="flex items-center justify-end gap-4 border-t border-slate-200 px-6 py-4">
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-slate-200 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
               <button
-                onClick={() => setPreviewTemplate(null)}
-                className="rounded border border-slate-300 px-8 py-3 text-[15px] font-medium text-slate-700 hover:bg-slate-50"
+                type="button"
+                onClick={closeTemplatePreview}
+                className="rounded border border-slate-300 px-4 py-3 text-sm sm:px-8 sm:text-[15px] font-medium text-slate-700 hover:bg-slate-50"
               >
                 {ui.templateModalCancel}
               </button>
               <button
+                type="button"
                 onClick={() => {
                   setSelectedTemplate(previewTemplate);
                   setPreviewTemplate(null);
                   setGalleryOpen(false);
                 }}
-                className="rounded bg-[#0A4D34] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#083D29]"
+                className="rounded bg-[#0A4D34] px-4 py-3 text-sm sm:px-8 sm:text-[15px] font-semibold text-white hover:bg-[#083D29]"
               >
                 {ui.templateModalSelect}
               </button>
             </div>
           </div>
-        </div>
+          )}
+        </ModalDialog>
       )}
 
       <DocumentBottomBar
+        taxDisplay={form.taxDisplay as TaxDisplay}
         subtotalLabel={ui.subtotal}
         taxLabel={ui.tax}
         totalLabel={ui.total}
@@ -1073,6 +1103,7 @@ function RemarksBlock({
       <label className="mb-2 block text-[18px] font-semibold text-slate-800">{ui.remarks}</label>
       <textarea
         className="field min-h-[140px]"
+        maxLength={1000}
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />
@@ -1102,7 +1133,7 @@ function toIsoDate(value: string) {
 function SectionTitle({ title }: { title: string }) {
   return (
     <div className="border-b border-slate-200 pb-3">
-      <h2 className="text-[24px] font-semibold text-slate-900">{title}</h2>
+      <h2 className="text-xl font-semibold text-slate-900 [overflow-wrap:anywhere] sm:text-[24px]">{title}</h2>
     </div>
   );
 }
@@ -1117,11 +1148,11 @@ function FormField({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block">
-      <div className="mb-2 flex items-center gap-2 text-[16px] font-semibold text-slate-800">
+    <label className="block min-w-0">
+      <div className="mb-2 flex flex-wrap items-center gap-2 text-[16px] font-semibold text-slate-800">
         <span>{label}</span>
         {required ? (
-          <span className="rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">
+          <span className="shrink-0 rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">
             {required}
           </span>
         ) : null}

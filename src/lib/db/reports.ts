@@ -1,4 +1,7 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { collectAllRows } from "./paginate";
+import { businessDateKey } from "@/lib/business-date";
+import { documentRecipientName } from "@/lib/document-list-state";
 
 /**
  * 리포트 3탭 집계. 활성 org 전체 문서 기준.
@@ -65,7 +68,7 @@ export function shiftMonth(month: string, offset: number) {
 }
 
 export function currentMonthKey(now = new Date()) {
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  return businessDateKey(now).slice(0, 7);
 }
 
 /** from..to(포함) 월 키 배열. 최대 36개월로 잘라 과도한 스캔을 막는다. */
@@ -108,17 +111,16 @@ export async function getMonthlyReport(
 
   let q = supabase
     .from("invoices")
-    .select("id, client_id, issue_date, total, paid_amount, clients(name)")
+    .select("id, client_id, issue_date, total, paid_amount, recipient_snapshot, clients(name)")
     .eq("organization_id", orgId)
     .is("deleted_at", null)
     .gte("issue_date", rangeStart)
     .lt("issue_date", rangeEnd)
-    .limit(5000);
+    .order("id");
 
   if (opts.clientId) q = q.eq("client_id", opts.clientId);
 
-  const { data, error } = await q;
-  if (error) throw new Error(error.message);
+  const data = await collectAllRows((from, to) => q.range(from, to));
 
   const index = new Map(months.map((m, i) => [m, i]));
   const previous = months.map(() => 0);
@@ -138,10 +140,11 @@ export async function getMonthlyReport(
       paid[at] += paidAmount;
       unpaid[at] += total - paidAmount;
 
-      const key = (row.client_id as string | null) ?? NO_CLIENT;
+      const recipientName = clientName(row.clients as ClientRef) || documentRecipientName(row.recipient_snapshot);
+      const key = (row.client_id as string | null) ?? (recipientName ? `${NO_CLIENT}:${recipientName}` : NO_CLIENT);
       let entry = byClient.get(key);
       if (!entry) {
-        entry = { name: clientName(row.clients as ClientRef), total: 0, byMonth: months.map(() => 0) };
+        entry = { name: recipientName, total: 0, byMonth: months.map(() => 0) };
         byClient.set(key, entry);
       }
       entry.total += total;
@@ -171,25 +174,24 @@ async function loadLedger(orgId: string, before: string) {
   const supabase = await getSupabaseServerClient();
 
   const [invoices, payments] = await Promise.all([
-    supabase
+    collectAllRows((from, to) => supabase
       .from("invoices")
       .select("id, client_id, issue_date, payment_due, total, paid_amount, clients(name)")
       .eq("organization_id", orgId)
       .is("deleted_at", null)
       .lt("issue_date", before)
-      .limit(5000),
-    supabase
+      .order("id")
+      .range(from, to)),
+    collectAllRows((from, to) => supabase
       .from("payments")
       .select("id, client_id, paid_at, amount")
       .eq("organization_id", orgId)
       .lt("paid_at", before)
-      .limit(5000),
+      .order("id")
+      .range(from, to)),
   ]);
 
-  if (invoices.error) throw new Error(invoices.error.message);
-  if (payments.error) throw new Error(payments.error.message);
-
-  return { invoices: invoices.data ?? [], payments: payments.data ?? [] };
+  return { invoices, payments };
 }
 
 export async function getReceivablesReport(
@@ -265,18 +267,34 @@ export async function getCollectionsReport(
   month: string,
 ): Promise<CollectionsReport> {
   const supabase = await getSupabaseServerClient();
+  // The collections schedule is operational: manually marked-paid and
+  // processed documents are omitted, like the invoice-list outstanding total.
+  // Monthly sales and the receivables ledger above keep actual payments only.
+  const data = await collectAllRows((from, to) => supabase
+    .from("invoices")
+    .select("id, client_id, payment_due, total, paid_amount, recipient_snapshot, clients(name)")
+    .eq("organization_id", orgId)
+    .is("deleted_at", null)
+    .is("payment_marked_at", null)
+    .in("status", ["draft", "issued", "sent", "overdue"])
+    .order("id")
+    .range(from, to));
+
+  return summarizeCollections(month, data);
+}
+
+/** Pure aggregation, shared by report reads and regression coverage. */
+export function summarizeCollections(month: string, data: ReadonlyArray<{
+  client_id: string | null;
+  payment_due: string | null;
+  total: number | null;
+  paid_amount: number;
+  recipient_snapshot?: unknown;
+  clients: ClientRef;
+}>): CollectionsReport {
   const start = monthStart(month);
   const nextStart = monthStart(shiftMonth(month, 1));
   const afterNextStart = monthStart(shiftMonth(month, 2));
-
-  const { data, error } = await supabase
-    .from("invoices")
-    .select("id, client_id, payment_due, total, paid_amount, clients(name)")
-    .eq("organization_id", orgId)
-    .is("deleted_at", null)
-    .limit(5000);
-
-  if (error) throw new Error(error.message);
 
   type Row = CollectionsReport["rows"][number];
   const rows = new Map<string, Row>();
@@ -285,12 +303,14 @@ export async function getCollectionsReport(
     const remaining = Number(inv.total ?? 0) - Number(inv.paid_amount ?? 0);
     if (remaining <= 0) continue;
 
-    const key = (inv.client_id as string | null) ?? NO_CLIENT;
+    const name = clientName(inv.clients as ClientRef) || documentRecipientName(inv.recipient_snapshot);
+    // Unregistered recipients must not all inherit the first invoice's name.
+    const key = (inv.client_id as string | null) ?? (name ? `${NO_CLIENT}:${name}` : NO_CLIENT);
     let row = rows.get(key);
     if (!row) {
       row = {
         clientId: key,
-        clientName: clientName(inv.clients as ClientRef),
+        clientName: name,
         prevUncollected: 0,
         thisMonth: 0,
         nextMonth: 0,

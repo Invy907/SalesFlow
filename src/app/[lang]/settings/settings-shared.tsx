@@ -26,7 +26,7 @@ export function SettingsSubNav({ active }: { active: SettingsTabKey }) {
 
 export function SettingsSectionHeader({ title }: { title: string }) {
   return (
-    <div className="rounded-sm bg-[#dbe8f3] px-5 py-3">
+    <div className="rounded-sm bg-[#dbe8f3] px-4 py-3 [overflow-wrap:anywhere] sm:px-5">
       <h2 className="text-[18px] font-semibold text-slate-800">{title}</h2>
     </div>
   );
@@ -44,9 +44,9 @@ export function SettingsFormField({
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid gap-4 border-b border-slate-200 py-6 sm:grid-cols-1 md:grid-cols-[220px_1fr] md:items-start">
+    <div className="grid min-w-0 gap-3 border-b border-slate-200 py-5 [overflow-wrap:anywhere] md:grid-cols-[minmax(0,220px)_minmax(0,1fr)] md:items-start md:gap-4 md:py-6">
       <div>
-        <div className="flex items-center gap-2 text-[16px] font-semibold text-slate-800">
+        <div className="flex flex-wrap items-center gap-2 text-[16px] font-semibold text-slate-800">
           <span>{label}</span>
           {required ? (
             <span className="rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">
@@ -56,7 +56,7 @@ export function SettingsFormField({
         </div>
         {hint ? <p className="mt-2 text-sm text-slate-500">{hint}</p> : null}
       </div>
-      <div>{children}</div>
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }
@@ -71,33 +71,23 @@ export function SettingsInfoTable({
   }>;
 }) {
   return (
-    <div className="overflow-x-auto rounded border border-slate-200 bg-white">
-      <table className="w-full min-w-[480px] border-collapse text-[15px]">
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.label} className="border-b border-slate-200 last:border-b-0">
-              <td className="w-[240px] bg-[#f8fafc] px-5 py-4 font-medium text-slate-700">
-                {row.label}
-              </td>
-              <td className="px-5 py-4 text-slate-800">{row.value}</td>
-              {row.action ? (
-                <td className="px-5 py-4 text-right">
-                  <a
-                    href={row.action.href ?? "#"}
-                    className="inline-flex items-center gap-1 text-[#0A4D34] hover:underline"
-                  >
-                    {row.action.label}
-                    <ExternalLinkIcon />
-                  </a>
-                </td>
-              ) : (
-                <td className="hidden md:table-cell" />
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <dl className="divide-y divide-slate-200 overflow-hidden rounded border border-slate-200 bg-white text-[15px]">
+      {rows.map((row) => (
+        <div key={row.label} className="grid min-w-0 sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)]">
+          <dt className="bg-slate-50 px-4 py-3 font-medium text-slate-700 [overflow-wrap:anywhere] sm:px-5 sm:py-4">
+            {row.label}
+          </dt>
+          <dd className="min-w-0 px-4 py-3 text-slate-800 [overflow-wrap:anywhere] sm:px-5 sm:py-4">
+            <span>{row.value}</span>
+            {row.action ? (
+              <a href={row.action.href ?? "#"} className="mt-2 flex w-fit max-w-full items-start gap-1 text-[#0A4D34] hover:underline">
+                <span className="min-w-0">{row.action.label}</span><ExternalLinkIcon />
+              </a>
+            ) : null}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -151,7 +141,7 @@ export function SettingsTemplateBlock({
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid gap-8 border-b border-slate-200 py-8 xl:grid-cols-[220px_1fr]">
+    <div className="grid min-w-0 gap-8 border-b border-slate-200 py-8 [overflow-wrap:anywhere] xl:grid-cols-[220px_minmax(0,1fr)]">
       <div>
         <p className="mb-3 text-[16px] font-semibold text-slate-800">{templateLabel}</p>
         <div className="overflow-hidden rounded border border-[#3AA87A] bg-white">
@@ -196,15 +186,15 @@ export function SettingsSaveBar({
   error?: string | null;
 }) {
   return (
-    <div className="sticky bottom-0 border-t border-slate-300 bg-white/95 backdrop-blur">
-      <div className="mx-auto max-w-[1260px] px-4 py-5 sm:px-6 lg:px-8">
-        {error ? <p className="mb-3 text-center text-sm text-red-600">{error}</p> : null}
+    <div className="sticky bottom-0 z-20 border-t border-slate-300 bg-white/95 backdrop-blur">
+      <div className="mx-auto max-w-[1260px] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:pt-5 sm:pb-[max(1.25rem,env(safe-area-inset-bottom))] lg:px-8">
+        {error ? <p className="mb-3 text-center text-sm text-red-600 [overflow-wrap:anywhere]">{error}</p> : null}
         <div className="flex justify-center">
           <button
             type="button"
             onClick={onSave}
             disabled={!onSave || pending}
-            className="w-full max-w-[280px] rounded bg-[#0A4D34] px-10 py-4 text-[17px] font-semibold text-white transition hover:bg-[#083D29] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[280px]"
+            className="w-full max-w-[280px] rounded bg-[#0A4D34] px-4 py-3 sm:px-10 sm:py-4 text-[17px] font-semibold text-white transition hover:bg-[#083D29] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[280px]"
           >
             {pending ? "..." : label}
           </button>
@@ -216,12 +206,12 @@ export function SettingsSaveBar({
 
 export function SettingsWarningAlert({ message }: { message: string }) {
   return (
-    <div className="mb-8 rounded border border-[#f5c2c7] bg-[#fdf2f2] px-6 py-4">
+    <div className="mb-8 rounded border border-[#f5c2c7] bg-[#fdf2f2] px-4 py-4 sm:px-6">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 text-lg text-red-500" aria-hidden="true">
           ⚠
         </span>
-        <p className="text-[15px] font-semibold leading-7 text-slate-800">{message}</p>
+        <p className="min-w-0 text-[15px] font-semibold leading-7 text-slate-800 [overflow-wrap:anywhere]">{message}</p>
       </div>
     </div>
   );
@@ -239,12 +229,12 @@ export function SettingsEmailAlert({
   onButtonClick?: () => void;
 }) {
   return (
-    <div className="mb-8 rounded border border-[#f5c2c7] bg-[#fdf2f2] px-6 py-5">
+    <div className="mb-8 rounded border border-[#f5c2c7] bg-[#fdf2f2] px-4 py-5 sm:px-6">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 text-lg text-red-500" aria-hidden="true">
           ⚠
         </span>
-        <div className="flex-1">
+        <div className="min-w-0 flex-1 [overflow-wrap:anywhere]">
           <p className="text-[15px] font-semibold text-slate-800">{title}</p>
           <p className="mt-2 text-[14px] leading-7 text-slate-600">{body}</p>
           <button
@@ -290,7 +280,7 @@ export function SettingsIntegrationRow({
   icon?: ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-6 border-b border-slate-200 px-6 py-6 last:border-b-0">
+    <div className="flex min-w-0 flex-col items-start justify-between gap-4 border-b border-slate-200 px-4 py-5 [overflow-wrap:anywhere] last:border-b-0 sm:flex-row sm:gap-6 sm:px-6 sm:py-6">
       <div className="flex min-w-0 flex-1 items-start gap-4">
         {icon ?? <IntegrationIconPlaceholder />}
         <div className="min-w-0">
@@ -328,7 +318,7 @@ export function SettingsIntegrationRow({
       <button
         type="button"
         disabled={disabled}
-        className="shrink-0 rounded border border-slate-300 bg-white px-5 py-2.5 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full max-w-full shrink-0 rounded border border-slate-300 bg-white px-5 py-2.5 sm:w-auto text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {buttonLabel}
       </button>
@@ -356,7 +346,7 @@ export function SettingsFeatureRow({
   disableLabel: string;
 }) {
   return (
-    <div className="flex items-start justify-between gap-6 border-b border-slate-200 px-6 py-6 last:border-b-0">
+    <div className="flex min-w-0 flex-col items-start justify-between gap-4 border-b border-slate-200 px-4 py-5 [overflow-wrap:anywhere] last:border-b-0 sm:flex-row sm:gap-6 sm:px-6 sm:py-6">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-[16px] font-semibold text-slate-800">{title}</p>
@@ -379,7 +369,7 @@ export function SettingsFeatureRow({
       </div>
       <button
         type="button"
-        className="shrink-0 rounded border border-slate-300 bg-white px-5 py-2.5 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50"
+        className="w-full max-w-full shrink-0 rounded border border-slate-300 bg-white px-5 py-2.5 sm:w-auto text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50"
       >
         {enabled ? disableLabel : enableLabel}
       </button>
@@ -406,7 +396,7 @@ function IntegrationIconPlaceholder() {
 
 function ExternalLinkIcon() {
   return (
-    <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 fill-current">
+    <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 shrink-0 fill-current">
       <path d="M11 3a1 1 0 1 0 0 2h2.59l-6.3 6.29a1 1 0 0 0 1.42 1.42L15 6.41V9a1 1 0 1 0 2 0V4a1 1 0 0 0-1-1h-5Z" />
       <path d="M5 5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-3a1 1 0 1 0-2 0v3H5V7h3a1 1 0 1 0 0-2H5Z" />
     </svg>

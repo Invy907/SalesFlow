@@ -2,6 +2,7 @@ import { buildNewEstimateInitial } from "../estimate-form-data";
 import { EstimateFormClient } from "../estimate-form-client";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 120;
 
 export default async function NewEstimatePage({
   params,

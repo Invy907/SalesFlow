@@ -1,3 +1,6 @@
+import { getSealUrlForOrg } from "@/lib/documents/seal-url";
+import { mapSalesDocumentDetail } from "@/lib/documents/map-document-detail";
+import type { TaxDisplay } from "@/lib/tax";
 import { notFound } from "next/navigation";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getEstimateContent } from "../../content";
@@ -20,15 +23,23 @@ export default async function SharedEstimatePage({
   if (error || !data) notFound();
 
   const doc = data as {
+    type?: string;
     document?: Record<string, unknown>;
     lines?: Array<Record<string, unknown>>;
   };
+  if (doc.type !== "estimates") notFound();
   const estimate = doc.document ?? {};
   const lines = doc.lines ?? [];
   const recipient = (estimate.recipient_snapshot ?? {}) as Record<string, string>;
-  const sender = (estimate.sender_snapshot ?? {}) as Record<string, string>;
   const outputLocale = normalizeDocumentOutputLocale(estimate.output_locale);
   const ui = getEstimateContent(outputLocale);
+
+  const mapped = mapSalesDocumentDetail(
+    { ...estimate, id: String(estimate.id ?? "") },
+    lines,
+    { companyName: "", tel: "", email: "", sealUrl: estimate.show_seal !== false
+      ? await getSealUrlForOrg(estimate.organization_id as string | null) : null },
+  );
 
   const preview: EstimatePreviewData = {
     documentNumber: String(estimate.document_number ?? ""),
@@ -42,6 +53,9 @@ export default async function SharedEstimatePage({
     remarks: String(estimate.remarks ?? ""),
     subtotal: Number(estimate.subtotal ?? 0),
     tax: Number(estimate.tax_amount ?? 0),
+    taxDisplay: (estimate.tax_display as TaxDisplay | null) ?? "separate",
+    withholding: Number(estimate.withholding_amount ?? 0),
+    taxBreakdown: mapped.taxBreakdown,
     total: Number(estimate.total ?? 0),
     lines: lines.map((line, index) => ({
       lineNo: Number(line.line_no ?? index + 1),
@@ -49,16 +63,15 @@ export default async function SharedEstimatePage({
       qty: Number(line.qty ?? 0),
       unit: String(line.unit_snapshot ?? ""),
       unitPrice: Number(line.unit_price_snapshot ?? 0),
+      taxCategory: mapped.lines[index]?.taxCategory,
     })),
-    sender: {
-      companyName: sender.companyName ?? "",
-      tel: sender.tel ?? "",
-      email: sender.email ?? "",
-    },
+    sender: mapped.sender,
+    recipient: mapped.recipient,
+    showSeal: mapped.showSeal,
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 px-4 py-10">
+    <div className="min-h-screen bg-slate-100 px-2 py-4 sm:px-4 sm:py-10">
       <div className="mx-auto w-full max-w-[1100px]">
         <EstimateDocumentPreview detail={preview} ui={ui} />
       </div>

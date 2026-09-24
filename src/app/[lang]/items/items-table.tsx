@@ -7,9 +7,8 @@ import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
 import { CsvDownloadLink, LearnMoreLink, ListSearchBar } from "../list-page-shared";
 import { deleteItem, bulkDeleteItems } from "@/lib/actions/items";
-import { TAX_CATEGORY_TO_LABEL } from "@/lib/tax";
-import type { TaxCategory } from "@/lib/tax";
 import { getItemsContent, getItemsHref } from "./content";
+import { TAX_CATEGORY_TO_LABEL, type TaxCategory } from "@/lib/tax";
 
 export type ItemRow = {
   id: string;
@@ -36,6 +35,7 @@ export function ItemsTable({
   const { lang } = useLanguage();
   const ui = getItemsContent(lang);
   const router = useRouter();
+  const taxLabels: Record<string, string> = { follow_company: ui.newItem.taxFollowCompany, standard_10: ui.newItem.tax10, reduced_8: ui.newItem.taxReduced8, standard_8: ui.newItem.tax8, exempt: ui.newItem.taxExempt, standard_5: ui.newItem.tax5 };
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -182,11 +182,11 @@ export function ItemsTable({
         ) : null}
 
         {rows.length === 0 ? (
-          <div className="mt-16 flex min-h-[480px] items-center justify-center text-[20px] text-slate-300">
+          <div className="mt-8 flex min-h-[240px] items-center justify-center px-4 text-center text-[18px] text-slate-500">
             {ui.empty}
           </div>
         ) : (
-          <div className="mt-6 overflow-x-auto rounded border border-slate-200 bg-white">
+          <div tabIndex={0} role="region" aria-label={ui.title} className="mt-6 min-w-0 overflow-x-auto rounded border border-slate-200 bg-white">
             <table className="w-full min-w-[720px] border-collapse text-[15px]">
               <thead>
                 <tr className="border-b border-slate-200 bg-[#f8fafc] text-left">
@@ -198,11 +198,11 @@ export function ItemsTable({
                       onChange={toggleSelectAll}
                     />
                   </th>
-                  <th className="px-4 py-3 font-semibold text-slate-700">品番・品名</th>
-                  <th className="px-4 py-3 font-semibold text-slate-700">単位</th>
-                  <th className="px-4 py-3 font-semibold text-slate-700">単価</th>
-                  <th className="px-4 py-3 font-semibold text-slate-700">税率</th>
-                  <th className="px-4 py-3 font-semibold text-slate-700">操作</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700">{ui.newItem.itemName}</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700">{ui.newItem.unit}</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700">{ui.newItem.unitPrice}</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700">{ui.newItem.taxRateSetting}</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700">{lang === "ko" ? "작업" : lang === "en" ? "Actions" : "操作"}</th>
                 </tr>
               </thead>
               <tbody>
@@ -218,17 +218,17 @@ export function ItemsTable({
                     <td className="px-4 py-4">
                       <Link
                         href={`/${lang}/items/${row.id}/edit`}
-                        className="font-medium text-[#0A4D34] hover:underline"
+                        className="inline-block max-w-[260px] font-medium text-[#0A4D34] [overflow-wrap:anywhere] hover:underline"
                       >
                         {row.name}
                       </Link>
                     </td>
-                    <td className="px-4 py-4 text-slate-500">{row.unit || "—"}</td>
-                    <td className="px-4 py-4 text-slate-700 tabular-nums">
+                    <td className="max-w-[160px] px-4 py-4 text-slate-500 [overflow-wrap:anywhere]">{row.unit || "—"}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-slate-700 tabular-nums">
                       {row.unitPrice.toLocaleString("ja-JP")} 円
                     </td>
                     <td className="px-4 py-4 text-slate-500">
-                      {TAX_CATEGORY_TO_LABEL[row.taxCategory as TaxCategory] ?? row.taxCategory}
+                      {taxLabels[row.taxCategory] ?? row.taxCategory}
                     </td>
                     <td className="px-4 py-4">
                       <button
@@ -237,7 +237,7 @@ export function ItemsTable({
                         disabled={pending}
                         className="text-red-600 hover:underline disabled:opacity-60"
                       >
-                        削除
+                        {ui.bulkDelete}
                       </button>
                     </td>
                   </tr>

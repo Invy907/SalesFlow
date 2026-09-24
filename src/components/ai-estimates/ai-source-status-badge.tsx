@@ -21,7 +21,7 @@ export function AiSourceStatusBadge({
   lang: keyof typeof STATUS_LABEL;
 }) {
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_STYLE[status]}`}>
+    <span className={`inline-flex max-w-full rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_STYLE[status]}`}>
       {STATUS_LABEL[lang][status]}
     </span>
   );

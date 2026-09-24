@@ -14,7 +14,7 @@ export function ItemsNavTabs({ active }: { active: "list" | "bulk" }) {
   ];
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
       {tabs.map((tab) => {
         const isActive = tab.key === active;
         return (

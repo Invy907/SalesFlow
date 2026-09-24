@@ -1,0 +1,35 @@
+import type { AppLocaleCode } from "@/lib/locale";
+
+export type AiSourceDocumentKind = "estimate" | "price_list" | "design" | "work_scope";
+export const sourceKinds: AiSourceDocumentKind[] = ["estimate", "price_list", "design", "work_scope"];
+export const isContextSource = (kind: string) => kind === "design" || kind === "work_scope";
+export const sourceCopy = {
+  ja: { positivePrice: "単価表の単価は0より大きい円の整数にしてください。", kind: "資料の種類", estimate: "過去の見積", price_list: "単価表", design: "設計資料", work_scope: "作業詳細", project: "案件・プロジェクト", revision: "版・リビジョン", validFrom: "適用開始日", validUntil: "適用終了日", anyDate: "期間指定なし", workDetails: "作業内容・仕様・数量の根拠", assumptions: "前提条件・含む作業", exclusions: "対象外の作業", contextHelp: "作業範囲の参考資料です。単価の根拠や価格統計には使用しません。", priceHelp: "単価と税区分を確認します。設計・作業の条件も併せて登録できます。", datesError: "適用終了日は開始日以降にしてください。", requiredDetails: "作業内容・仕様を入力してください。", manual: "入力資料", fileTab: "ファイルを登録", textTab: "テキストで登録", textSubmit: "登録して確認へ", linkedClient: "登録済みの取引先と紐づける", noClient: "紐づけなし", contextConfirm: "原本と作業内容・前提・対象外の範囲を照合しました。作業の参考資料として承認します。", priceEvidence: "単価の根拠", contextEvidence: "設計・作業の参考資料", quantityReason: "数量の根拠", ready: "この資料で見積を作成", expired: "適用期間外", sourceHelp: "単価表・過去見積・設計資料・作業詳細を登録し、確認した資料を見積で組み合わせます。" },
+  ko: { positivePrice: "단가표의 단가는 0보다 큰 엔 단위 정수로 입력해 주세요.", kind: "자료 종류", estimate: "과거 견적", price_list: "단가표", design: "설계 자료", work_scope: "작업 상세", project: "프로젝트·현장", revision: "버전·리비전", validFrom: "적용 시작일", validUntil: "적용 종료일", anyDate: "기간 제한 없음", workDetails: "작업 내용·사양·수량 근거", assumptions: "전제 조건·포함 작업", exclusions: "제외 작업", contextHelp: "작업 범위의 참고 자료입니다. 단가 근거나 가격 통계에는 사용하지 않습니다.", priceHelp: "단가와 세금 구분을 확인합니다. 설계·작업 조건도 함께 등록할 수 있습니다.", datesError: "적용 종료일은 시작일 이후로 입력해 주세요.", requiredDetails: "작업 내용·사양을 입력해 주세요.", manual: "직접 입력", fileTab: "파일로 등록", textTab: "텍스트로 등록", textSubmit: "등록 후 검수하기", linkedClient: "등록된 거래처 연결", noClient: "연결하지 않음", contextConfirm: "원본과 작업 내용·전제 조건·제외 범위를 대조했습니다. 작업 참고 자료로 승인합니다.", priceEvidence: "단가 근거", contextEvidence: "설계·작업 참고 자료", quantityReason: "수량 근거", ready: "이 자료로 견적 만들기", expired: "적용 기간 아님", sourceHelp: "단가표·과거 견적·설계 자료·작업 상세를 등록하고 검수한 자료를 조합해 견적을 만듭니다." },
+  en: { positivePrice: "Price list unit prices must be positive whole yen.", kind: "Source type", estimate: "Past estimate", price_list: "Price list", design: "Design document", work_scope: "Work scope", project: "Project / site", revision: "Version / revision", validFrom: "Valid from", validUntil: "Valid until", anyDate: "No date restriction", workDetails: "Work details, specifications and quantities", assumptions: "Assumptions and included work", exclusions: "Excluded work", contextHelp: "Reference for the scope of work. It is not used as price evidence or in price statistics.", priceHelp: "Verify unit prices and taxes. You can also capture design and work conditions.", datesError: "The end date must be on or after the start date.", requiredDetails: "Enter work details or specifications.", manual: "Entered text", fileTab: "Upload a file", textTab: "Enter text", textSubmit: "Register and review", linkedClient: "Link a registered client", noClient: "No linked client", contextConfirm: "I checked the work details, assumptions and exclusions against the original and approve this as a work reference.", priceEvidence: "Price evidence", contextEvidence: "Design and work references", quantityReason: "Quantity basis", ready: "Create estimate with this source", expired: "Outside validity period", sourceHelp: "Register price lists, past estimates, designs and work scopes, then combine reviewed sources in an estimate." },
+} as const;
+
+export function sourceKindLabel(kind: string | undefined, lang: AppLocaleCode) {
+  return sourceCopy[lang][sourceKinds.includes(kind as AiSourceDocumentKind) ? kind as AiSourceDocumentKind : "estimate"];
+}
+
+export type SourceMetadata = { documentKind: AiSourceDocumentKind; projectName: string; revision: string; validFrom: string | null; validUntil: string | null };
+export type SourceWorkDetails = { workDetails: string; assumptions: string; exclusions: string };
+
+export function SourceMetadataFields({ value, onChange, lang, disabled, contextOnly = false }: { value: SourceMetadata; onChange: (value: SourceMetadata) => void; lang: AppLocaleCode; disabled?: boolean; contextOnly?: boolean }) {
+  const ui = sourceCopy[lang];
+  return <fieldset disabled={disabled} className="grid min-w-0 gap-4 sm:grid-cols-2">
+    <label className="min-w-0 sm:col-span-2"><span className="mb-1 block text-sm font-semibold">{ui.kind}</span><select className="field" value={value.documentKind} onChange={event => onChange({ ...value, documentKind: event.target.value as AiSourceDocumentKind })}>{sourceKinds.filter(kind => !contextOnly || isContextSource(kind)).map(kind => <option key={kind} value={kind}>{sourceKindLabel(kind, lang)}</option>)}</select><span className="mt-2 block text-xs text-slate-500">{isContextSource(value.documentKind) ? ui.contextHelp : ui.priceHelp}</span></label>
+    <label className="min-w-0"><span className="mb-1 block text-sm font-semibold">{ui.project}</span><input className="field" maxLength={120} value={value.projectName} onChange={event => onChange({ ...value, projectName: event.target.value })} /></label>
+    <label className="min-w-0"><span className="mb-1 block text-sm font-semibold">{ui.revision}</span><input className="field" maxLength={50} value={value.revision} onChange={event => onChange({ ...value, revision: event.target.value })} /></label>
+    <label className="min-w-0"><span className="mb-1 block text-sm font-semibold">{ui.validFrom}</span><input type="date" className="field" value={value.validFrom ?? ""} max={value.validUntil ?? undefined} onChange={event => onChange({ ...value, validFrom: event.target.value || null })} /></label>
+    <label className="min-w-0"><span className="mb-1 block text-sm font-semibold">{ui.validUntil}</span><input type="date" className="field" value={value.validUntil ?? ""} min={value.validFrom ?? undefined} onChange={event => onChange({ ...value, validUntil: event.target.value || null })} /></label>
+  </fieldset>;
+}
+
+export function SourceWorkFields({ value, onChange, lang, disabled, required = false }: { value: SourceWorkDetails; onChange: (value: SourceWorkDetails) => void; lang: AppLocaleCode; disabled?: boolean; required?: boolean }) {
+  const ui = sourceCopy[lang];
+  return <fieldset disabled={disabled} className="space-y-4">
+    {(["workDetails", "assumptions", "exclusions"] as const).map(key => <label key={key} className="block min-w-0"><span className="mb-1 block text-sm font-semibold">{ui[key]}{required && key === "workDetails" ? " *" : ""}</span><textarea className={`field ${key === "workDetails" ? "min-h-40" : "min-h-24"}`} required={required && key === "workDetails"} maxLength={key === "workDetails" ? 16000 : 4000} value={value[key]} onChange={event => onChange({ ...value, [key]: event.target.value })} /><span className="mt-1 block text-right text-xs text-slate-400">{value[key].length.toLocaleString()} / {key === "workDetails" ? "16,000" : "4,000"}</span></label>)}
+  </fieldset>;
+}

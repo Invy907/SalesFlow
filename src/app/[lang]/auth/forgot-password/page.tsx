@@ -21,8 +21,8 @@ export default function ForgotPasswordPage() {
 
   if (state && "success" in state) {
     return (
-      <div className="w-full max-w-[420px]">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-10 flex flex-col items-center text-center gap-4">
+      <div className="w-full min-w-0 max-w-[420px] [overflow-wrap:anywhere]">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-10 flex flex-col items-center text-center gap-4">
           <div className="w-14 h-14 rounded-full bg-[#E8F5EF] flex items-center justify-center">
             <CheckCircle2 size={26} className="text-[#1A7A57]" />
           </div>

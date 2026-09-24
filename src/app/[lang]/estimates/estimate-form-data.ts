@@ -6,7 +6,7 @@ import {
 } from "@/lib/documents/client-honorific";
 
 import { requireActiveOrg } from "@/lib/guards";
-import { getClients } from "@/lib/db/clients";
+import { getClientOptions, type ClientOptionRow } from "@/lib/db/clients";
 import { getCompanyProfile, getDocumentDefaults } from "@/lib/db/company";
 import { getEstimateById } from "@/lib/db/estimates";
 import { getItems } from "@/lib/db/items";
@@ -14,9 +14,10 @@ import { TAX_CATEGORY_TO_LABEL } from "@/lib/tax";
 import type { TaxCategory } from "@/lib/tax";
 import type { ItemOption, LineItemRow } from "../documents/new-document-shared";
 import type { EstimateFormInitial } from "./estimate-form-client";
+import { getDocumentSealUrl } from "@/lib/documents/seal-url";
 import { normalizeDocumentOutputLocale } from "@/lib/documents/output-locale";
 
-export type ClientOption = { id: string; name: string };
+export type ClientOption = ClientOptionRow;
 
 function toItemOptions(items: Array<Record<string, unknown>>): ItemOption[] {
   return items.map((it) => ({
@@ -25,6 +26,7 @@ function toItemOptions(items: Array<Record<string, unknown>>): ItemOption[] {
     unit: (it.unit as string | null) ?? null,
     unitPrice: Number(it.unit_price ?? 0),
     taxCategory: (it.tax_category as string) ?? "follow_company",
+    withholdingExempt: Boolean(it.withholding_exempt),
   }));
 }
 
@@ -36,6 +38,7 @@ function toLineRows(
     unit_snapshot: string | null;
     unit_price_snapshot: number | string;
     tax_category: string;
+    withholding_exempt_snapshot?: boolean | null;
   }>,
 ): LineItemRow[] {
   return lines.map((l) => ({
@@ -45,6 +48,7 @@ function toLineRows(
     price: String(l.unit_price_snapshot ?? ""),
     tax: TAX_CATEGORY_TO_LABEL[(l.tax_category as TaxCategory) ?? "standard_10"] ?? "10%",
     itemId: l.item_id ?? null,
+    withholdingExempt: l.withholding_exempt_snapshot ?? false,
   }));
 }
 
@@ -60,7 +64,7 @@ export async function buildNewEstimateInitial(
   const [profile, defaults, clientList, itemList] = await Promise.all([
     getCompanyProfile(scope.orgId),
     getDocumentDefaults(scope.orgId),
-    getClients(scope.orgId, { pageSize: 500 }),
+    getClientOptions(scope.orgId),
     getItems(scope.orgId, { pageSize: 500 }),
   ]);
 
@@ -69,10 +73,7 @@ export async function buildNewEstimateInitial(
     today.getDate(),
   ).padStart(2, "0")}`;
 
-  const clients = clientList.clients.map((c) => ({
-    id: c.id as string,
-    name: (c.name as string) ?? "",
-  }));
+  const clients = clientList;
   const prefilledClient = clientId ? clients.find((c) => c.id === clientId) : undefined;
 
   return {
@@ -85,13 +86,20 @@ export async function buildNewEstimateInitial(
       expiryDate: "",
       documentNumber: "",
       subject: "",
+      sealUrl: await getDocumentSealUrl(profile?.seal_path ?? null),
       senderCompanyName: profile?.company_name_line1 ?? "",
+      sender: {
+        postalCode: profile?.postal_code ?? "", addressLine1: profile?.address_line1 ?? "",
+        addressLine2: profile?.address_line2 ?? "", addressLine3: profile?.address_line3 ?? "",
+        tel: profile?.tel ?? "", fax: profile?.fax ?? "", email: profile?.email ?? "",
+        registrationNumber: profile?.invoice_registration_number ?? "",
+      },
       recipient: {
-        postalCode: "",
-        addressLine1: "",
-        addressLine2: "",
-        companyName: "",
-        department: "",
+        postalCode: prefilledClient?.postalCode ?? "",
+        addressLine1: prefilledClient?.addressLine1 ?? "",
+        addressLine2: prefilledClient?.addressLine2 ?? "",
+        companyName: prefilledClient?.name ?? "",
+        department: prefilledClient?.department ?? "",
         name: "",
         contact: "",
       },
@@ -113,10 +121,10 @@ export async function buildEditEstimateInitial(
 ): Promise<{ initial: EstimateFormInitial; clients: ClientOption[]; items: ItemOption[] } | null> {
   const scope = await requireActiveOrg(lang);
   const estimate = await getEstimateById(estimateId);
-  if (!estimate) return null;
+  if (!estimate || estimate.organization_id !== scope.orgId) return null;
 
   const [clientList, profile, itemList] = await Promise.all([
-    getClients(scope.orgId, { pageSize: 500 }),
+    getClientOptions(scope.orgId),
     getCompanyProfile(scope.orgId),
     getItems(scope.orgId, { pageSize: 500 }),
   ]);
@@ -130,13 +138,11 @@ export async function buildEditEstimateInitial(
     unit_snapshot: string | null;
     unit_price_snapshot: number | string;
     tax_category: string;
+    withholding_exempt_snapshot?: boolean | null;
   }>;
 
   return {
-    clients: clientList.clients.map((c) => ({
-      id: c.id as string,
-      name: (c.name as string) ?? "",
-    })),
+    clients: clientList,
     items: toItemOptions(itemList.items),
     initial: {
       id: estimate.id as string,
@@ -147,6 +153,9 @@ export async function buildEditEstimateInitial(
       documentNumber: (estimate.document_number as string) ?? "",
       subject: (estimate.subject as string) ?? "",
       senderCompanyName: sender.companyName ?? profile?.company_name_line1 ?? "",
+      sender,
+      showSeal: estimate.show_seal !== false,
+      sealUrl: await getDocumentSealUrl(profile?.seal_path ?? null),
       recipient: {
         postalCode: recipient.postalCode ?? "",
         addressLine1: recipient.addressLine1 ?? "",

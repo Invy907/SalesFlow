@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { canWriteOrganizationBusinessData } from "@/lib/organization-permissions";
 import { getActiveOrganization } from "@/lib/db/organizations";
 import { getGmailConnection } from "@/lib/db/gmail-connections";
 import { syncGmailConnection } from "@/lib/gmail/sync";
@@ -26,7 +27,7 @@ async function requireScope() {
   const org = await getActiveOrganization();
   if (!org) return { ok: false as const, error: "No active organization" };
 
-  return { ok: true as const, orgId: org.organization_id, userId: user.id };
+  return { ok: true as const, orgId: org.organization_id, userId: user.id, role: org.role };
 }
 
 export async function markInboxRead(messageId: string): Promise<ActionResult> {
@@ -85,6 +86,9 @@ export async function disconnectGmail(): Promise<ActionResult> {
 export async function syncGmailNow(): Promise<ActionResult<{ imported: number }>> {
   const scope = await requireScope();
   if (!scope.ok) return scope;
+  if (!canWriteOrganizationBusinessData(scope.role)) {
+    return { ok: false, error: "Organization write permission required" };
+  }
 
   const summary = await getGmailConnection(scope.orgId);
   if (!summary) return { ok: false, error: "Gmail is not connected" };

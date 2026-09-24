@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import "server-only";
 
 import { DEFAULT_CLIENT_HONORIFIC } from "@/lib/documents/client-honorific";
@@ -22,6 +23,7 @@ function toItemOptions(items: Array<Record<string, unknown>>): ItemOption[] {
     unit: (it.unit as string | null) ?? null,
     unitPrice: Number(it.unit_price ?? 0),
     taxCategory: (it.tax_category as string) ?? "follow_company",
+    withholdingExempt: Boolean(it.withholding_exempt),
   }));
 }
 
@@ -41,6 +43,7 @@ async function buildCopyInitial(orgId: string, invoiceId: string) {
     (source.invoice_line_items ?? []) as Array<Record<string, unknown>>
   ).map((line) => ({
     itemId: (line.item_id as string | null) ?? null,
+    withholdingExempt: Boolean(line.withholding_exempt_snapshot),
     name: (line.name_snapshot as string) ?? "",
     qty: line.qty === null || line.qty === undefined ? "" : String(line.qty),
     unit: (line.unit_snapshot as string) ?? "",
@@ -56,6 +59,14 @@ async function buildCopyInitial(orgId: string, invoiceId: string) {
     clientName: (source.clients?.name as string) ?? recipient.clientName ?? "",
     // Document number, issue date and payment state are not carried over.
     subject: (source.subject as string) ?? "",
+    templateKey: source.template_key ?? "standard",
+    ...(source.sender_snapshot ? {
+      sender: source.sender_snapshot as Record<string, string>,
+      senderCompanyName: String((source.sender_snapshot as Record<string, unknown>).companyName ?? ""),
+    } : {}),
+    taxDisplay: source.tax_display ?? "separate",
+    taxRounding: source.tax_rounding ?? "round_down",
+    withholdingType: source.withholding_type ?? "none",
     billingMonth: (source.billing_month as string) ?? "",
     clientHonorific: normalizeClientHonorific(source.client_honorific),
     showSeal: source.show_seal !== false,
@@ -78,6 +89,7 @@ async function buildFromEstimateInitial(orgId: string, estimateId: string) {
     (source.estimate_line_items ?? []) as Array<Record<string, unknown>>
   ).map((line) => ({
     itemId: (line.item_id as string | null) ?? null,
+    withholdingExempt: Boolean(line.withholding_exempt_snapshot),
     name: (line.name_snapshot as string) ?? "",
     qty: line.qty === null || line.qty === undefined ? "" : String(line.qty),
     unit: (line.unit_snapshot as string) ?? "",
@@ -92,12 +104,20 @@ async function buildFromEstimateInitial(orgId: string, estimateId: string) {
     clientId: (source.client_id as string | null) ?? null,
     clientName: (source.clients?.name as string) ?? recipient.clientName ?? "",
     subject: (source.subject as string) ?? "",
+    templateKey: source.template_key ?? "standard",
+    ...(source.sender_snapshot ? {
+      sender: source.sender_snapshot as Record<string, string>,
+      senderCompanyName: String((source.sender_snapshot as Record<string, unknown>).companyName ?? ""),
+    } : {}),
+    taxDisplay: source.tax_display ?? "separate",
+    taxRounding: source.tax_rounding ?? "round_down",
+    withholdingType: source.withholding_type ?? "none",
     clientHonorific: normalizeClientHonorific(source.client_honorific),
     showSeal: source.show_seal !== false,
     outputLocale: normalizeDocumentOutputLocale(source.output_locale),
     templateMessage: (source.template_message as string) ?? "",
     remarks: (source.remarks as string) ?? "",
-    recipient,
+    recipient: { ...recipient, section: recipient.section ?? recipient.name ?? "" },
     lines,
   };
 }
@@ -123,7 +143,7 @@ export async function buildEditInvoiceInitial(
   const scope = await requireActiveOrg(lang);
   const invoice = await getInvoiceById(invoiceId).catch(() => null);
   if (!invoice || invoice.organization_id !== scope.orgId) {
-    throw new Error("Invoice not found");
+    notFound();
   }
 
   const [profile, clientList, banks, itemList] = await Promise.all([
@@ -140,6 +160,7 @@ export async function buildEditInvoiceInitial(
     (invoice.invoice_line_items ?? []) as Array<Record<string, unknown>>
   ).map((line) => ({
     itemId: (line.item_id as string | null) ?? null,
+    withholdingExempt: Boolean(line.withholding_exempt_snapshot),
     name: (line.name_snapshot as string) ?? "",
     qty: line.qty === null || line.qty === undefined ? "" : String(line.qty),
     unit: (line.unit_snapshot as string) ?? "",
@@ -229,7 +250,7 @@ export async function buildNewInvoiceInitial(
     getItems(scope.orgId, { pageSize: 500 }),
   ]);
 
-  const copy = copyFromId
+  const copy: Partial<InvoiceFormInitial> | null = copyFromId
     ? await buildCopyInitial(scope.orgId, copyFromId)
     : fromEstimateId
       ? await buildFromEstimateInitial(scope.orgId, fromEstimateId)
@@ -258,6 +279,11 @@ export async function buildNewInvoiceInitial(
     initial: {
       clientId: prefilledClient?.id ?? null,
       clientName: prefilledClient?.name ?? "",
+      recipient: {
+        postalCode: prefilledClient?.postalCode ?? "", addressLine1: prefilledClient?.addressLine1 ?? "",
+        addressLine2: prefilledClient?.addressLine2 ?? "", companyName: prefilledClient?.name ?? "",
+        department: prefilledClient?.department ?? "", phone: prefilledClient?.phone ?? "",
+      },
       issueDate,
       paymentDue: "",
       documentNumber: "",

@@ -43,6 +43,10 @@ export interface NormalizedExtractionLine extends EstimateExtractionLine {
 
 export interface NormalizedEstimateExtraction {
   schemaVersion: string;
+  documentKind?: EstimateExtractionResult["documentKind"];
+  workDetails?: string;
+  assumptions?: string;
+  exclusions?: string;
   document: EstimateExtractionResult["document"];
   supplier: EstimateExtractionResult["supplier"];
   customer: EstimateExtractionResult["customer"];
@@ -94,8 +98,9 @@ export function normalizeExtraction(input: EstimateExtractionResult): Normalized
     : null;
   const computedTax =
     input.totals.printedTax !== null ? input.totals.printedTax : null;
-  const computedTotal = computedSubtotal !== null && computedTax !== null
-    ? computedSubtotal - (input.totals.printedDiscount ?? 0) + computedTax
+  const computedTotal = computedSubtotal !== null && input.totals.taxMode !== "unknown"
+    && (input.totals.taxMode === "included" || computedTax !== null)
+    ? computedSubtotal - (input.totals.printedDiscount ?? 0) + (input.totals.taxMode === "included" ? 0 : computedTax ?? 0)
     : null;
 
   return {
@@ -117,9 +122,11 @@ export function normalizeExtraction(input: EstimateExtractionResult): Normalized
 function taxCategoryFromLine(
   line: NormalizedExtractionLine,
 ): AiEstimateExtraction["lines"][number]["taxCategory"] {
+  if (line.printedTaxCategory) return line.printedTaxCategory;
   if (line.printedTaxRatePercent === 0) return "exempt";
   if (line.printedTaxRatePercent === 5) return "standard_5";
-  if (line.printedTaxRatePercent === 8) return "reduced_8";
+  // A printed 8% rate does not distinguish historical standard tax from reduced tax.
+  if (line.printedTaxRatePercent === 8) return "follow_company";
   if (line.printedTaxRatePercent === 10) return "standard_10";
   return "follow_company";
 }
@@ -130,12 +137,15 @@ export function toReviewExtraction(
   sourceTitle: string,
 ): AiEstimateExtraction {
   const usableLines = normalized.lines.filter((line) => line.rawItemName?.trim());
-  const reviewLines: AiEstimateExtraction["lines"] = usableLines.length
-    ? usableLines.slice(0, 80).map((line) => ({
+  if (usableLines.length > 80) throw new Error("LOCAL_DOCUMENT_TOO_MANY_ROWS");
+  const documentKind = normalized.documentKind ?? "estimate";
+  const contextOnly = documentKind === "design" || documentKind === "work_scope";
+  const reviewLines: AiEstimateExtraction["lines"] = contextOnly ? [] : usableLines.length
+    ? usableLines.map((line) => ({
       name: (line.rawItemName ?? "").slice(0, 255),
-      qty: Math.max(0, line.quantity ?? 1),
+      qty: Math.max(0, line.quantity ?? (documentKind === "price_list" ? 1 : 0)),
       unit: (line.rawUnit ?? "").slice(0, 50),
-      unitPrice: Math.max(0, line.unitPrice ?? 0),
+      unitPrice: line.unitPrice ?? 0,
       taxCategory: taxCategoryFromLine(line),
       confidence: Math.min(1, Math.max(0, line.confidence ?? 0)),
       reason: [line.specification, line.description].filter(Boolean).join(" · ").slice(0, 500),
@@ -150,6 +160,9 @@ export function toReviewExtraction(
       reason: "명세 표를 자동으로 추출하지 못했습니다. 원본 문서를 확인해 주세요.",
     }];
   return {
+    documentKind, workDetails: normalized.workDetails ?? "", assumptions: normalized.assumptions ?? "", exclusions: normalized.exclusions ?? "",
+    currency: "JPY",
+    taxMode: normalized.totals.taxMode,
     clientName: normalized.customer.name ?? "",
     clientId: null,
     subject: sourceTitle.slice(0, 70),
@@ -159,6 +172,9 @@ export function toReviewExtraction(
     rawText: "",
     confidence: Math.min(1, Math.max(0, normalized.confidence ?? 0)),
     lines: reviewLines,
-    warnings: normalized.warnings.slice(0, 20).map((value) => value.slice(0, 500)),
+    warnings: [
+      ...(usableLines.some((line) => line.printedTaxRatePercent === 8 && !line.printedTaxCategory) ? ["8% 세율 품목의 일반 세율/경감 세율 구분을 원본에서 확인해 주세요."] : []),
+      ...normalized.warnings,
+    ].slice(0, 20).map((value) => value.slice(0, 500)),
   };
 }

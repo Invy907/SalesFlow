@@ -1,3 +1,5 @@
+import { computeLineAmount, type TaxCategory, type TaxDisplay } from "@/lib/tax";
+import { documentTaxCategoryLabel } from "./summary-rows";
 import * as XLSX from "xlsx";
 
 export type SpreadsheetLineItem = {
@@ -5,6 +7,7 @@ export type SpreadsheetLineItem = {
   qty: number;
   unit: string;
   unitPrice: number;
+  taxCategory?: TaxCategory;
 };
 
 /** A row added but left empty. Rendered as a blank line rather than zeros. */
@@ -14,6 +17,8 @@ export function isBlankDocumentLine(line: SpreadsheetLineItem) {
 
 export type SalesDocumentSpreadsheetInput = {
   title: string;
+  outputLocale?: string;
+  taxDisplay?: TaxDisplay;
   filenameBase: string;
   fields: Array<[string, string | number]>;
   lineHeaders: string[];
@@ -28,7 +33,7 @@ function sanitizeFilename(name: string) {
 }
 
 function lineAmount(line: SpreadsheetLineItem) {
-  return Math.floor(line.qty * line.unitPrice);
+  return computeLineAmount(line);
 }
 
 export function downloadSalesDocumentXlsx(input: SalesDocumentSpreadsheetInput) {
@@ -44,13 +49,17 @@ export function downloadSalesDocumentXlsx(input: SalesDocumentSpreadsheetInput) 
     rows.push(["—"]);
   } else {
     for (const line of input.lines) {
-      rows.push([line.name, line.qty, line.unit, line.unitPrice, lineAmount(line)]);
+      rows.push([
+        line.name, line.qty, line.unit, line.unitPrice,
+        ...(input.lineHeaders.length >= 6 ? [documentTaxCategoryLabel(input.taxDisplay === "exempt" ? "exempt" : line.taxCategory, input.outputLocale ?? "ja")] : []),
+        lineAmount(line),
+      ]);
     }
   }
 
   rows.push([]);
   for (const [label, value] of input.summaryRows) {
-    rows.push(["", "", "", label, value]);
+    rows.push([...Array(Math.max(0, input.lineHeaders.length - 2)).fill(""), label, value]);
   }
 
   const worksheet = XLSX.utils.aoa_to_sheet(rows);

@@ -15,3 +15,9 @@ export function appPath(path: string): string {
 export function isAppLocale(value: string): value is AppLocaleCode {
   return APP_LOCALES.includes(value as AppLocaleCode);
 }
+
+export function localizedRequestUrl(requestUrl: string, locale: AppLocaleCode): URL {
+  const url = new URL(requestUrl);
+  url.pathname = url.pathname === "/" ? `/${locale}` : `/${locale}${url.pathname}`;
+  return url;
+}

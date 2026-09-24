@@ -1,3 +1,4 @@
+import { computeDocumentTotals, type TaxCategory, type TaxDisplay, type TaxRounding, type DocumentTaxOptions } from "@/lib/tax";
 import type { SpreadsheetLineItem } from "./export-spreadsheet";
 import type { SalesDocumentDetail } from "./detail-types";
 import { normalizeDocumentOutputLocale } from "./output-locale";
@@ -9,6 +10,7 @@ type LineRow = {
   qty?: number | string;
   unit_snapshot?: string | null;
   unit_price_snapshot?: number | string;
+  tax_category?: string | null;
 };
 
 type DocumentRow = {
@@ -26,6 +28,9 @@ type DocumentRow = {
   remarks?: string | null;
   subtotal?: number | string | null;
   tax_amount?: number | string | null;
+  tax_display?: string | null;
+  tax_rounding?: string | null;
+  withholding_amount?: number | string | null;
   total?: number | string | null;
   recipient_snapshot?: unknown;
   sender_snapshot?: unknown;
@@ -41,6 +46,7 @@ export function mapDocumentLines(lines: LineRow[] | null | undefined): Spreadshe
     qty: Number(line.qty ?? 0),
     unit: line.unit_snapshot ?? "",
     unitPrice: Number(line.unit_price_snapshot) || 0,
+    taxCategory: (line.tax_category as TaxCategory | null) ?? "standard_10",
   }));
 }
 
@@ -48,7 +54,7 @@ export function mapSalesDocumentDetail(
   row: DocumentRow,
   lines: LineRow[] | null | undefined,
   sender: SalesDocumentDetail["sender"],
-  options?: { secondaryDate?: string | null; bankAccounts?: string[] },
+  options?: { secondaryDate?: string | null; bankAccounts?: string[]; documentType?: DocumentTaxOptions["documentType"] },
 ): SalesDocumentDetail {
   const recipient = (row.recipient_snapshot ?? {}) as Record<string, string>;
   const senderSnapshot = (row.sender_snapshot ?? {}) as Record<string, unknown>;
@@ -58,10 +64,18 @@ export function mapSalesDocumentDetail(
     ? senderSnapshot.bankAccounts.filter((value): value is string => typeof value === "string")
     : [];
 
+  const mappedLines = mapDocumentLines(lines);
+  const totals = computeDocumentTotals(mappedLines.map((line) => ({
+    qty: line.qty, unitPrice: line.unitPrice, taxCategory: line.taxCategory ?? "standard_10",
+  })), (row.tax_rounding as TaxRounding | null) ?? "round_down", {
+    taxDisplay: (row.tax_display as TaxDisplay | null) ?? "separate",
+    documentType: options?.documentType,
+  });
+
   return {
     id: row.id,
     documentNumber: row.document_number ?? "",
-    clientName: row.clients?.name ?? recipient.clientName ?? "",
+    clientName: recipient.clientName ?? recipient.companyName ?? row.clients?.name ?? "",
     subject: row.subject ?? "",
     issueDate: row.issue_date ?? "",
     secondaryDate: options?.secondaryDate ?? undefined,
@@ -73,8 +87,11 @@ export function mapSalesDocumentDetail(
     remarks: row.remarks ?? "",
     subtotal: Number(row.subtotal ?? 0),
     tax: Number(row.tax_amount ?? 0),
+    taxDisplay: (row.tax_display as TaxDisplay | null) ?? "separate",
+    withholding: Number(row.withholding_amount ?? 0),
+    taxBreakdown: totals.breakdown,
     total: Number(row.total ?? 0),
-    lines: mapDocumentLines(lines),
+    lines: mappedLines,
     recipient: {
       postalCode: recipient.postalCode ?? "",
       addressLine1: recipient.addressLine1 ?? "",

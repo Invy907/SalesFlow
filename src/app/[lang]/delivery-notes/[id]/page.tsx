@@ -1,3 +1,4 @@
+import { getDocumentSealUrl } from "@/lib/documents/seal-url";
 import { notFound } from "next/navigation";
 import { requireActiveOrg } from "@/lib/guards";
 import { getDeliveryNoteById } from "@/lib/db/delivery-notes";
@@ -31,10 +32,17 @@ export default async function DeliveryNoteDetailPage({
     note.delivery_note_line_items as Parameters<typeof mapSalesDocumentDetail>[1],
     {
       companyName: profile?.company_name_line1 ?? "",
+      postalCode: profile?.postal_code ?? "",
+      addressLine1: profile?.address_line1 ?? "",
+      addressLine2: profile?.address_line2 ?? "",
+      addressLine3: profile?.address_line3 ?? "",
       tel: profile?.tel ?? "",
+      fax: profile?.fax ?? "",
       email: profile?.email ?? "",
+      registrationNumber: profile?.invoice_registration_number ?? "",
+      sealUrl: note.show_seal !== false ? await getDocumentSealUrl(profile?.seal_path) : null,
     },
-    { secondaryDate: (note.delivery_date as string | null) ?? undefined },
+    { documentType: "delivery_note", secondaryDate: (note.delivery_date as string | null) ?? undefined },
   );
 
   return (

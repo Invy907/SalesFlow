@@ -6,7 +6,8 @@ import { getDocumentPreviewPanelLabels } from "@/lib/documents/preview-panel-lab
 import type { SalesDocumentDetail, SalesDocumentDetailUi } from "@/lib/documents/detail-types";
 import type { DocumentOutputLocale } from "@/lib/documents/output-locale";
 import type { ClientHonorific } from "@/lib/documents/client-honorific";
-import { computeDocumentTotals, taxCategoryFromLabel, type TaxRounding } from "@/lib/tax";
+import { computeDocumentTotals, taxCategoryFromLabel, type TaxRounding, type TaxDisplay, type WithholdingType } from "@/lib/tax";
+import { documentLineQuantity } from "@/lib/documents/line-form-values";
 import type { LineItemRow } from "./new-document-shared";
 
 /**
@@ -41,6 +42,9 @@ export type LivePreviewInput = {
   sealUrl?: string | null;
   showSeal?: boolean;
   taxRounding: TaxRounding;
+  taxDisplay?: TaxDisplay;
+  withholdingType?: WithholdingType;
+  documentType?: "estimate" | "invoice" | "delivery_note" | "receipt";
   rows: LineItemRow[];
 };
 
@@ -55,11 +59,13 @@ export function buildLivePreviewDetail(input: LivePreviewInput): SalesDocumentDe
 
   const totals = computeDocumentTotals(
     lines.map((row) => ({
-      qty: toNumber(row.qty),
+      qty: documentLineQuantity(row),
       unitPrice: toNumber(row.price),
       taxCategory: taxCategoryFromLabel(row.tax),
+      withholdingExempt: row.withholdingExempt,
     })),
     input.taxRounding,
+    { taxDisplay: input.taxDisplay, withholdingType: input.withholdingType, documentType: input.documentType },
   );
 
   return {
@@ -77,13 +83,17 @@ export function buildLivePreviewDetail(input: LivePreviewInput): SalesDocumentDe
     remarks: input.remarks,
     subtotal: totals.subtotal,
     tax: totals.tax,
+    taxBreakdown: totals.breakdown,
+    withholding: totals.withholding,
+    taxDisplay: input.taxDisplay,
     total: totals.total,
     lines: lines.map((row, index) => ({
       lineNo: index + 1,
       name: row.name,
-      qty: toNumber(row.qty),
+      qty: documentLineQuantity(row),
       unit: row.unit,
       unitPrice: toNumber(row.price),
+      taxCategory: taxCategoryFromLabel(row.tax),
     })),
     recipient: {
       postalCode: input.recipient?.postalCode ?? "",
@@ -203,13 +213,13 @@ export function DocumentPreviewPanel({
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center gap-3 border-b border-slate-200 bg-slate-50 px-4 py-2.5">
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4">
         <div className="min-w-0">
           <p className="text-[14px] font-semibold text-slate-800">{labels.title}</p>
-          <p className="truncate text-[12px] text-slate-500">{labels.note}</p>
+          <p className="text-[12px] text-slate-500">{labels.note}</p>
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           <div className="flex rounded-md border border-slate-300 bg-white p-0.5 text-[12px] font-medium">
             {[
               { key: "fit", label: labels.fit, active: !actualSize },
@@ -244,7 +254,7 @@ export function DocumentPreviewPanel({
         </div>
       </div>
 
-      <div className="max-h-[calc(100vh-13rem)] overflow-y-auto">
+      <div className="max-h-[70dvh] overflow-y-auto 2xl:max-h-[calc(100dvh-13rem)]">
         <DocumentLivePreview input={input} ui={ui} actualSize={actualSize} />
       </div>
     </div>

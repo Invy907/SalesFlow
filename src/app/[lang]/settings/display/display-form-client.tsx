@@ -51,13 +51,13 @@ export function DisplayFormClient({ initial }: { initial: DisplaySettingsForm })
     <SalesFlowShell activeItem="settings">
       <SettingsSubNav active="display" />
 
-      <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-20 sm:px-6 sm:py-8 sm:pb-24 lg:px-8 lg:py-10 lg:pb-28">
-        <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{display.title}</h1>
+      <div className="mx-auto w-full min-w-0 [overflow-wrap:anywhere] max-w-[1260px] px-4 py-6 pb-20 sm:px-6 sm:py-8 sm:pb-24 lg:px-8 lg:py-10 lg:pb-28">
+        <h1 className="text-2xl font-bold sm:text-[30px] tracking-tight text-slate-900">{display.title}</h1>
 
         <div className="mt-10 space-y-8">
           <section className="overflow-hidden rounded border border-slate-200 bg-white">
             <SettingsSectionHeader title={display.listSection} />
-            <div className="px-6 py-6">
+            <div className="px-4 py-5 sm:px-6 sm:py-6">
               <label className="block text-[16px] font-semibold text-slate-800" htmlFor="list-page-size">
                 {display.listPerPageLabel}
               </label>
@@ -93,7 +93,7 @@ export function DisplayFormClient({ initial }: { initial: DisplaySettingsForm })
 
           <section className="overflow-hidden rounded border border-slate-200 bg-white">
             <SettingsSectionHeader title={display.homeSection} />
-            <div className="px-6 py-6">
+            <div className="px-4 py-5 sm:px-6 sm:py-6">
               <p className="text-[14px] text-slate-600">{display.homeDesc}</p>
               <select
                 className="field mt-4 max-w-[240px] bg-white"

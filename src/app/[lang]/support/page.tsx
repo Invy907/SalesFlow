@@ -12,8 +12,8 @@ export default function SupportPage() {
 
   return (
     <SalesFlowShell activeItem="support">
-      <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
-        <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
+      <div className="mx-auto w-full min-w-0 [overflow-wrap:anywhere] max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
+        <h1 className="text-2xl font-bold sm:text-[30px] tracking-tight text-slate-900">{ui.title}</h1>
         <p className="mt-4 max-w-[900px] text-[15px] leading-7 text-slate-600">{ui.intro}</p>
 
         <section className="mt-10 overflow-hidden rounded border border-slate-200 bg-white">
@@ -76,13 +76,6 @@ export default function SupportPage() {
           <div className="px-5 py-5">
             <p className="max-w-[900px] text-[15px] leading-7 text-slate-600">{ui.contactIntro}</p>
             <div className="mt-5 flex flex-wrap gap-3">
-              <Link
-                href={appHrefs.support}
-                className="inline-flex items-center gap-2 rounded bg-[#0A4D34] px-5 py-3 text-[15px] font-semibold text-white transition hover:bg-[#083D29]"
-              >
-                {ui.contactButton}
-                <ExternalLinkIcon />
-              </Link>
               <Link
                 href={appHrefs.supportInvoiceGuide}
                 className="inline-flex items-center gap-2 rounded border border-slate-200 px-5 py-3 text-[15px] font-semibold text-[#0A4D34] transition hover:bg-slate-50"

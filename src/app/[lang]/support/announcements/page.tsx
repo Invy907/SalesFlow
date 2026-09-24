@@ -15,7 +15,7 @@ export default function AnnouncementsPage() {
 
   return (
     <SalesFlowShell activeItem="support">
-      <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
+      <div className="mx-auto w-full min-w-0 [overflow-wrap:anywhere] max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
         <Link
           href={getSupportHref(lang, "top")}
           className="inline-flex items-center gap-1 text-sm text-slate-500 transition hover:text-[#0A4D34]"
@@ -23,7 +23,7 @@ export default function AnnouncementsPage() {
           ← {ui.backToSupport}
         </Link>
 
-        <h1 className="mt-4 text-[30px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
+        <h1 className="mt-4 text-2xl font-bold sm:text-[30px] tracking-tight text-slate-900">{ui.title}</h1>
         <p className="mt-3 max-w-[760px] text-[15px] leading-7 text-slate-600">{ui.intro}</p>
 
         <ul className="mt-8 divide-y divide-slate-200 overflow-hidden rounded border border-slate-200 bg-white">

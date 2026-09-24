@@ -12,7 +12,7 @@ import {
   AuthInput,
   AuthSubmitButton,
 } from "../_components/auth-card";
-import { CheckCircle2, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 
 const initialState = null;
 
@@ -26,8 +26,8 @@ export default function SignUpPage() {
 
   if (state && "success" in state) {
     return (
-      <div className="w-full max-w-[420px]">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-10 flex flex-col items-center text-center gap-4">
+      <div className="w-full min-w-0 max-w-[420px] [overflow-wrap:anywhere]">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-10 flex flex-col items-center text-center gap-4">
           <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center">
             <Mail size={26} className="text-emerald-500" />
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState, useTransition } from "react";
+import { Suspense, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { LocalizedFileInput } from "@/components/localized-file-input";
 import { SalesFlowShell } from "@/components/salesflow-shell";
@@ -12,7 +12,6 @@ import {
 } from "@/lib/actions/company";
 import {
   extractPostalDigits,
-  formatPostalCode,
   type PostalLookupError,
 } from "@/lib/japan-postal-code";
 import { lookupJapanPostalCode } from "@/lib/actions/postal";
@@ -145,16 +144,16 @@ export function CompanyFormClient({ initial }: { initial: CompanyProfileForm }) 
     <SalesFlowShell activeItem="settings">
       <SettingsSubNav active="company" />
 
-      <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-20 sm:px-6 sm:py-8 sm:pb-24 lg:px-8 lg:py-10 lg:pb-28">
+      <div className="mx-auto w-full min-w-0 [overflow-wrap:anywhere] max-w-[1260px] px-4 py-6 pb-20 sm:px-6 sm:py-8 sm:pb-24 lg:px-8 lg:py-10 lg:pb-28">
         {showOrderFormAlert ? <SettingsWarningAlert message={company.orderFormAlert} /> : null}
 
-        <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{company.title}</h1>
+        <h1 className="text-2xl font-bold sm:text-[30px] tracking-tight text-slate-900">{company.title}</h1>
         <p className="mt-4 max-w-[900px] text-[15px] leading-7 text-slate-600">{company.intro}</p>
 
         <div className="mt-10 overflow-hidden rounded border border-slate-200 bg-white">
           <SettingsSectionHeader title={company.basicSection} />
 
-          <div className="px-6">
+          <div className="px-4 sm:px-6">
             <SettingsFormField
               label={company.postalCode}
               required={company.required}

@@ -4,7 +4,7 @@ const labels = {
   ja: {
     title: "サポート",
     intro:
-      "SalesFlowの使い方やお困りごとについて、よくある質問やお問い合わせ方法をご案内します。",
+      "SalesFlowの使い方について、ガイドとよくある質問をご案内します。",
     announcementsSection: "お知らせ",
     announcementsDescription: "新機能・改善・メンテナンス情報を確認できます。",
     announcementsLink: "お知らせ一覧を見る",
@@ -36,19 +36,18 @@ const labels = {
       {
         question: "プランや料金について知りたいです。",
         answer:
-          "「ご利用履歴」ページから現在の利用状況を確認できます。プラン変更や請求に関する詳細は、下記のお問い合わせフォームからご連絡ください。",
+          "「ご利用履歴」で当月に作成した請求書の件数を確認できます。契約プラン、無料枠、請求金額はまだ連携されておらず、画面からのプラン変更はできません。",
       },
     ],
     contactSection: "お問い合わせ",
     contactIntro:
-      "上記で解決しない場合は、以下のフォームからお問い合わせください。通常2営業日以内にご返信いたします。",
-    contactButton: "お問い合わせフォームを開く",
+      "お問い合わせ窓口はまだ設定されていません。この画面から問い合わせを送信することはできません。ご利用中の組織の管理者に、連絡先をご確認ください。",
     helpCenterLink: "ヘルプセンターを見る",
   },
   ko: {
     title: "지원",
     intro:
-      "SalesFlow 사용 방법이나 문의 사항에 대해 자주 묻는 질문과 문의 방법을 안내합니다.",
+      "SalesFlow 사용 방법을 가이드와 자주 묻는 질문으로 안내합니다.",
     announcementsSection: "공지사항",
     announcementsDescription: "신기능, 개선, 점검 안내를 확인할 수 있습니다.",
     announcementsLink: "공지사항 전체 보기",
@@ -80,19 +79,18 @@ const labels = {
       {
         question: "플랜과 요금에 대해 알고 싶습니다.",
         answer:
-          "「이용 내역」 페이지에서 현재 이용 현황을 확인할 수 있습니다. 플랜 변경이나 청구 관련 문의는 아래 문의 양식을 이용해 주세요.",
+          "「이용 내역」에서 이번 달에 작성한 청구서 건수를 확인할 수 있습니다. 계약 플랜, 무료 한도, 청구 금액은 아직 연동되지 않았으며 화면에서 플랜을 변경할 수 없습니다.",
       },
     ],
     contactSection: "문의",
     contactIntro:
-      "위 내용으로 해결되지 않는 경우 아래 양식을 통해 문의해 주세요. 보통 2영업일 이내에 답변드립니다.",
-    contactButton: "문의 양식 열기",
+      "문의 채널이 아직 설정되지 않았습니다. 이 화면에서는 문의를 전송할 수 없습니다. 이용 중인 조직의 관리자에게 연락처를 확인해 주세요.",
     helpCenterLink: "헬프 센터 보기",
   },
   en: {
     title: "Support",
     intro:
-      "Find answers to common questions and learn how to contact us about SalesFlow.",
+      "Find guides and answers to common questions about using SalesFlow.",
     announcementsSection: "Announcements",
     announcementsDescription: "Read about new features, improvements, and maintenance.",
     announcementsLink: "View all announcements",
@@ -124,13 +122,12 @@ const labels = {
       {
         question: "Where can I learn about plans and pricing?",
         answer:
-          'Check your current usage on the "Usage History" page. For plan changes or billing questions, please use the contact form below.',
+          'See the number of invoices created this month on the "Usage History" page. Plan details, free allowances, and billing amounts are not connected yet, and plan changes are not available in the app.',
       },
     ],
     contactSection: "Contact Us",
     contactIntro:
-      "If your question is not answered above, please reach out via the form below. We typically respond within two business days.",
-    contactButton: "Open contact form",
+      "A support contact channel has not been configured yet. You cannot send an inquiry from this page. Ask your organization’s administrator for contact details.",
     helpCenterLink: "Visit help center",
   },
 } as const;

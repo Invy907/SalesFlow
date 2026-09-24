@@ -5,12 +5,13 @@ import {
   DEFAULT_LOCALE,
   LOCALE_COOKIE_NAME,
   isAppLocale,
+  localizedRequestUrl,
 } from "@/lib/locale";
 import { updateSession } from "@/lib/supabase/middleware";
+import { isPublicDocumentPath } from "@/lib/public-routes";
 
 // Matches /ja, /ja/anything — but NOT /ja/auth/...
 const PROTECTED_PREFIX_RE = /^\/(?:ja|en|ko)(\/(?!auth).*)?$/;
-const PUBLIC_SHARED_ESTIMATE_RE = /^\/(?:ja|en|ko)\/estimates\/shared\//;
 
 function getPreferredLocale(request: NextRequest) {
   const header = request.headers.get("accept-language");
@@ -52,14 +53,6 @@ function getLocaleFromRequest(request: NextRequest) {
   return getPreferredLocale(request);
 }
 
-function buildLocalizedPath(pathname: string, locale: string) {
-  if (pathname === "/") {
-    return `/${locale}`;
-  }
-
-  return `/${locale}${pathname}`;
-}
-
 /** Routes under `app/auth/` (not `app/[lang]/auth/`). Must not be locale-rewritten. */
 function isRootAuthApiPath(pathname: string) {
   return pathname === "/auth/callback" || pathname === "/auth/sign-out";
@@ -94,15 +87,16 @@ export async function proxy(request: NextRequest) {
   }
 
   const locale = getLocaleFromRequest(request);
-  const localizedPath = buildLocalizedPath(pathname, locale);
-
-  const rewriteResponse = NextResponse.rewrite(new URL(localizedPath, request.url));
+  // Preserve searches, pagination and document-conversion parameters.
+  const rewriteUrl = localizedRequestUrl(request.url, locale);
+  const localizedPath = rewriteUrl.pathname;
+  const rewriteResponse = NextResponse.rewrite(rewriteUrl);
 
   // Refresh Supabase session on every request
   const { response, user } = await updateSession(request, rewriteResponse);
 
   // Redirect unauthenticated users from protected routes to sign-in
-  if (PROTECTED_PREFIX_RE.test(localizedPath) && !user && !PUBLIC_SHARED_ESTIMATE_RE.test(localizedPath)) {
+  if (PROTECTED_PREFIX_RE.test(localizedPath) && !user && !isPublicDocumentPath(localizedPath)) {
     const signInUrl = request.nextUrl.clone();
     // Use locale-less path so the proxy doesn't double-redirect
     signInUrl.pathname = "/auth/sign-in";

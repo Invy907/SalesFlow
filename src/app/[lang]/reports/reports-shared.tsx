@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/language-context";
@@ -32,8 +32,9 @@ export function ReportsLearnMoreLink({ label }: { label: string }) {
 }
 
 export function ReportsInfoIcon({ hint }: { hint?: string }) {
-  const anchorRef = useRef<HTMLSpanElement>(null);
+  const anchorRef = useRef<HTMLButtonElement>(null);
   const tooltipRef = useRef<HTMLSpanElement>(null);
+  const tooltipId = useId();
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
   const [placement, setPlacement] = useState<{ top: number; left: number } | null>(null);
 
@@ -60,8 +61,25 @@ export function ReportsInfoIcon({ hint }: { hint?: string }) {
       margin,
       Math.min(centered, window.innerWidth - width - margin),
     );
-    setPlacement({ top: anchorRect.bottom + 8, left });
+    const below = anchorRect.bottom + 8;
+    const top = below + tip.offsetHeight <= window.innerHeight - margin
+      ? below
+      : Math.max(margin, anchorRect.top - tip.offsetHeight - 8);
+    setPlacement({ top, left });
   }, [anchorRect]);
+
+  useEffect(() => {
+    if (!anchorRect) return;
+    const dismissOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") hideTooltip(); };
+    window.addEventListener("resize", hideTooltip);
+    window.addEventListener("scroll", hideTooltip, true);
+    window.addEventListener("keydown", dismissOnEscape);
+    return () => {
+      window.removeEventListener("resize", hideTooltip);
+      window.removeEventListener("scroll", hideTooltip, true);
+      window.removeEventListener("keydown", dismissOnEscape);
+    };
+  }, [anchorRect, hideTooltip]);
 
   if (!hint) return null;
 
@@ -70,6 +88,7 @@ export function ReportsInfoIcon({ hint }: { hint?: string }) {
     createPortal(
       <span
         ref={tooltipRef}
+        id={tooltipId}
         role="tooltip"
         style={{
           position: "fixed",
@@ -87,22 +106,25 @@ export function ReportsInfoIcon({ hint }: { hint?: string }) {
 
   return (
     <>
-      <span
+      <button
         ref={anchorRef}
-        tabIndex={0}
-        className="ml-1 inline-flex align-middle"
+        type="button"
+        aria-label={hint}
+        aria-describedby={anchorRect ? tooltipId : undefined}
+        className="ml-1 inline-flex rounded-full align-middle outline-none focus-visible:ring-2 focus-visible:ring-[#0A4D34]"
         onMouseEnter={showTooltip}
         onMouseLeave={hideTooltip}
         onFocus={showTooltip}
         onBlur={hideTooltip}
+        onClick={showTooltip}
       >
         <span
           className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-slate-400 text-[10px] font-bold leading-none text-white outline-none focus-visible:ring-2 focus-visible:ring-[#0A4D34]"
-          aria-label={hint}
+          aria-hidden="true"
         >
           ?
         </span>
-      </span>
+      </button>
       {tooltipNode}
     </>
   );

@@ -87,7 +87,11 @@ export function ClientRegistrationModal({
 
   const set = <K extends keyof Omit<Draft, "destination">>(key: K, value: string) => {
     setDraft((d) => ({ ...d, [key]: value }));
-    if (errors[key]) setErrors(({ [key]: _drop, ...rest }) => rest);
+    if (errors[key]) setErrors((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
   };
   const setDest = (key: keyof Draft["destination"], value: string) =>
     setDraft((d) => ({ ...d, destination: { ...d.destination, [key]: value } }));
@@ -100,6 +104,8 @@ export function ClientRegistrationModal({
     startTransition(async () => {
       const payload = {
         ...draft,
+        name: draft.name.trim(),
+        honorific: client?.honorific ?? draft.destination.honorific,
         emailCc: draft.emailCc,
         destination: draft.destination,
       };
@@ -111,7 +117,7 @@ export function ClientRegistrationModal({
           return;
         }
         setErrors(result.fieldErrors ?? {});
-        setMessage(result.error);
+        setMessage([result.error, ...Object.values(result.fieldErrors ?? {})].filter(Boolean).join(" · "));
         return;
       }
 
@@ -130,7 +136,7 @@ export function ClientRegistrationModal({
         return;
       }
       setErrors(result.fieldErrors ?? {});
-      setMessage(result.error);
+      setMessage([result.error, ...Object.values(result.fieldErrors ?? {})].filter(Boolean).join(" · "));
     });
   }
 
@@ -140,7 +146,7 @@ export function ClientRegistrationModal({
       onClose={onClose}
       footer={
         <>
-          {message ? <span className="mr-auto text-[14px] text-red-600">{message}</span> : null}
+          {message ? <span role="alert" className="mr-auto text-[14px] text-red-600">{message}</span> : null}
           <button
             type="button"
             onClick={onClose}
@@ -163,7 +169,7 @@ export function ClientRegistrationModal({
         <ModalField label={ui.clientName} required={ui.required}>
           <div className="flex items-center gap-2">
             <input
-              className="field flex-1"
+              className="field min-w-0 flex-1"
               maxLength={40}
               value={draft.name}
               onChange={(e) => set("name", e.target.value)}
@@ -285,15 +291,15 @@ export function ClientRegistrationModal({
               value={draft.destination.mailingLine3}
               onChange={(e) => setDest("mailingLine3", e.target.value)}
             />
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row">
               <input
-                className="field flex-1"
+                className="field min-w-0 flex-1"
                 placeholder={ui.mailingLine4NamePlaceholder}
                 value={draft.destination.mailingLine4}
                 onChange={(e) => setDest("mailingLine4", e.target.value)}
               />
               <select
-                className="field w-[120px] bg-white"
+                className="field w-full bg-white sm:w-[120px] sm:shrink-0"
                 value={draft.destination.honorific}
                 onChange={(e) => setDest("honorific", e.target.value)}
               >
@@ -351,7 +357,7 @@ function ModalField({
 }) {
   return (
     <div>
-      <div className="mb-2 flex items-center gap-2">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
         <label className="text-[15px] font-semibold text-slate-800">{label}</label>
         {required ? <RequiredBadge label={required} /> : null}
       </div>

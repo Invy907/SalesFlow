@@ -21,7 +21,7 @@ export interface BatchEnv {
   storageBucket: string;
   concurrency: number;
   maxRetry: number;
-  /** 이 값 미만이면 자동 승인하지 않는다. */
+  /** 이 값 미만이면 추가 검수 사유를 남긴다. 승인은 항상 사람이 수행한다. */
   confidenceThreshold: number;
   /** printedTotal 과 computedTotal 허용 오차(통화 최소단위). */
   totalToleranceMinorUnits: number;
@@ -135,7 +135,7 @@ export function requireGeminiEnv(): GeminiEnv {
   return {
     apiKey,
     extractionModel: process.env.GEMINI_EXTRACTION_MODEL || "gemini-3.5-flash-lite",
-    retryModel: process.env.GEMINI_RETRY_MODEL || "gemini-3.6-flash",
+    retryModel: process.env.GEMINI_RETRY_MODEL || "gemini-3.8-flash",
     embeddingModel: process.env.GEMINI_EMBEDDING_MODEL || "gemini-embedding-001",
   };
 }

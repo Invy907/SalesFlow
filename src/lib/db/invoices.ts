@@ -1,3 +1,5 @@
+import { invoiceOutstandingTotals } from "@/lib/invoice-outstanding";
+import { getDocumentSearchClause } from "./document-search";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import type { DocumentFilter } from "./estimates";
 
@@ -9,7 +11,8 @@ export async function getInvoices(orgId: string, filter: DocumentFilter = {}) {
     .from("invoices")
     .select("*, clients(id, name)", { count: "exact" })
     .eq("organization_id", orgId)
-    .order("issue_date", { ascending: false });
+    .order("issue_date", { ascending: false })
+    .order("id", { ascending: false });
 
   if (trashed) {
     q = q.not("deleted_at", "is", null);
@@ -24,7 +27,7 @@ export async function getInvoices(orgId: string, filter: DocumentFilter = {}) {
   if (paymentFlag !== undefined) q = paymentFlag ? q.not("payment_marked_at", "is", null) : q.is("payment_marked_at", null);
   if (from) q = q.gte("issue_date", from);
   if (to) q = q.lte("issue_date", to);
-  if (query) q = q.or(`document_number.ilike.%${query}%,subject.ilike.%${query}%`);
+  if (query) q = q.or(await getDocumentSearchClause(orgId, query));
 
   const start = (page - 1) * pageSize;
   q = q.range(start, start + pageSize - 1);
@@ -46,4 +49,30 @@ export async function getInvoiceById(id: string) {
 
   if (error) throw new Error(error.message);
   return data;
+}
+
+/** Summary covers every open invoice, independently of the currently displayed page. */
+export async function getInvoiceOutstandingTotals(orgId: string) {
+  const supabase = await getSupabaseServerClient();
+  const today = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tokyo" }).format(new Date());
+  let unpaidTotal = 0;
+  let overdueTotal = 0;
+  const batchSize = 500;
+  for (let offset = 0; ; offset += batchSize) {
+    const { data, error } = await supabase
+      .from("invoices")
+      .select("total, paid_amount, payment_due")
+      .eq("organization_id", orgId)
+      .is("deleted_at", null)
+      .is("payment_marked_at", null)
+      .in("status", ["draft", "issued", "sent", "overdue"])
+      .order("id")
+      .range(offset, offset + batchSize - 1);
+    if (error) throw new Error(error.message);
+    const totals = invoiceOutstandingTotals(data ?? [], today);
+    unpaidTotal += totals.unpaidTotal;
+    overdueTotal += totals.overdueTotal;
+    if (!data || data.length < batchSize) break;
+  }
+  return { unpaidTotal, overdueTotal };
 }

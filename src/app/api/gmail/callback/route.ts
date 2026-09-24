@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { canWriteOrganizationBusinessData } from "@/lib/organization-permissions";
 import type { NextRequest } from "next/server";
 import { encryptTokens, exchangeGmailCode, parseOAuthState } from "@/lib/gmail/oauth";
 import { syncGmailConnection } from "@/lib/gmail/sync";
@@ -34,6 +35,18 @@ export async function GET(request: NextRequest) {
 
   if (!user || user.id !== state.userId) {
     return NextResponse.redirect(new URL(`/${state.lang}/auth/sign-in`, origin));
+  }
+
+  // OAuth may finish after a role change or removal. Recheck the signed-in
+  // user's membership in the state organization before any service-role write.
+  const { data: membership, error: membershipError } = await supabase
+    .from("organization_members")
+    .select("role")
+    .eq("organization_id", state.orgId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (membershipError || !canWriteOrganizationBusinessData(membership?.role)) {
+    return NextResponse.redirect(new URL(`/${state.lang}/inbox?gmail_error=permission_denied`, origin));
   }
 
   try {

@@ -8,6 +8,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * 両方から使われるため、循環 import を避けてここに切り出す。
  */
 
+type InvoiceStatusResult = { ok: true } | { ok: false; error: string };
+
 export type InvoiceStatusEventSource = "manual" | "email" | "mail" | "share" | "bulk" | "payment";
 
 /** 依頼2 5): 発行/入金/処理済みステータスの変更を履歴テーブルに記録する。 */
@@ -22,8 +24,8 @@ export async function logInvoiceStatusEvent(
     newValue: string;
     source: InvoiceStatusEventSource;
   },
-) {
-  await supabase.from("invoice_status_events").insert({
+): Promise<InvoiceStatusResult> {
+  const { error } = await supabase.from("invoice_status_events").insert({
     organization_id: params.orgId,
     invoice_id: params.invoiceId,
     status_type: params.statusType,
@@ -32,6 +34,7 @@ export async function logInvoiceStatusEvent(
     source: params.source,
     changed_by: params.userId ?? null,
   });
+  return error ? { ok: false, error: error.message } : { ok: true };
 }
 
 /**
@@ -44,20 +47,30 @@ export async function markInvoiceIssued(
   scope: { orgId: string; userId: string },
   invoiceId: string,
   source: "email" | "mail" | "share",
-) {
-  const { data: current } = await supabase
+): Promise<InvoiceStatusResult> {
+  const { data: current, error: readError } = await supabase
     .from("invoices")
     .select("issued_marked_at")
     .eq("id", invoiceId)
+    .eq("organization_id", scope.orgId)
+    .is("deleted_at", null)
     .maybeSingle();
-  if (current?.issued_marked_at) return;
+  if (readError) return { ok: false, error: readError.message };
+  if (!current) return { ok: false, error: "請求書が見つからないか、権限がありません" };
+  if (current.issued_marked_at) return { ok: true };
 
-  await supabase
+  const { data: updated, error: updateError } = await supabase
     .from("invoices")
     .update({ issued_marked_at: new Date().toISOString() })
-    .eq("id", invoiceId);
+    .eq("id", invoiceId)
+    .eq("organization_id", scope.orgId)
+    .is("deleted_at", null)
+    .select("id")
+    .maybeSingle();
+  if (updateError) return { ok: false, error: updateError.message };
+  if (!updated) return { ok: false, error: "請求書が見つからないか、変更権限がありません" };
 
-  await logInvoiceStatusEvent(supabase, {
+  return logInvoiceStatusEvent(supabase, {
     orgId: scope.orgId,
     userId: scope.userId,
     invoiceId,

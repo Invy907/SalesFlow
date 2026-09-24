@@ -7,5 +7,6 @@ export async function POST(request: NextRequest) {
   await supabase.auth.signOut();
 
   const { origin } = new URL(request.url);
-  return NextResponse.redirect(`${origin}/ja/auth/sign-in`);
+  // A POST must redirect with GET, rather than replaying POST at the sign-in page.
+  return NextResponse.redirect(`${origin}/auth/sign-in`, 303);
 }

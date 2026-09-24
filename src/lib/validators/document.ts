@@ -36,11 +36,11 @@ export const clientHonorificSchema = z.enum(["onchu", "sama", "none"]);
 export const lineItemSchema = z.object({
   itemId: z.string().uuid().optional(),
   name: z.string().max(255),
-  qty: z.coerce.number().nonnegative(),
+  qty: z.coerce.number().nonnegative().max(999_999_999).multipleOf(0.0001),
   unit: z.string().max(255).optional(),
-  unitPrice: z.coerce.number().int().nonnegative(),
+  unitPrice: z.coerce.number().int().min(-Number.MAX_SAFE_INTEGER).max(Number.MAX_SAFE_INTEGER),
   taxCategory: taxCategorySchema,
-  taxRateSnapshot: z.coerce.number().nonnegative(),
+  taxRateSnapshot: z.coerce.number().min(0).max(1),
   withholdingExempt: z.boolean().optional(),
 });
 
@@ -55,12 +55,23 @@ export function hasContentLineItem(lines: ParsedLineItem[]) {
   return lines.some((line) => !isBlankLineItem(line));
 }
 
+export const documentLineItemsSchema = z.array(lineItemSchema).min(1).max(80)
+  .refine(hasContentLineItem, "明細を1行以上入力してください")
+  .refine((lines) => lines.reduce((sum, line) => sum + Math.abs(line.qty * line.unitPrice), 0) <= Number.MAX_SAFE_INTEGER / 2,
+    "金額が大きすぎます")
+  .refine((lines) => lines.reduce((sum, line) => sum + line.qty * line.unitPrice, 0) >= 0,
+    "合計金額がマイナスになる明細は保存できません");
+
+// z.coerce.date() treats null/false as 1970-01-01 and accepts non-calendar strings.
+const documentDateSchema = z.union([z.date(), z.iso.date().transform((value) => new Date(value))]);
+
 export const createEstimateSchema = z.object({
+  aiSuggestionIds: z.array(z.string().uuid()).max(20).optional(),
   clientId: z.string().uuid().nullable().optional(),
   clientDestinationId: z.string().uuid().nullable().optional(),
   subject: z.string().max(70).optional(),
-  issueDate: z.coerce.date(),
-  expiryDate: z.coerce.date().nullable().optional(),
+  issueDate: documentDateSchema,
+  expiryDate: documentDateSchema.nullable().optional(),
   taxDisplay: taxDisplaySchema,
   taxRounding: taxRoundingSchema,
   withholdingType: withholdingTypeSchema,
@@ -75,7 +86,7 @@ export const createEstimateSchema = z.object({
   // rather than `unknown`.
   recipientSnapshot: z.record(z.string(), z.json()).optional(),
   senderSnapshot: z.record(z.string(), z.json()).optional(),
-  lineItems: z.array(lineItemSchema).min(1).max(80),
+  lineItems: documentLineItemsSchema,
 });
 
 export const createInvoiceSchema = createEstimateSchema.extend({
@@ -92,19 +103,19 @@ export const createInvoiceSchema = createEstimateSchema.extend({
       message: "「{」「}」は使用できません",
     })
     .optional(),
-  paymentDue: z.coerce.date().nullish(),
-  deliveryDate: z.coerce.date().nullish(),
+  paymentDue: documentDateSchema.nullish(),
+  deliveryDate: documentDateSchema.nullish(),
   billingMonth: z.string().optional(),
   bankAccountIds: z.array(z.string().uuid()).max(3).optional(),
 });
 
 export const createDeliveryNoteSchema = createEstimateSchema.extend({
-  deliveryDate: z.coerce.date().nullable().optional(),
+  deliveryDate: documentDateSchema.nullable().optional(),
   linkedInvoiceId: z.string().uuid().nullable().optional(),
 });
 
 export const createReceiptSchema = createEstimateSchema.extend({
-  transactionDate: z.coerce.date().nullable().optional(),
+  transactionDate: documentDateSchema.nullable().optional(),
   linkedInvoiceId: z.string().uuid().nullable().optional(),
 });
 

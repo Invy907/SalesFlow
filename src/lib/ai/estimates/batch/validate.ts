@@ -17,6 +17,7 @@ export const REVIEW_REASONS = [
   "total_mismatch",
   "negative_amount",
   "unsafe_number",
+  "missing_work_details",
 ] as const;
 
 export type ReviewReason = (typeof REVIEW_REASONS)[number];
@@ -54,11 +55,14 @@ export function validateExtraction(
 ): ValidationResult {
   const normalized = normalizeExtraction(input);
   const reasons = new Set<ReviewReason>();
+  const contextOnly = input.documentKind === "design" || input.documentKind === "work_scope";
+  const estimate = !input.documentKind || input.documentKind === "estimate";
 
-  if (!input.customer.name?.trim()) reasons.add("missing_customer");
-  if (!input.document.issueDate) reasons.add("missing_issue_date");
-  if (input.totals.printedTotal === null) reasons.add("missing_total");
-  if (!input.lines.length) reasons.add("missing_lines");
+  if (estimate && !input.customer.name?.trim()) reasons.add("missing_customer");
+  if (estimate && !input.document.issueDate) reasons.add("missing_issue_date");
+  if (estimate && input.totals.printedTotal === null) reasons.add("missing_total");
+  if (!contextOnly && !input.lines.length) reasons.add("missing_lines");
+  if (contextOnly && (input.workDetails?.trim().length ?? 0) < 3) reasons.add("missing_work_details");
   if (input.lines.some((line) => !line.rawItemName?.trim())) reasons.add("missing_item_name");
   if (input.tableRecognitionFailed) reasons.add("table_recognition_failed");
   if ((input.confidence ?? 0) < options.confidenceThreshold) reasons.add("low_confidence");
@@ -86,6 +90,6 @@ export function validateExtraction(
   return {
     normalized,
     reviewReasons: [...reasons],
-    isStructurallyValid: input.lines.length > 0 && !hasUnsafeNumber(input),
+    isStructurallyValid: (contextOnly ? (input.workDetails?.trim().length ?? 0) >= 3 : input.lines.length > 0) && !hasUnsafeNumber(input),
   };
 }

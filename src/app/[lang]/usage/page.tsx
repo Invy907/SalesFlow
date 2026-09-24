@@ -1,138 +1,71 @@
-"use client";
-
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { SalesFlowShell } from "@/components/salesflow-shell";
-import { useLanguage } from "@/contexts/language-context";
-import { appHrefs } from "@/lib/app-hrefs";
+import { requireActiveOrg } from "@/lib/guards";
+import { isAppLocale } from "@/lib/locale";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getUsageContent } from "./content";
 
-export default function UsagePage() {
-  const { lang } = useLanguage();
+export const dynamic = "force-dynamic";
+
+export default async function UsagePage({ params }: { params: Promise<{ lang: string }> }) {
+  const { lang } = await params;
+  if (!isAppLocale(lang)) notFound();
+  const scope = await requireActiveOrg(lang);
   const ui = getUsageContent(lang);
+  const now = new Date();
+  const monthParts = new Intl.DateTimeFormat("en", { timeZone: "Asia/Tokyo", year: "numeric", month: "numeric" }).formatToParts(now);
+  const year = Number(monthParts.find((part) => part.type === "year")?.value);
+  const month = Number(monthParts.find((part) => part.type === "month")?.value);
+  // JST midnight is 15:00 UTC on the preceding date, including year boundaries.
+  const start = new Date(Date.UTC(year, month - 1, 1, -9)).toISOString();
+  const end = new Date(Date.UTC(year, month, 1, -9)).toISOString();
+  const supabase = await getSupabaseServerClient();
+  const { count, error } = await supabase.from("invoices")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", scope.orgId)
+    .gte("created_at", start)
+    .lt("created_at", end);
+  if (error) throw new Error(error.message);
+  if (count === null) throw new Error("Invoice usage count was not returned");
+  const numberLocale = lang === "ja" ? "ja-JP" : lang === "ko" ? "ko-KR" : "en-US";
+  const monthLabel = new Intl.DateTimeFormat(numberLocale, { timeZone: "Asia/Tokyo", year: "numeric", month: "long" }).format(now);
 
   return (
     <SalesFlowShell activeItem="history">
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
         <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
         <p className="mt-4 max-w-[900px] text-[15px] leading-7 text-slate-600">{ui.intro}</p>
-        <Link
-          href={appHrefs.support}
-          className="mt-5 inline-flex items-center gap-2 rounded bg-[#0A4D34] px-5 py-3 text-[15px] font-semibold text-white transition hover:bg-[#083D29]"
-        >
-          {ui.inquireBilling}
-          <ExternalLinkIcon />
-        </Link>
 
-        <div className="mt-10 space-y-8">
-          <section className="overflow-hidden rounded border border-slate-200 bg-white">
-            <div className="flex items-center justify-between bg-[#dbe8f3] px-5 py-3.5">
-              <h2 className="text-[18px] font-semibold text-slate-800">{ui.currentMonth}</h2>
-              <Link
-                href={appHrefs.support}
-                className="inline-flex items-center gap-1 text-[15px] font-medium text-[#0A4D34] hover:underline"
-              >
-                {ui.planUpgrade}
-                <ExternalLinkIcon />
-              </Link>
-            </div>
+        <section className="mt-10 overflow-hidden rounded border border-slate-200 bg-white">
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-[#dbe8f3] px-5 py-3.5">
+            <h2 className="text-[18px] font-semibold text-slate-800">{ui.currentMonth}</h2>
+            <span className="text-sm text-slate-600">{monthLabel}</span>
+          </div>
+          <div className="px-5 py-5">
+            <h3 className="border-b border-slate-200 pb-3 text-[15px] font-semibold text-slate-800">{ui.invoiceSection}</h3>
+            <dl className="mt-4 w-full max-w-[260px] overflow-hidden rounded border border-slate-200">
+              <dt className="border-b border-slate-200 bg-slate-50 px-3 py-2.5 text-center text-sm text-slate-600">{ui.createdCount}</dt>
+              <dd className="flex flex-wrap items-baseline justify-center gap-2 px-3 py-5">
+                <span className="min-w-0 max-w-full break-all text-[32px] font-bold tabular-nums text-slate-900">{count.toLocaleString(numberLocale)}</span>
+                <span className="text-sm text-slate-600">{ui.countUnit}</span>
+              </dd>
+            </dl>
+            <p className="mt-4 text-sm leading-6 text-slate-500">{ui.countDefinition}</p>
+            <Link href={`/${lang}/invoices`} className="mt-4 inline-block text-sm font-medium text-[#0A4D34] hover:underline">{ui.invoiceList} →</Link>
+          </div>
+        </section>
 
-            <div className="px-5 py-5">
-              <h3 className="border-b border-slate-200 pb-3 text-[15px] font-semibold text-slate-800">
-                {ui.invoiceSection}
-              </h3>
-              <div className="mt-4 flex flex-wrap gap-4">
-                <UsageStatCard label={ui.createdCount} value={ui.sampleCreated} unit={ui.countUnit} />
-                <UsageStatCard label={ui.freeAllowance} value={ui.sampleFree} unit={ui.countUnit} />
-              </div>
-            </div>
-          </section>
-
-          <section className="overflow-hidden rounded border border-slate-200 bg-white">
-            <div className="bg-[#dbe8f3] px-5 py-3">
-              <h2 className="text-[18px] font-semibold text-slate-800">{ui.mailingSection}</h2>
-            </div>
-
-            <div className="px-6 py-4">
-              <MonthNavLink label={ui.previousMonth} />
-            </div>
-
-            <div className="overflow-x-auto px-6">
-              <table className="w-full min-w-[640px] border-collapse text-[15px]">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-[#f8fafc]">
-                    {ui.tableHeaders.map((header) => (
-                      <th
-                        key={header}
-                        className="px-4 py-3 text-left font-semibold text-slate-700"
-                      >
-                        {header}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td colSpan={4} className="px-4 py-16 text-center text-slate-400">
-                      {ui.emptyBilling}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div className="px-6 py-4">
-              <MonthNavLink label={ui.previousMonth} />
-            </div>
-
-            <Link
-              href={appHrefs.support}
-              className="flex items-center justify-center gap-2 bg-[#0A4D34] px-6 py-4 text-[16px] font-semibold text-white transition hover:bg-[#083D29]"
-            >
-              {ui.planUpgrade}
-              <ExternalLinkIcon />
-            </Link>
-          </section>
-        </div>
+        <section className="mt-8 overflow-hidden rounded border border-slate-200 bg-white">
+          <div className="bg-[#dbe8f3] px-5 py-3.5">
+            <h2 className="text-[18px] font-semibold text-slate-800">{ui.billingSection}</h2>
+          </div>
+          <div className="space-y-3 px-5 py-5 text-[15px] leading-7 text-slate-600">
+            <p>{ui.billingUnavailable}</p>
+            <p>{ui.serviceUsageUnavailable}</p>
+          </div>
+        </section>
       </div>
     </SalesFlowShell>
-  );
-}
-
-function UsageStatCard({
-  label,
-  value,
-  unit,
-}: {
-  label: string;
-  value: string;
-  unit: string;
-}) {
-  return (
-    <div className="w-[188px] shrink-0 overflow-hidden rounded-sm border border-slate-200 bg-white">
-      <div className="border-b border-slate-200 bg-[#dbe8f3] px-3 py-2.5 text-center text-[13px] font-medium text-slate-600">
-        {label}
-      </div>
-      <div className="flex items-baseline justify-center gap-1 bg-white px-3 py-4">
-        <span className="text-[28px] font-bold leading-none tracking-tight text-slate-900">{value}</span>
-        <span className="text-[14px] font-medium text-slate-600">{unit}</span>
-      </div>
-    </div>
-  );
-}
-
-function MonthNavLink({ label }: { label: string }) {
-  return (
-    <span className="text-[14px] text-slate-400" aria-disabled="true">
-      &lt; {label}
-    </span>
-  );
-}
-
-function ExternalLinkIcon() {
-  return (
-    <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 fill-current">
-      <path d="M11 3a1 1 0 1 0 0 2h2.59l-6.3 6.29a1 1 0 0 0 1.42 1.42L15 6.41V9a1 1 0 1 0 2 0V4a1 1 0 0 0-1-1h-5Z" />
-      <path d="M5 5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-3a1 1 0 1 0-2 0v3H5V7h3a1 1 0 1 0 0-2H5Z" />
-    </svg>
   );
 }

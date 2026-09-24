@@ -12,6 +12,7 @@
 
 # testing
 /coverage
+/artifacts/ai-estimate-validation/
 
 # next.js
 /.next/

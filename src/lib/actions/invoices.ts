@@ -1,11 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { canWriteOrganizationBusinessData } from "@/lib/organization-permissions";
+import { z } from "zod";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getActiveOrganization } from "@/lib/db/organizations";
 import { createInvoiceSchema, type CreateInvoiceInput } from "@/lib/validators/document";
 import { hasContentLineItem } from "@/lib/validators/document";
-import { computeDocumentTotals } from "@/lib/tax";
+import { saveSalesDocument } from "@/lib/documents/save-sales-document";
 import { mapSalesDocumentDetail } from "@/lib/documents/map-document-detail";
 import { getDocumentSealUrl } from "@/lib/documents/seal-url";
 import type { SalesDocumentDetail } from "@/lib/documents/detail-types";
@@ -82,11 +84,7 @@ export async function createInvoice(
     documentNumber = String(docNum ?? "");
   }
 
-  const totals = computeDocumentTotals(parsed.data.lineItems, parsed.data.taxRounding);
-
-  const { data: invoice, error: insertErr } = await supabase
-    .from("invoices")
-    .insert({
+  const { data: invoice, error: insertErr } = await saveSalesDocument(supabase, "invoice", {
       organization_id: org.organization_id,
       client_id: parsed.data.clientId ?? null,
       client_destination_id: parsed.data.clientDestinationId ?? null,
@@ -96,7 +94,6 @@ export async function createInvoice(
       payment_due: parsed.data.paymentDue?.toISOString().slice(0, 10) ?? null,
       delivery_date: parsed.data.deliveryDate?.toISOString().slice(0, 10) ?? null,
       billing_month: parsed.data.billingMonth ?? null,
-      status: "draft",
       tax_display: parsed.data.taxDisplay,
       tax_rounding: parsed.data.taxRounding,
       withholding_type: parsed.data.withholdingType,
@@ -112,32 +109,9 @@ export async function createInvoice(
       recipient_snapshot: parsed.data.recipientSnapshot ?? null,
       sender_snapshot: parsed.data.senderSnapshot ?? null,
       bank_account_ids: parsed.data.bankAccountIds ?? null,
-      subtotal: totals.subtotal,
-      tax_amount: totals.tax,
-      created_by: user.id,
-    })
-    .select("id")
-    .single();
+    }, parsed.data.lineItems);
 
   if (insertErr || !invoice) return { ok: false, error: insertErr?.message ?? "Insert failed" };
-
-  if (parsed.data.lineItems.length > 0) {
-    const lines = parsed.data.lineItems.map((li, idx) => ({
-      document_id: invoice.id,
-      line_no: idx + 1,
-      item_id: li.itemId ?? null,
-      name_snapshot: li.name,
-      qty: li.qty,
-      unit_snapshot: li.unit ?? null,
-      unit_price_snapshot: li.unitPrice,
-      tax_category: li.taxCategory,
-      tax_rate_snapshot: li.taxRateSnapshot,
-      withholding_exempt_snapshot: li.withholdingExempt ?? null,
-    }));
-
-    const { error: lineErr } = await supabase.from("invoice_line_items").insert(lines);
-    if (lineErr) return { ok: false, error: lineErr.message };
-  }
 
   revalidatePath("/[lang]/invoices", "page");
   return { ok: true, data: invoice.id };
@@ -188,11 +162,8 @@ export async function updateInvoice(
     }
   }
 
-  const totals = computeDocumentTotals(parsed.data.lineItems, parsed.data.taxRounding);
-
-  const { error } = await supabase
-    .from("invoices")
-    .update({
+  const { error } = await saveSalesDocument(supabase, "invoice", {
+      organization_id: org.organization_id,
       client_id: parsed.data.clientId ?? null,
       client_destination_id: parsed.data.clientDestinationId ?? null,
       document_number: requestedNumber || undefined,
@@ -215,33 +186,9 @@ export async function updateInvoice(
       recipient_snapshot: parsed.data.recipientSnapshot ?? null,
       sender_snapshot: parsed.data.senderSnapshot ?? null,
       bank_account_ids: parsed.data.bankAccountIds ?? null,
-      subtotal: totals.subtotal,
-      tax_amount: totals.tax,
-    })
-    .eq("id", invoiceId)
-    .eq("organization_id", org.organization_id);
+    }, parsed.data.lineItems, invoiceId);
 
   if (error) return { ok: false, error: error.message };
-
-  await supabase.from("invoice_line_items").delete().eq("document_id", invoiceId);
-
-  if (parsed.data.lineItems.length > 0) {
-    const lines = parsed.data.lineItems.map((li, idx) => ({
-      document_id: invoiceId,
-      line_no: idx + 1,
-      item_id: li.itemId ?? null,
-      name_snapshot: li.name,
-      qty: li.qty,
-      unit_snapshot: li.unit ?? null,
-      unit_price_snapshot: li.unitPrice,
-      tax_category: li.taxCategory,
-      tax_rate_snapshot: li.taxRateSnapshot,
-      withholding_exempt_snapshot: li.withholdingExempt ?? null,
-    }));
-
-    const { error: lineErr } = await supabase.from("invoice_line_items").insert(lines);
-    if (lineErr) return { ok: false, error: lineErr.message };
-  }
 
   revalidatePath("/[lang]/invoices", "page");
   revalidatePath(`/[lang]/invoices/${invoiceId}`, "page");
@@ -262,7 +209,7 @@ export async function getInvoicePreview(
   const { data: invoice, error } = await supabase
     .from("invoices")
     .select("*, clients(name), invoice_line_items(*)")
-    .eq("id", invoiceId)
+    .eq("id", invoiceId).is("deleted_at", null)
     .order("line_no", { referencedTable: "invoice_line_items", ascending: true })
     .maybeSingle();
 
@@ -325,14 +272,24 @@ export async function recordPayment(
   paidAt: string,
   memo?: string,
 ): Promise<ActionResult> {
+  const parsed = z.object({
+    invoiceId: z.string().uuid(),
+    amount: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+    method: z.enum(["bank", "card", "cash", "other"]),
+    paidAt: z.iso.date(),
+    memo: z.string().max(2000).optional(),
+  }).safeParse({ invoiceId, amount, method, paidAt, memo });
+  if (!parsed.success) return { ok: false, error: "Validation failed" };
+
   const supabase = await getSupabaseServerClient();
   const org = await getActiveOrganization();
   if (!org) return { ok: false, error: "No active organization" };
 
   const { data: inv } = await supabase
     .from("invoices")
-    .select("client_id, paid_amount")
-    .eq("id", invoiceId)
+    .select("client_id")
+    .eq("id", invoiceId).is("deleted_at", null)
+    .eq("organization_id", org.organization_id)
     .single();
 
   if (!inv) return { ok: false, error: "Invoice not found" };
@@ -349,10 +306,10 @@ export async function recordPayment(
 
   if (error) return { ok: false, error: error.message };
 
-  const newPaid = (inv.paid_amount ?? 0) + amount;
-  await supabase.from("invoices").update({ paid_amount: newPaid }).eq("id", invoiceId);
+  // The payment trigger owns paid_amount; overwriting it from a stale read loses concurrent payments.
 
   revalidatePath("/[lang]/invoices", "page");
+  revalidatePath(`/[lang]/invoices/${invoiceId}`, "page");
   return { ok: true, data: undefined };
 }
 
@@ -375,6 +332,7 @@ export async function sendInvoiceEmail(
 
   const org = await getActiveOrganization();
   if (!org) return { ok: false, error: "No active organization" };
+  if (!canWriteOrganizationBusinessData(org.role)) return { ok: false, error: "この操作を行う権限がありません" };
 
   const origin = await getServerSiteUrl();
   const result = await sendSalesDocumentEmail(supabase, {
@@ -389,7 +347,10 @@ export async function sendInvoiceEmail(
 
   if (result.ok) {
     // 依頼2 2): 請求書メールを送信したら発行済とみなす。
-    await markInvoiceIssued(supabase, { orgId: org.organization_id, userId: user.id }, invoiceId, "email");
+    const marked = await markInvoiceIssued(supabase, { orgId: org.organization_id, userId: user.id }, invoiceId, "email");
+    if (!marked.ok) {
+      return { ok: false, error: `メールは送信されましたが、発行記録を保存できませんでした。再送せず発行状態を確認してください。${marked.error}` };
+    }
     revalidatePath("/[lang]/invoices", "page");
     revalidatePath(`/[lang]/invoices/${invoiceId}`, "page");
   }
@@ -407,8 +368,10 @@ export async function markInvoiceMailed(invoiceId: string): Promise<ActionResult
 
   const org = await getActiveOrganization();
   if (!org) return { ok: false, error: "No active organization" };
+  if (!canWriteOrganizationBusinessData(org.role)) return { ok: false, error: "この操作を行う権限がありません" };
 
-  await markInvoiceIssued(supabase, { orgId: org.organization_id, userId: user.id }, invoiceId, "mail");
+  const marked = await markInvoiceIssued(supabase, { orgId: org.organization_id, userId: user.id }, invoiceId, "mail");
+  if (!marked.ok) return marked;
   revalidatePath("/[lang]/invoices", "page");
   revalidatePath(`/[lang]/invoices/${invoiceId}`, "page");
   return { ok: true, data: undefined };
@@ -425,14 +388,19 @@ export async function shareInvoice(
 
   const org = await getActiveOrganization();
   if (!org) return { ok: false, error: "No active organization" };
+  if (!canWriteOrganizationBusinessData(org.role)) return { ok: false, error: "この操作を行う権限がありません" };
 
   const { data: existing } = await supabase
     .from("invoices")
     .select("share_token")
     .eq("id", invoiceId)
+    .eq("organization_id", org.organization_id)
+    .is("deleted_at", null)
     .maybeSingle();
 
-  if (existing?.share_token) {
+  if (!existing) return { ok: false, error: "Document not found" };
+
+  if (existing.share_token) {
     await supabase
       .from("share_tokens")
       .update({ revoked_at: new Date().toISOString() })
@@ -454,8 +422,16 @@ export async function shareInvoice(
 
   if (error) return { ok: false, error: error.message };
 
-  await supabase.from("invoices").update({ share_token: token }).eq("id", invoiceId);
-  await markInvoiceIssued(supabase, { orgId: org.organization_id, userId: user.id }, invoiceId, "share");
+  const { data: shared, error: shareUpdateError } = await supabase.from("invoices")
+    .update({ share_token: token })
+    .eq("id", invoiceId)
+    .eq("organization_id", org.organization_id)
+    .is("deleted_at", null)
+    .select("id")
+    .maybeSingle();
+  if (shareUpdateError || !shared) return { ok: false, error: shareUpdateError?.message ?? "請求書が見つからないか、変更権限がありません" };
+  const marked = await markInvoiceIssued(supabase, { orgId: org.organization_id, userId: user.id }, invoiceId, "share");
+  if (!marked.ok) return marked;
 
   revalidatePath("/[lang]/invoices", "page");
   revalidatePath(`/[lang]/invoices/${invoiceId}`, "page");
@@ -468,7 +444,7 @@ export async function revokeShareInvoice(invoiceId: string): Promise<ActionResul
   const { data: invoice } = await supabase
     .from("invoices")
     .select("share_token")
-    .eq("id", invoiceId)
+    .eq("id", invoiceId).is("deleted_at", null)
     .single();
 
   if (invoice?.share_token) {
@@ -481,7 +457,7 @@ export async function revokeShareInvoice(invoiceId: string): Promise<ActionResul
   const { error } = await supabase
     .from("invoices")
     .update({ share_token: null })
-    .eq("id", invoiceId);
+    .eq("id", invoiceId).is("deleted_at", null);
 
   if (error) return { ok: false, error: error.message };
 
@@ -501,16 +477,16 @@ export async function toggleInvoicePaymentFlag(invoiceId: string): Promise<Actio
   const { data: current, error: readErr } = await supabase
     .from("invoices")
     .select("payment_marked_at")
-    .eq("id", invoiceId)
+    .eq("id", invoiceId).is("deleted_at", null)
     .maybeSingle();
   if (readErr) return { ok: false, error: readErr.message };
   if (!current) return { ok: false, error: "請求書が見つかりません" };
 
   const next = current.payment_marked_at ? null : new Date().toISOString();
-  const { error } = await supabase.from("invoices").update({ payment_marked_at: next }).eq("id", invoiceId);
+  const { error } = await supabase.from("invoices").update({ payment_marked_at: next }).eq("id", invoiceId).is("deleted_at", null);
   if (error) return { ok: false, error: error.message };
 
-  await logInvoiceStatusEvent(supabase, {
+  const logged = await logInvoiceStatusEvent(supabase, {
     orgId: org.organization_id,
     userId: user.id,
     invoiceId,
@@ -519,6 +495,7 @@ export async function toggleInvoicePaymentFlag(invoiceId: string): Promise<Actio
     newValue: next ? "paid" : "unpaid",
     source: "manual",
   });
+  if (!logged.ok) return logged;
 
   revalidatePath("/[lang]/invoices", "page");
   return { ok: true, data: Boolean(next) };
@@ -540,6 +517,7 @@ export async function bulkSetInvoicesStatus(
     .from("invoices")
     .update({ status })
     .in("id", validIds)
+    .is("deleted_at", null)
     .eq("organization_id", org.organization_id)
     .select("id");
   if (error) return { ok: false, error: error.message };
@@ -569,6 +547,7 @@ export async function bulkUnmarkInvoicesProcessed(ids: string[]): Promise<Action
     .from("invoices")
     .select("id, issued_marked_at")
     .in("id", validIds)
+    .is("deleted_at", null)
     .eq("organization_id", org.organization_id);
   if (readErr) return { ok: false, error: readErr.message };
 
@@ -577,7 +556,7 @@ export async function bulkUnmarkInvoicesProcessed(ids: string[]): Promise<Action
     const { error } = await supabase
       .from("invoices")
       .update({ status: row.issued_marked_at ? "issued" : "draft" })
-      .eq("id", row.id);
+      .eq("id", row.id).is("deleted_at", null);
     if (!error) updated += 1;
   }
 
@@ -590,7 +569,7 @@ export async function deleteInvoice(invoiceId: string): Promise<ActionResult> {
   const { error } = await supabase
     .from("invoices")
     .update({ deleted_at: new Date().toISOString() })
-    .eq("id", invoiceId);
+    .eq("id", invoiceId).is("deleted_at", null);
 
   if (error) return { ok: false, error: error.message };
   revalidatePath("/[lang]/invoices", "page");

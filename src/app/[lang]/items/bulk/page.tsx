@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
 import { bulkCreateItems, type BulkItemRow } from "@/lib/actions/items";
-import { downloadCsv, parseCsvRows } from "@/lib/csv";
+import { downloadCsv, readCsvFile, parseCsvRows } from "@/lib/csv";
 import { taxCategoryFromLabel } from "@/lib/tax";
 import { getItemsContent } from "../content";
 import { ItemsInfoTable, ItemsNavTabs, ItemsSection } from "../items-shared";
@@ -27,8 +27,9 @@ function parseItemsCsv(text: string): BulkItemRow[] {
       row,
       name: cols[0] ?? "",
       unit: cols[1] ?? "",
-      unitPrice: cols[2] ?? "",
-      taxCategory: taxLabel ? taxCategoryFromLabel(taxLabel) : "follow_company",
+      unitPrice: (cols[2] ?? "").replace(/,/g, ""),
+      taxCategory: cols[4] === "1" ? "exempt" : taxLabel ? taxCategoryFromLabel(taxLabel) : "follow_company",
+      withholdingExempt: cols[5] === "1",
     };
   });
 }
@@ -45,7 +46,7 @@ export default function ItemsBulkPage() {
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
   const [pending, startTransition] = useTransition();
 
-  function downloadTemplate(encoding: "utf-8" | "shift-jis") {
+  function downloadTemplate(encoding: "utf-8" | "utf-8-bom") {
     downloadCsv(`items-template-${encoding}.csv`, `${TEMPLATE_HEADER}\r\n`, {
       bom: encoding !== "utf-8",
     });
@@ -57,7 +58,13 @@ export default function ItemsBulkPage() {
     setRowErrors({});
 
     startTransition(async () => {
-      const text = await selectedFile.text();
+      let text: string;
+      try {
+        text = await readCsvFile(selectedFile);
+      } catch {
+        setMessage({ kind: "error", text: lang === "ko" ? "UTF-8 또는 Shift-JIS CSV 파일을 선택해 주세요." : lang === "en" ? "Choose a UTF-8 or Shift-JIS CSV file." : "UTF-8またはShift-JISのCSVファイルを選択してください。" });
+        return;
+      }
       const rows = parseItemsCsv(text);
       if (rows.length === 0) {
         setMessage({ kind: "error", text: ui.saveFailed });
@@ -116,12 +123,13 @@ export default function ItemsBulkPage() {
                   {bulk.chooseFile}
                   <input
                     type="file"
+                    disabled={pending}
                     accept=".csv"
                     className="hidden"
                     onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
                   />
                 </label>
-                <span className="text-[14px] text-slate-500">
+                <span className="min-w-0 max-w-full [overflow-wrap:anywhere] text-[14px] text-slate-500">
                   {selectedFile?.name ?? bulk.noFile}
                 </span>
               </div>
@@ -161,14 +169,14 @@ export default function ItemsBulkPage() {
                   ),
                 },
                 {
-                  label: bulk.templateShiftJis,
+                  label: "Excel · UTF-8 (BOM)",
                   value: (
                     <button
                       type="button"
-                      onClick={() => downloadTemplate("shift-jis")}
+                      onClick={() => downloadTemplate("utf-8-bom")}
                       className="rounded border border-slate-300 bg-white px-4 py-2 text-[14px] text-slate-700 hover:bg-slate-50"
                     >
-                      {bulk.templateShiftJisButton}
+                      {lang === "ko" ? "Excel용 UTF-8 템플릿" : lang === "en" ? "Excel UTF-8 template" : "Excel用 UTF-8テンプレート"}
                     </button>
                   ),
                 },
@@ -177,14 +185,14 @@ export default function ItemsBulkPage() {
           </ItemsSection>
 
           <ItemsSection title={bulk.formatSection}>
-            <table className="w-full border-collapse text-[14px]">
-              <tbody>
+            <table className="block w-full border-collapse text-[14px] sm:table">
+              <tbody className="block sm:table-row-group">
                 {bulk.formatRows.map(([label, value]) => (
-                  <tr key={label} className="border-b border-slate-200 last:border-b-0">
-                    <td className="w-[240px] bg-[#f8fafc] px-4 py-4 font-medium text-slate-700">
+                  <tr key={label} className="grid border-b border-slate-200 last:border-b-0 sm:table-row">
+                    <td className="block bg-[#f8fafc] sm:table-cell sm:w-[240px] px-4 py-4 font-medium text-slate-700">
                       {label}
                     </td>
-                    <td className="px-4 py-4 text-slate-700">{value}</td>
+                    <td className="block px-4 py-4 text-slate-700 [overflow-wrap:anywhere] sm:table-cell">{value}</td>
                   </tr>
                 ))}
               </tbody>

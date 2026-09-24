@@ -58,13 +58,13 @@ export function InboxDetailClient({ detail }: { detail: InboxDetail }) {
           ← {ui.backToList}
         </Link>
 
-        <h1 className="mt-6 text-[28px] font-bold tracking-tight text-slate-900">
+        <h1 className="mt-6 text-[24px] font-bold tracking-tight text-slate-900 [overflow-wrap:anywhere] sm:text-[28px]">
           {detail.subject || ui.noSubject}
         </h1>
 
-        <dl className="mt-6 grid gap-3 text-[15px] sm:grid-cols-[120px_1fr]">
+        <dl className="mt-6 grid gap-3 text-[15px] sm:grid-cols-[120px_minmax(0,1fr)]">
           <dt className="text-slate-500">{ui.from}</dt>
-          <dd className="text-slate-800">{detail.from || "—"}</dd>
+          <dd className="min-w-0 text-slate-800 [overflow-wrap:anywhere]">{detail.from || "—"}</dd>
           <dt className="text-slate-500">{ui.receivedAt}</dt>
           <dd className="tabular-nums text-slate-800">
             {formatReceivedAt(lang, detail.createdAt)}
@@ -73,7 +73,7 @@ export function InboxDetailClient({ detail }: { detail: InboxDetail }) {
 
         <div className="mt-8">
           <h2 className="text-[16px] font-semibold text-slate-800">{ui.body}</h2>
-          <div className="mt-3 whitespace-pre-wrap rounded border border-slate-200 bg-white px-5 py-4 text-[15px] leading-7 text-slate-700">
+          <div className="mt-3 whitespace-pre-wrap rounded border border-slate-200 bg-white px-4 py-4 text-[15px] leading-7 text-slate-700 [overflow-wrap:anywhere] sm:px-5">
             {detail.body || "—"}
           </div>
         </div>
@@ -86,9 +86,9 @@ export function InboxDetailClient({ detail }: { detail: InboxDetail }) {
                 <li key={file.id}>
                   <a
                     href={`/api/gmail/attachments?inboxMessageId=${encodeURIComponent(detail.id)}&attachmentId=${encodeURIComponent(file.id)}`}
-                    className="inline-flex items-center gap-2 text-[14px] text-[#0A4D34] hover:underline"
+                    className="inline-flex max-w-full flex-wrap items-center gap-2 text-[14px] text-[#0A4D34] hover:underline"
                   >
-                    {file.filename}
+                    <span className="min-w-0 max-w-full [overflow-wrap:anywhere]">{file.filename}</span>
                     <span className="text-slate-400">({Math.ceil(file.size / 1024)} KB)</span>
                     <span className="text-slate-500">— {ui.download}</span>
                   </a>

@@ -401,6 +401,7 @@ export type Database = {
           subject: string | null
           subtotal: number
           tax_amount: number
+          withholding_amount: number
           tax_display: Database["public"]["Enums"]["tax_display_mode"]
           tax_rounding: Database["public"]["Enums"]["tax_rounding"]
           template_key: string | null
@@ -436,6 +437,7 @@ export type Database = {
           subject?: string | null
           subtotal?: number
           tax_amount?: number
+          withholding_amount?: number
           tax_display: Database["public"]["Enums"]["tax_display_mode"]
           tax_rounding: Database["public"]["Enums"]["tax_rounding"]
           template_key?: string | null
@@ -471,6 +473,7 @@ export type Database = {
           subject?: string | null
           subtotal?: number
           tax_amount?: number
+          withholding_amount?: number
           tax_display?: Database["public"]["Enums"]["tax_display_mode"]
           tax_rounding?: Database["public"]["Enums"]["tax_rounding"]
           template_key?: string | null
@@ -783,6 +786,7 @@ export type Database = {
           subject: string | null
           subtotal: number
           tax_amount: number
+          withholding_amount: number
           tax_display: Database["public"]["Enums"]["tax_display_mode"]
           tax_rounding: Database["public"]["Enums"]["tax_rounding"]
           template_key: string | null
@@ -818,6 +822,7 @@ export type Database = {
           subject?: string | null
           subtotal?: number
           tax_amount?: number
+          withholding_amount?: number
           tax_display: Database["public"]["Enums"]["tax_display_mode"]
           tax_rounding: Database["public"]["Enums"]["tax_rounding"]
           template_key?: string | null
@@ -853,6 +858,7 @@ export type Database = {
           subject?: string | null
           subtotal?: number
           tax_amount?: number
+          withholding_amount?: number
           tax_display?: Database["public"]["Enums"]["tax_display_mode"]
           tax_rounding?: Database["public"]["Enums"]["tax_rounding"]
           template_key?: string | null
@@ -1139,6 +1145,7 @@ export type Database = {
           subject: string | null
           subtotal: number
           tax_amount: number
+          withholding_amount: number
           tax_display: Database["public"]["Enums"]["tax_display_mode"]
           tax_rounding: Database["public"]["Enums"]["tax_rounding"]
           template_key: string | null
@@ -1184,6 +1191,7 @@ export type Database = {
           subject?: string | null
           subtotal?: number
           tax_amount?: number
+          withholding_amount?: number
           tax_display: Database["public"]["Enums"]["tax_display_mode"]
           tax_rounding: Database["public"]["Enums"]["tax_rounding"]
           template_key?: string | null
@@ -1229,6 +1237,7 @@ export type Database = {
           subject?: string | null
           subtotal?: number
           tax_amount?: number
+          withholding_amount?: number
           tax_display?: Database["public"]["Enums"]["tax_display_mode"]
           tax_rounding?: Database["public"]["Enums"]["tax_rounding"]
           template_key?: string | null
@@ -2294,6 +2303,7 @@ export type Database = {
           subject: string | null
           subtotal: number
           tax_amount: number
+          withholding_amount: number
           tax_display: Database["public"]["Enums"]["tax_display_mode"]
           tax_rounding: Database["public"]["Enums"]["tax_rounding"]
           template_key: string | null
@@ -2328,6 +2338,7 @@ export type Database = {
           subject?: string | null
           subtotal?: number
           tax_amount?: number
+          withholding_amount?: number
           tax_display: Database["public"]["Enums"]["tax_display_mode"]
           tax_rounding: Database["public"]["Enums"]["tax_rounding"]
           template_key?: string | null
@@ -2362,6 +2373,7 @@ export type Database = {
           subject?: string | null
           subtotal?: number
           tax_amount?: number
+          withholding_amount?: number
           tax_display?: Database["public"]["Enums"]["tax_display_mode"]
           tax_rounding?: Database["public"]["Enums"]["tax_rounding"]
           template_key?: string | null
@@ -3158,6 +3170,10 @@ export type Database = {
       }
     }
     Functions: {
+      save_sales_document: {
+        Args: { _kind: string; _document: Json; _lines: Json; _id?: string | null }
+        Returns: string
+      }
       auth_has_role_in_org: {
         Args: {
           _org: string

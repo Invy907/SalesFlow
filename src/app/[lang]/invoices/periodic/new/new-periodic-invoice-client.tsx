@@ -223,7 +223,7 @@ export function NewPeriodicInvoiceClient({
 
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-28 lg:px-8 lg:pb-32">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <h1 className="text-[28px] font-bold tracking-tight text-slate-900">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-[28px] text-slate-900">
             {isEdit ? ui.periodicEditTitle : ui.periodicTitle}
           </h1>
           <Link href={appHrefs.supportInvoiceGuide} className="inline-flex items-center gap-1 text-[14px] text-[#0A4D34] hover:underline">
@@ -232,14 +232,14 @@ export function NewPeriodicInvoiceClient({
           </Link>
         </div>
 
-        <div className="mt-6 flex gap-8 border-b border-slate-200 text-[18px] text-slate-500">
+        <div className="mt-6 flex min-w-0 gap-4 overflow-x-auto border-b border-slate-200 text-base text-slate-500 sm:gap-8 sm:text-[18px]">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key)}
               className={[
-                "border-b-[3px] px-4 pb-3",
+                "shrink-0 whitespace-nowrap border-b-[3px] px-4 pb-3",
                 activeTab === tab.key
                   ? "border-[#1A7A57] font-semibold text-slate-900"
                   : "border-transparent",
@@ -254,13 +254,13 @@ export function NewPeriodicInvoiceClient({
 
         <div className={activeTab === "basic" ? "" : "hidden"}>
           <div className="mt-10 grid gap-8 xl:grid-cols-2 xl:items-start">
-            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
               <SectionTitle title={ui.invoiceInfo} />
               <div className="mt-6 space-y-6">
                 <FormField label={ui.client} required={ui.required}>
                   <div className="flex gap-2">
                     <input
-                      className="field flex-1"
+                      className="field min-w-0 flex-1"
                       list="sf-periodic-client-options"
                       value={clientName}
                       onChange={(event) => {
@@ -292,7 +292,7 @@ export function NewPeriodicInvoiceClient({
               </div>
             </section>
 
-            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
               <SectionTitle title={ui.cycle} />
               <div className="mt-6 space-y-6">
                 <FormField label={ui.startDate} required={ui.required}>
@@ -459,7 +459,7 @@ export function NewPeriodicInvoiceClient({
                       name="periodicTaxDisplay"
                       checked={taxDisplay === TAX_DISPLAY_ORDER[index]}
                       onChange={() => setTaxDisplay(TAX_DISPLAY_ORDER[index])}
-                      className="h-4 w-4 accent-[#0A4D34]"
+                      className="h-4 w-4 shrink-0 accent-[#0A4D34]"
                     />
                     {label}
                   </label>
@@ -478,7 +478,7 @@ export function NewPeriodicInvoiceClient({
                       name="periodicTaxRounding"
                       checked={taxRounding === TAX_ROUNDING_ORDER[index]}
                       onChange={() => setTaxRounding(TAX_ROUNDING_ORDER[index])}
-                      className="h-4 w-4 accent-[#0A4D34]"
+                      className="h-4 w-4 shrink-0 accent-[#0A4D34]"
                     />
                     {label}
                   </label>
@@ -501,7 +501,7 @@ export function NewPeriodicInvoiceClient({
                       name="periodicWithholding"
                       checked={withholdingType === WITHHOLDING_ORDER[index]}
                       onChange={() => setWithholdingType(WITHHOLDING_ORDER[index])}
-                      className="h-4 w-4 accent-[#0A4D34]"
+                      className="h-4 w-4 shrink-0 accent-[#0A4D34]"
                     />
                     {label}
                   </label>
@@ -551,7 +551,7 @@ export function NewPeriodicInvoiceClient({
                 type="checkbox"
                 checked={emailEnabled}
                 onChange={(event) => setEmailEnabled(event.target.checked)}
-                className="h-4 w-4 accent-[#0A4D34]"
+                className="h-4 w-4 shrink-0 accent-[#0A4D34]"
               />
               {ui.periodicEmailEnable}
             </label>

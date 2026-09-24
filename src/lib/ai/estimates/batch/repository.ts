@@ -3,10 +3,14 @@ import path from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { AiEstimateExtraction } from "../schemas";
 import type { BatchEnv } from "./env";
-import type { GeminiBatchError } from "./gemini";
+import { GeminiBatchError } from "./gemini";
 import type { LocalEstimateFile } from "./local-files";
 import type { NormalizedEstimateExtraction } from "./normalize";
+import { canWriteOrganizationBusinessData } from "../../../organization-permissions";
 import { assertTransition, type ProcessingStatus } from "./status";
+import { isCanonicalEstimateSourcePath } from "./source-path";
+import type { SourceDocumentKind } from "./extraction-schema";
+import { manualReviewScaffold } from "../lifecycle";
 
 export type BatchCommand = "smoke" | "pilot" | "ingest" | "retry" | "reindex" | "verify";
 
@@ -18,6 +22,9 @@ export interface BatchSource {
   mime_type: string | null;
   page_count: number | null;
   status: string;
+  visibility: string;
+  uploaded_by: string;
+  document_kind?: SourceDocumentKind;
 }
 
 export interface BatchJob {
@@ -42,6 +49,7 @@ export interface RunConfig {
 }
 
 export interface ExtractionPersistence {
+  provider?: "gemini" | "anthropic" | "local";
   job: BatchJob;
   source: BatchSource;
   runId: string;
@@ -70,15 +78,25 @@ interface IndexChunkRow {
 function extensionForMime(mimeType: string): string {
   if (mimeType === "application/pdf") return ".pdf";
   if (mimeType === "image/png") return ".png";
+  if (mimeType === "text/csv") return ".csv";
+  if (mimeType === "text/plain") return ".txt";
+  if (mimeType === "text/markdown") return ".md";
+  if (mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") return ".xlsx";
   return ".jpg";
 }
 
 export class AiEstimateBatchRepository {
   readonly client: SupabaseClient;
 
-  constructor(readonly env: BatchEnv) {
+  constructor(readonly env: BatchEnv, requestSignal?: AbortSignal) {
     this.client = createClient(env.supabaseUrl, env.supabaseServiceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
+      global: requestSignal ? {
+        fetch: (input, init) => fetch(input, {
+          ...init,
+          signal: AbortSignal.any([requestSignal, ...(init?.signal ? [init.signal] : [])]),
+        }),
+      } : undefined,
     });
   }
 
@@ -130,13 +148,15 @@ export class AiEstimateBatchRepository {
       id: sourceId,
       organization_id: this.env.organizationId,
       source_type: "upload",
+      document_kind: ["text/csv", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"].includes(file.mimeType) ? "price_list"
+        : ["text/plain", "text/markdown"].includes(file.mimeType) ? "work_scope" : "estimate",
       title: path.parse(file.fileName).name.slice(0, 255),
       original_file_name: file.fileName,
       storage_path: storagePath,
       mime_type: file.mimeType,
       file_size: file.size,
       file_hash: sha256,
-      visibility: "company",
+      visibility: "organization",
       status: "uploaded",
       uploaded_by: this.env.actorUserId,
       ingest_origin: "batch-local",
@@ -176,42 +196,35 @@ export class AiEstimateBatchRepository {
     return data.id as string;
   }
 
-  async queueJobs(input: {
-    retryOnly: boolean;
-    limit: number | null;
-    maxAttempt: number;
-    sourceId?: string;
-  }): Promise<number> {
-    let query = this.client.from("ai_estimate_jobs")
-      .select("id, source_id")
-      .eq("organization_id", this.env.organizationId)
-      .eq("status", input.retryOnly ? "failed_retryable" : "uploaded")
-      .order("created_at", { ascending: true });
-    if (input.sourceId) query = query.eq("source_id", input.sourceId);
-    if (input.limit !== null) query = query.limit(input.limit);
-    const { data, error } = await query;
+  async assertExternalProcessingAllowed(source?: BatchSource): Promise<void> {
+    return this.assertProcessingAllowed(source, true);
+  }
+
+  async assertProcessingAllowed(source?: BatchSource, requiresExternal = false): Promise<void> {
+    if (!this.env.actorUserId) throw new Error("외부 처리는 AI_ESTIMATE_ACTOR_USER_ID 설정이 필요합니다.");
+    const { data: membership, error: memberError } = await this.client.from("organization_members")
+      .select("role").eq("organization_id", this.env.organizationId).eq("user_id", this.env.actorUserId).maybeSingle();
+    if (memberError || !canWriteOrganizationBusinessData(membership?.role)) throw new Error("조직 자료 처리 권한이 없습니다.");
+    const { data: settings, error } = await this.client.from("ai_estimate_settings")
+      .select("enabled, allow_external_processing, allow_private_sources").eq("organization_id", this.env.organizationId).maybeSingle();
+    // Missing settings use the product defaults: enabled, with no external/private opt-in.
+    if (error || settings?.enabled === false || (requiresExternal && !settings?.allow_external_processing)) {
+      throw new Error("조직 자료 처리 설정을 확인해 주세요.");
+    }
+    if (source && (source.organization_id !== this.env.organizationId
+      || (source.visibility === "private" && (source.uploaded_by !== this.env.actorUserId || !settings?.allow_private_sources)))) {
+      throw new Error("개인 자료 외부 처리 범위를 벗어났습니다.");
+    }
+  }
+
+  async queueJobs(input: { retryOnly: boolean; limit: number | null; maxAttempt: number; sourceId?: string; forceRetry?: boolean }): Promise<number> {
+    const { data, error } = await this.client.rpc("ai_estimate_queue_jobs", {
+      p_organization_id: this.env.organizationId, p_retry_only: input.retryOnly,
+      p_limit: input.limit, p_max_attempt: input.maxAttempt, p_source_id: input.sourceId ?? null,
+      p_actor_user_id: this.env.actorUserId, p_force_retry: input.forceRetry ?? false,
+    });
     if (error) throw new Error(error.message);
-    const ids = (data ?? []).map((row) => row.id as string);
-    const sourceIds = (data ?? []).map((row) => row.source_id as string);
-    if (!ids.length) return 0;
-    const { error: updateError } = await this.client.from("ai_estimate_jobs").update({
-      status: "queued",
-      max_attempt: input.maxAttempt,
-      next_retry_at: null,
-      locked_at: null,
-      locked_by: null,
-      last_error_code: null,
-      last_error_class: null,
-    }).in("id", ids);
-    if (updateError) throw new Error(updateError.message);
-    const { error: sourceError } = await this.client.from("ai_estimate_sources").update({
-      status: "processing",
-      error_message: null,
-    })
-      .eq("organization_id", this.env.organizationId)
-      .in("id", sourceIds);
-    if (sourceError) throw new Error(sourceError.message);
-    return ids.length;
+    return Number(data ?? 0);
   }
 
   async advanceJobStatus(
@@ -226,6 +239,8 @@ export class AiEstimateBatchRepository {
       .eq("id", job.id)
       .eq("organization_id", this.env.organizationId)
       .eq("status", job.status)
+      .eq("attempt", job.attempt)
+      .eq("last_run_id", job.last_run_id)
       .select("id, organization_id, source_id, status, attempt, max_attempt, last_run_id")
       .single();
     if (error || !data) {
@@ -234,12 +249,13 @@ export class AiEstimateBatchRepository {
     return data as BatchJob;
   }
 
-  async claimJobs(runId: string, worker: string, limit: number): Promise<BatchJob[]> {
+  async claimJobs(runId: string, worker: string, limit: number, sourceId?: string): Promise<BatchJob[]> {
     const { data, error } = await this.client.rpc("ai_estimate_claim_jobs", {
       p_organization_id: this.env.organizationId,
       p_run_id: runId,
       p_worker: worker,
       p_limit: limit,
+      p_source_id: sourceId ?? null,
     });
     if (error) throw new Error(error.message);
     return (data ?? []) as BatchJob[];
@@ -247,7 +263,7 @@ export class AiEstimateBatchRepository {
 
   async getSource(sourceId: string): Promise<BatchSource> {
     const { data, error } = await this.client.from("ai_estimate_sources")
-      .select("id, organization_id, title, storage_path, mime_type, page_count, status")
+      .select("id, organization_id, title, storage_path, mime_type, page_count, status, visibility, uploaded_by, document_kind")
       .eq("organization_id", this.env.organizationId)
       .eq("id", sourceId)
       .single();
@@ -256,134 +272,59 @@ export class AiEstimateBatchRepository {
   }
 
   async downloadSource(source: BatchSource): Promise<Blob> {
-    if (!source.storage_path || !source.mime_type) throw new Error("저장 경로 또는 MIME 타입이 없습니다.");
-    const { data, error } = await this.client.storage
-      .from(this.env.storageBucket)
-      .download(source.storage_path);
-    if (error || !data) throw new Error(error?.message ?? "원본 파일 다운로드 실패");
-    return data;
+    if (!isCanonicalEstimateSourcePath(this.env.organizationId, source)) {
+      throw new GeminiBatchError("원본 파일 경로가 자료의 조직과 일치하지 않습니다.", "auth", false, "invalid_source_storage_path");
+    }
+    const signal = AbortSignal.timeout(30_000);
+    try {
+      const { data, error } = await this.client.storage
+        .from(this.env.storageBucket)
+        .download(source.storage_path!, {}, { signal });
+      if (error || !data) throw new Error(error?.message ?? "원본 파일 다운로드 실패");
+      return data;
+    } catch (error) {
+      if (signal.aborted) throw new GeminiBatchError("원본 파일 다운로드 시간이 초과되었습니다.", "timeout", true, "storage_download_timeout");
+      throw error;
+    }
   }
 
-  async recordExtraction(input: ExtractionPersistence): Promise<void> {
+  async recordExtraction(input: ExtractionPersistence): Promise<boolean> {
     assertTransition(input.job.status, "needs_review");
-    const { data: run, error: runError } = await this.client
-      .from("ai_estimate_extraction_runs")
-      .insert({
-        organization_id: this.env.organizationId,
-        source_id: input.source.id,
-        batch_run_id: input.runId,
-        provider: "gemini",
-        model: input.model,
-        prompt_version: input.promptVersion,
-        extraction_version: input.extractionVersion,
-        attempt: input.job.attempt,
-        raw_output: input.rawOutput,
-        normalized_output: input.normalized,
-        confidence: input.normalized.confidence,
-        outcome: "succeeded",
-        input_tokens: input.inputTokens,
-        output_tokens: input.outputTokens,
-        estimated_cost_micro_usd: input.estimatedCostMicroUsd,
-        latency_ms: input.latencyMs,
-      })
-      .select("id")
-      .single();
-    if (runError || !run) throw new Error(runError?.message ?? "추출 이력 저장 실패");
-
-    const { error: extractionError } = await this.client.from("ai_estimate_extractions").upsert({
-      organization_id: this.env.organizationId,
-      source_id: input.source.id,
-      extracted_data: input.reviewExtraction,
-      raw_text: "",
-      confidence: input.normalized.confidence ?? 0,
-      provider: "gemini",
-      model: input.model,
-      extraction_run_id: run.id,
-      prompt_version: input.promptVersion,
-      extraction_version: input.extractionVersion,
-      source_of_truth: "ai",
-    }, { onConflict: "source_id" });
-    if (extractionError) throw new Error(extractionError.message);
-
-    const { error: sourceError } = await this.client.from("ai_estimate_sources").update({
-      status: "review_required",
-      error_message: null,
-    }).eq("id", input.source.id).eq("organization_id", this.env.organizationId);
-    if (sourceError) throw new Error(sourceError.message);
-
-    const { data: updatedJob, error: jobError } = await this.client.from("ai_estimate_jobs").update({
-      status: "needs_review",
-      review_reasons: input.reviewReasons,
-      locked_at: null,
-      locked_by: null,
-      finished_at: new Date().toISOString(),
-      last_error_code: null,
-      last_error_class: null,
-    })
-      .eq("id", input.job.id)
-      .eq("organization_id", this.env.organizationId)
-      .eq("status", input.job.status)
-      .select("id")
-      .maybeSingle();
-    if (jobError || !updatedJob) throw new Error(jobError?.message ?? "검수 대기 상태 저장 충돌");
+    const { data, error } = await this.client.rpc("ai_estimate_finish_extraction", {
+      p_job_id: input.job.id, p_attempt: input.job.attempt, p_run_id: input.runId,
+      p_result: {
+        outcome: "succeeded", provider: input.provider ?? "gemini", model: input.model, promptVersion: input.promptVersion,
+        extractionVersion: input.extractionVersion, rawOutput: input.rawOutput, normalized: input.normalized,
+        confidence: input.normalized.confidence, reviewExtraction: input.reviewExtraction,
+        reviewReasons: input.reviewReasons, inputTokens: input.inputTokens, outputTokens: input.outputTokens,
+        estimatedCostMicroUsd: input.estimatedCostMicroUsd, latencyMs: input.latencyMs,
+      },
+    });
+    if (error) throw new Error(error.message);
+    return data === true;
   }
 
   async recordFailure(input: {
-    job: BatchJob;
-    source: BatchSource | null;
-    runId: string;
-    model: string;
-    promptVersion: string;
-    extractionVersion: string;
-    error: GeminiBatchError;
+    provider?: "gemini" | "anthropic" | "local";
+    job: BatchJob; source: BatchSource | null; runId: string; model: string;
+    promptVersion: string; extractionVersion: string; error: GeminiBatchError;
   }): Promise<void> {
-    const retryable = input.error.retryable && input.job.attempt < input.job.max_attempt;
-    const status: ProcessingStatus = retryable ? "failed_retryable" : "failed_permanent";
-    assertTransition(input.job.status, status);
-    const outcome = input.error.errorClass === "invalid_json"
-      ? "invalid_json"
-      : input.error.errorClass === "schema" ? "schema_failed" : "api_failed";
-
-    const { error: runError } = await this.client.from("ai_estimate_extraction_runs").insert({
-      organization_id: this.env.organizationId,
-      source_id: input.job.source_id,
-      batch_run_id: input.runId,
-      provider: "gemini",
-      model: input.model,
-      prompt_version: input.promptVersion,
-      extraction_version: input.extractionVersion,
-      attempt: input.job.attempt,
-      outcome,
-      error_code: input.error.code,
-      error_class: input.error.errorClass,
+    const { error } = await this.client.rpc("ai_estimate_finish_extraction", {
+      p_job_id: input.job.id, p_attempt: input.job.attempt, p_run_id: input.runId,
+      p_result: {
+        outcome: input.error.errorClass === "invalid_json" ? "invalid_json" : input.error.errorClass === "schema" ? "schema_failed" : "api_failed",
+        provider: input.provider ?? "gemini", model: input.model, promptVersion: input.promptVersion, extractionVersion: input.extractionVersion,
+        errorCode: input.error.code, errorClass: input.error.errorClass, retryable: input.error.retryable,
+      },
     });
-    if (runError && runError.code !== "23505") throw new Error(runError.message);
+    if (error) throw new Error(error.message);
+  }
 
-    const retryAt = retryable
-      ? new Date(Date.now() + Math.min(60_000, 2 ** input.job.attempt * 1_000)).toISOString()
-      : null;
-    const { data: updatedJob, error: jobError } = await this.client.from("ai_estimate_jobs").update({
-      status,
-      next_retry_at: retryAt,
-      last_error_code: input.error.code,
-      last_error_class: input.error.errorClass,
-      locked_at: null,
-      locked_by: null,
-      finished_at: new Date().toISOString(),
-    })
-      .eq("id", input.job.id)
-      .eq("organization_id", this.env.organizationId)
-      .eq("status", input.job.status)
-      .select("id")
-      .maybeSingle();
-    if (jobError || !updatedJob) throw new Error(jobError?.message ?? "실패 상태 저장 충돌");
-
-    if (input.source) {
-      await this.client.from("ai_estimate_sources").update({
-        status: "failed",
-        error_message: input.error.code,
-      }).eq("id", input.source.id).eq("organization_id", this.env.organizationId);
-    }
+  async prepareManualReview(source: BatchSource, warning: string): Promise<void> {
+    const { error } = await this.client.rpc("ai_estimate_prepare_manual_review", {
+      p_source_id: source.id, p_extraction: manualReviewScaffold(source.title, source.document_kind ?? "estimate", warning),
+    });
+    if (error) throw new Error(error.message);
   }
 
   async finishRun(
@@ -466,33 +407,36 @@ export class AiEstimateBatchRepository {
     return data;
   }
 
-  async listUnembeddedChunks(limit: number): Promise<IndexChunkRow[]> {
-    const { data, error } = await this.client.from("ai_estimate_chunks")
-      .select("id, content, example_id, ai_estimate_examples!inner(source_id)")
+  async listUnembeddedChunks(limit: number, model: string, sourceId?: string): Promise<IndexChunkRow[]> {
+    await this.assertExternalProcessingAllowed();
+    let query = this.client.from("ai_estimate_chunks")
+      .select("id, content, example_id, ai_estimate_examples!inner(source_id, visibility, owner_user_id, ai_estimate_sources!inner(status, organization_id))")
       .eq("organization_id", this.env.organizationId)
-      .is("embedding_vector", null)
+      .eq("ai_estimate_examples.ai_estimate_sources.organization_id", this.env.organizationId)
+      .eq("ai_estimate_examples.ai_estimate_sources.status", "approved")
+      .or(`embedding_vector.is.null,embedding_model.neq.${model}`)
       .limit(limit);
+    // Private sources are indexed only on the individual owner's explicit path.
+    if (sourceId) query = query.eq("ai_estimate_examples.source_id", sourceId);
+    else query = query.eq("ai_estimate_examples.visibility", "organization");
+    const { data, error } = await query;
     if (error) throw new Error(error.message);
-    return (data ?? []) as unknown as IndexChunkRow[];
+    const chunks = (data ?? []) as unknown as IndexChunkRow[];
+    for (const chunk of chunks) {
+      const example = Array.isArray(chunk.ai_estimate_examples) ? chunk.ai_estimate_examples[0] : chunk.ai_estimate_examples;
+      if (example) await this.assertExternalProcessingAllowed(await this.getSource(example.source_id));
+    }
+    return chunks;
   }
 
-  async saveEmbedding(chunk: IndexChunkRow, values: number[], model: string): Promise<void> {
-    const vector = `[${values.join(",")}]`;
-    const { error } = await this.client.from("ai_estimate_chunks").update({
-      embedding_vector: vector,
-      embedding_model: model,
-      embedding_dim: values.length,
-    }).eq("id", chunk.id).eq("organization_id", this.env.organizationId);
+  async saveEmbedding(chunk: IndexChunkRow, values: number[], model: string): Promise<boolean> {
+    if (values.length !== 1536 || values.some((value) => !Number.isFinite(value))) throw new Error("임베딩은 유한한 1536차원 벡터여야 합니다.");
+    const { data, error } = await this.client.rpc("ai_estimate_save_embedding", {
+      p_chunk_id: chunk.id, p_organization_id: this.env.organizationId, p_content: chunk.content,
+      p_vector: `[${values.join(",")}]`, p_model: model,
+    });
     if (error) throw new Error(error.message);
-    const example = Array.isArray(chunk.ai_estimate_examples)
-      ? chunk.ai_estimate_examples[0]
-      : chunk.ai_estimate_examples;
-    if (example?.source_id) {
-      await this.client.from("ai_estimate_jobs").update({
-        status: "indexed",
-        finished_at: new Date().toISOString(),
-      }).eq("source_id", example.source_id).eq("organization_id", this.env.organizationId);
-    }
+    return data === true;
   }
 
   async rebuildPriceStats(): Promise<number> {

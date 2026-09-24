@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/periodic-invoices",
       "schedule": "30 0 * * *"
+    },
+    {
+      "path": "/api/cron/ai-estimates",
+      "schedule": "*/10 * * * *"
     }
   ]
 }

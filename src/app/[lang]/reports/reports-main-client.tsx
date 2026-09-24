@@ -80,10 +80,10 @@ export function ReportsMainClient({
 
         <div className="mt-6 rounded border border-slate-200 bg-[#f8fafc] px-5 py-4">
           <div className="flex flex-wrap items-end gap-4">
-            <label className="block">
+            <label className="block w-full min-w-0 sm:w-auto sm:max-w-xs">
               <span className="mb-1 block text-[13px] font-medium text-slate-600">{main.client}</span>
               <select
-                className="field min-w-[180px] bg-white"
+                className="field w-full min-w-0 bg-white sm:min-w-[180px]"
                 value={client}
                 onChange={(e) => setClient(e.target.value)}
               >
@@ -95,15 +95,15 @@ export function ReportsMainClient({
                 ))}
               </select>
             </label>
-            <div className="flex items-end gap-2">
+            <div className="flex w-full min-w-0 flex-wrap items-end gap-2 sm:w-auto">
               <label className="block">
                 <span className="mb-1 block text-[13px] font-medium text-slate-600">&nbsp;</span>
-                <MonthFieldInput value={periodFrom} onChange={setPeriodFrom} />
+                <MonthFieldInput value={periodFrom} onChange={setPeriodFrom} className="field w-[112px] max-w-full bg-white" />
               </label>
               <span className="pb-3 text-slate-500">～</span>
               <label className="block">
                 <span className="mb-1 block text-[13px] font-medium text-slate-600">&nbsp;</span>
-                <MonthFieldInput value={periodTo} onChange={setPeriodTo} />
+                <MonthFieldInput value={periodTo} onChange={setPeriodTo} className="field w-[112px] max-w-full bg-white" />
               </label>
             </div>
             <button
@@ -129,16 +129,17 @@ export function ReportsMainClient({
             </div>
           </div>
 
-          <div className="relative h-[280px] px-4 py-6 sm:px-8">
-            <div className="absolute inset-x-8 bottom-12 top-6 border-b border-l border-slate-200">
+          <div className="overflow-x-auto" tabIndex={0} role="region" aria-label={main.chartTitle}>
+          <div className="relative h-[280px] px-4 py-6 sm:px-8" style={{ minWidth: Math.max(480, report.months.length * 64) }}>
+            <div className="absolute right-8 bottom-12 left-16 top-6 border-b border-l border-slate-200">
               {[5, 4, 3, 2, 1, 0].map((tick) => (
                 <div
                   key={tick}
                   className="absolute left-0 w-full border-t border-slate-100"
                   style={{ bottom: `${(tick / 5) * 100}%` }}
                 >
-                  <span className="absolute -left-8 -top-2 w-7 text-right text-[11px] text-slate-400">
-                    {thousands((axisMax / 5) * tick)}
+                  <span className="absolute -left-16 -top-2 w-14 text-right text-[11px] text-slate-400">
+                    {new Intl.NumberFormat(lang, { notation: "compact", maximumFractionDigits: 1 }).format((axisMax / 5) * tick / 1000)}
                   </span>
                 </div>
               ))}
@@ -171,7 +172,9 @@ export function ReportsMainClient({
             </div>
           </div>
 
-          <div className="overflow-x-auto border-t border-slate-200">
+          </div>
+
+          <div className="overflow-x-auto border-t border-slate-200" tabIndex={0} role="region" aria-label={main.chartTitle}>
             <table className="w-full min-w-[900px] border-collapse text-[13px]">
               <thead>
                 <tr className="border-b border-slate-200 bg-[#f8fafc]">
@@ -200,7 +203,7 @@ export function ReportsMainClient({
                     {report.months.map((month, i) => (
                       <td
                         key={`${item.key}-${month}`}
-                        className="px-3 py-3 text-right tabular-nums text-slate-600"
+                        className="px-3 py-3 whitespace-nowrap text-right tabular-nums text-slate-600"
                       >
                         {thousands(values[item.key][i] ?? 0)}
                       </td>
@@ -222,7 +225,7 @@ export function ReportsMainClient({
           <div className="border-b border-slate-200 px-5 py-4">
             <h2 className="text-[16px] font-semibold text-slate-800">{main.topClientsTitle}</h2>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" tabIndex={0} role="region" aria-label={main.topClientsTitle}>
             <table className="w-full min-w-[900px] border-collapse text-[13px]">
               <thead>
                 <tr className="border-b border-slate-200 bg-[#f8fafc]">
@@ -255,16 +258,16 @@ export function ReportsMainClient({
                 ) : (
                   report.topClients.map((row) => (
                     <tr key={row.clientId} className="border-b border-slate-100 last:border-b-0">
-                      <td className="px-4 py-3 text-slate-700">
+                      <td className="max-w-[240px] px-4 py-3 [overflow-wrap:anywhere] text-slate-700">
                         {row.clientName || main.noClient}
                       </td>
-                      <td className="px-3 py-3 text-right font-semibold tabular-nums text-slate-900">
+                      <td className="px-3 py-3 whitespace-nowrap text-right font-semibold tabular-nums text-slate-900">
                         {thousands(row.total)}
                       </td>
                       {row.byMonth.map((value, i) => (
                         <td
                           key={`${row.clientId}-${report.months[i]}`}
-                          className="px-3 py-3 text-right tabular-nums text-slate-600"
+                          className="px-3 py-3 whitespace-nowrap text-right tabular-nums text-slate-600"
                         >
                           {thousands(value)}
                         </td>

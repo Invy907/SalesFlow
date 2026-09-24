@@ -35,15 +35,21 @@ function ResetPasswordForm({ lang }: { lang: string }) {
         }
       });
     } else {
-      // Already has a session (redirected from callback route)
-      setSessionReady(true);
+      const supabase = createSupabaseBrowserClient();
+      supabase.auth.getUser().then(({ data, error }) => {
+        if (error || !data.user) {
+          setSessionError("リンクが無効または期限切れです。もう一度お試しください。");
+        } else {
+          setSessionReady(true);
+        }
+      });
     }
   }, [searchParams]);
 
   if (sessionError) {
     return (
-      <div className="w-full max-w-[420px]">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-10 flex flex-col items-center text-center gap-4">
+      <div className="w-full min-w-0 max-w-[420px] [overflow-wrap:anywhere]">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-10 flex flex-col items-center text-center gap-4">
           <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
             <AlertCircle size={26} className="text-red-400" />
           </div>
@@ -62,8 +68,8 @@ function ResetPasswordForm({ lang }: { lang: string }) {
 
   if (!sessionReady) {
     return (
-      <div className="w-full max-w-[420px]">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-10 flex items-center justify-center min-h-48">
+      <div className="w-full min-w-0 max-w-[420px] [overflow-wrap:anywhere]">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-10 flex items-center justify-center min-h-48">
           <div className="flex flex-col items-center gap-3 text-slate-400">
             <svg className="animate-spin h-7 w-7" viewBox="0 0 24 24" fill="none">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />

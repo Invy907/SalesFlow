@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -13,7 +13,6 @@ import {
   CircleHelp,
   ClipboardList,
   Cog,
-  Download,
   FileText,
   Globe,
   History,
@@ -228,6 +227,7 @@ function SidebarSubmenu({
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const menuId = useId();
   const anchorRef = useRef<HTMLDivElement>(null);
   const [menuTop, setMenuTop] = useState(0);
   const [menuLeft, setMenuLeft] = useState(0);
@@ -251,9 +251,27 @@ function SidebarSubmenu({
     if (timerRef.current) clearTimeout(timerRef.current);
   }
 
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
+
   return (
-    <div ref={anchorRef} onMouseEnter={show} onMouseLeave={startHide}>
-      <Link href={href} className={primaryNavClass(active)}>
+    <div
+      ref={anchorRef}
+      onMouseEnter={show}
+      onMouseLeave={startHide}
+      onFocus={show}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          setOpen(false);
+          event.stopPropagation();
+        }
+      }}
+    >
+      <Link href={href} aria-current={active ? "page" : undefined} aria-expanded={open} aria-controls={menuId} className={primaryNavClass(active)}>
         <span className="flex min-w-0 items-center gap-2.5">
           <SidebarNavIcon icon={icon} />
           <span className="truncate">{label}</span>
@@ -262,6 +280,7 @@ function SidebarSubmenu({
       </Link>
       {open ? (
         <div
+          id={menuId}
           className="fixed z-50 min-w-[180px] rounded-r border border-l-0 border-slate-300 bg-white py-1.5 shadow-md"
           style={{ left: menuLeft, top: menuTop }}
           onMouseEnter={cancelHide}
@@ -297,7 +316,6 @@ const profileMenuItemsBeforeLanguage = [
 ] as const;
 
 const profileMenuItemsAfterLanguage = [
-  { key: "desktop-app", icon: Download },
   { key: "logout", icon: LogOut },
 ] as const;
 
@@ -320,8 +338,9 @@ export function SalesFlowShell({ children, activeItem, initialSession }: SalesFl
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const mobileProfileRef = useRef<HTMLDivElement>(null);
+  const mobileNavRef = useRef<HTMLDialogElement>(null);
   const ui = copy[lang] ?? copy.ja;
-  const homeHref = `/${lang}`;
+  const homeHref = "/";
 
   useEffect(() => {
     if (initialSession?.profile) return;
@@ -338,12 +357,24 @@ export function SalesFlowShell({ children, activeItem, initialSession }: SalesFl
 
   const closeMobileNav = () => setMobileNavOpen(false);
 
-  useEffect(() => {
+  const [previousPathname, setPreviousPathname] = useState(pathname);
+  if (pathname !== previousPathname) {
+    setPreviousPathname(pathname);
     setMobileNavOpen(false);
-  }, [pathname]);
+    setProfileOpen(false);
+    setMobileProfileOpen(false);
+  }
 
   useEffect(() => {
     if (!mobileNavOpen) return;
+    const trigger = document.activeElement;
+    const dialog = mobileNavRef.current;
+    dialog?.showModal();
+
+    const desktopLayout = window.matchMedia("(min-width: 1024px)");
+    function onLayoutChange(event: MediaQueryListEvent) {
+      if (event.matches) setMobileNavOpen(false);
+    }
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") setMobileNavOpen(false);
@@ -352,10 +383,14 @@ export function SalesFlowShell({ children, activeItem, initialSession }: SalesFl
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     document.addEventListener("keydown", onKeyDown);
+    desktopLayout.addEventListener("change", onLayoutChange);
 
     return () => {
+      dialog?.close();
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", onKeyDown);
+      desktopLayout.removeEventListener("change", onLayoutChange);
+      if (trigger instanceof HTMLElement && trigger.isConnected) trigger.focus({ preventScroll: true });
     };
   }, [mobileNavOpen]);
 
@@ -389,8 +424,7 @@ export function SalesFlowShell({ children, activeItem, initialSession }: SalesFl
     return ui.profileMenu.preferences;
   }
 
-  function getProfileMenuLabelAfter(key: (typeof profileMenuItemsAfterLanguage)[number]["key"]) {
-    if (key === "desktop-app") return ui.profileMenu.desktopApp;
+  function getProfileMenuLabelAfter() {
     return ui.profileMenu.logout;
   }
 
@@ -546,6 +580,7 @@ export function SalesFlowShell({ children, activeItem, initialSession }: SalesFl
               <button
                 type="button"
                 aria-label="Profile menu"
+                aria-expanded={profileOpen}
                 onClick={() => {
                   setProfileOpen((open) => {
                     if (open) setLanguageMenuOpen(false);
@@ -637,7 +672,12 @@ export function SalesFlowShell({ children, activeItem, initialSession }: SalesFl
           </header>
 
           {mobileNavOpen ? (
-            <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
+            <dialog
+              ref={mobileNavRef}
+              aria-label={lang === "ko" ? "탐색 메뉴" : lang === "ja" ? "ナビゲーション" : "Navigation menu"}
+              onCancel={(event) => { event.preventDefault(); closeMobileNav(); }}
+              className="fixed inset-0 z-50 m-0 h-dvh max-h-none w-full max-w-none border-0 bg-transparent p-0 lg:hidden"
+            >
               <button
                 type="button"
                 aria-label="Close menu"
@@ -657,6 +697,7 @@ export function SalesFlowShell({ children, activeItem, initialSession }: SalesFl
                   <button
                     type="button"
                     aria-label="Close menu"
+                    autoFocus
                     onClick={closeMobileNav}
                     className="flex h-10 w-10 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100"
                   >
@@ -680,7 +721,7 @@ export function SalesFlowShell({ children, activeItem, initialSession }: SalesFl
                   <p className="truncate text-xs text-slate-400">{profile.email}</p>
                 </div>
               </aside>
-            </div>
+            </dialog>
           ) : null}
 
           <div className="flex-1 bg-white pt-14 lg:pt-0">{children}</div>
@@ -734,7 +775,8 @@ function ProfileDropdown({
     <div
       className={[
         positionClass,
-        "w-[min(280px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-700 shadow-xl",
+        "w-[min(280px,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-slate-200 bg-white text-slate-700 shadow-xl",
+        placement === "header" ? "max-h-[calc(100dvh-5rem)]" : "max-h-[calc(100dvh-2rem)]",
       ].join(" ")}
     >
       <div className="flex items-center gap-3 px-4 py-3">
@@ -747,14 +789,14 @@ function ProfileDropdown({
           const Icon = item.icon;
 
           return (
-            <button
+            <Link
               key={item.key}
-              type="button"
+              href={item.key === "edit-profile" ? "/settings/account" : "/settings"}
               className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-slate-50"
             >
               <Icon className="h-4 w-4 text-slate-400" strokeWidth={1.75} aria-hidden="true" />
               <span>{getProfileMenuLabel(item.key)}</span>
-            </button>
+            </Link>
           );
         })}
 
@@ -810,9 +852,9 @@ function ProfileDropdown({
           const Icon = item.icon;
 
           return (
+            <form key={item.key} action="/auth/sign-out" method="post">
             <button
-              key={item.key}
-              type="button"
+              type="submit"
               className={[
                 "flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-slate-50",
                 item.key === "logout"
@@ -823,6 +865,7 @@ function ProfileDropdown({
               <Icon className="h-4 w-4 text-slate-400" strokeWidth={1.75} aria-hidden="true" />
               <span>{getProfileMenuLabelAfter(item.key)}</span>
             </button>
+            </form>
           );
         })}
       </div>

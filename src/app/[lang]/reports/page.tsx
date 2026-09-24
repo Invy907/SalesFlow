@@ -5,7 +5,7 @@ import { ReportsMainClient } from "./reports-main-client";
 
 export const dynamic = "force-dynamic";
 
-const MONTH_RE = /^\d{4}-\d{2}$/;
+const MONTH_RE = /^(?!0000)\d{4}-(?:0[1-9]|1[0-2])$/;
 
 function normalizeMonth(value: string | undefined, fallback: string) {
   if (!value) return fallback;

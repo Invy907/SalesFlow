@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   normalizeDocumentOutputLocale,
   type DocumentOutputLocale,
@@ -52,15 +54,25 @@ type StandardSampleUi = {
 
 function DocumentPreviewThumbnail({
   children,
-  scaleClass = "scale-[0.45]",
-  widthClass = "w-[222%]",
+  scale = 0.45,
 }: {
   children: ReactNode;
-  scaleClass?: string;
-  widthClass?: string;
+  scale?: number;
 }) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(600 * scale);
+  useEffect(() => {
+    const content = contentRef.current;
+    if (!content) return;
+    const observer = new ResizeObserver(() => setHeight(content.offsetHeight * scale));
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [scale]);
+
   return (
-    <div className={`origin-top-left pointer-events-none ${scaleClass} ${widthClass}`}>{children}</div>
+    <div className="pointer-events-none relative w-full overflow-hidden" style={{ height }}>
+      <div ref={contentRef} className="absolute left-0 top-0 origin-top-left" style={{ width: `${100 / scale}%`, transform: `scale(${scale})` }}>{children}</div>
+    </div>
   );
 }
 
@@ -80,7 +92,7 @@ function StandardDocumentPreview({
   const copy = getDocumentPreviewCopy(outputLocale);
 
   return (
-    <div className="min-h-[600px] border border-slate-200 bg-white p-8 font-sans text-[13px] text-slate-800">
+    <div className="min-h-[600px] min-w-0 border border-slate-200 bg-white p-4 font-sans text-[13px] text-slate-800 [overflow-wrap:anywhere] sm:p-8">
       <div className="mb-4 text-right text-[12px] text-slate-500">
         <p>{ui.sampleDate}</p>
         <p>{ui.sampleDocNo}</p>
@@ -88,7 +100,7 @@ function StandardDocumentPreview({
 
       <h1 className="mb-6 text-center text-[28px] font-bold tracking-widest text-slate-900">{title}</h1>
 
-      <div className="mb-6 flex items-start justify-between">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4 [&>div]:min-w-0 [&>div]:flex-1 [&>div]:basis-48">
         <div>
           <p className="text-[15px] font-semibold">
             {formatClientNameWithHonorific(
@@ -129,7 +141,8 @@ function StandardDocumentPreview({
 
 function DocumentItemsTable({ ui, copy }: { ui: StandardSampleUi; copy: DocumentPreviewCopy }) {
   return (
-    <table className="mb-4 w-full border-collapse text-[12px]">
+    <div className="mb-4 max-w-full overflow-x-auto">
+    <table className="w-full min-w-[420px] border-collapse text-[12px]">
       <thead>
         <tr className="bg-slate-100">
           <th className="border border-slate-300 px-3 py-2 text-left font-semibold">{copy.itemName}</th>
@@ -177,6 +190,7 @@ function DocumentItemsTable({ ui, copy }: { ui: StandardSampleUi; copy: Document
         </tr>
       </tfoot>
     </table>
+    </div>
   );
 }
 
@@ -288,7 +302,7 @@ export function InvoiceThumbnail({
   clientHonorific?: ClientHonorific;
 }) {
   return (
-    <DocumentPreviewThumbnail scaleClass="scale-[0.45]" widthClass="w-[222%]">
+    <DocumentPreviewThumbnail>
       <InvoicePreview ui={ui} outputLocale={outputLocale} clientHonorific={clientHonorific} />
     </DocumentPreviewThumbnail>
   );
@@ -304,7 +318,7 @@ export function InvoiceTemplateMiniPreview({
   clientHonorific?: ClientHonorific;
 }) {
   return (
-    <DocumentPreviewThumbnail scaleClass="scale-[0.28]" widthClass="w-[357%]">
+    <DocumentPreviewThumbnail scale={0.28}>
       <InvoicePreview ui={ui} outputLocale={outputLocale} clientHonorific={clientHonorific} />
     </DocumentPreviewThumbnail>
   );
@@ -312,7 +326,8 @@ export function InvoiceTemplateMiniPreview({
 
 function ReceiptItemsTable({ ui, copy }: { ui: ReceiptUi; copy: DocumentPreviewCopy }) {
   return (
-    <table className="mb-4 w-full border-collapse text-[12px]">
+    <div className="mb-4 max-w-full overflow-x-auto">
+    <table className="w-full min-w-[420px] border-collapse text-[12px]">
       <thead>
         <tr className="bg-slate-100">
           <th className="border border-slate-300 px-3 py-2 text-left font-semibold">{copy.itemName}</th>
@@ -360,6 +375,7 @@ function ReceiptItemsTable({ ui, copy }: { ui: ReceiptUi; copy: DocumentPreviewC
         </tr>
       </tfoot>
     </table>
+    </div>
   );
 }
 
@@ -379,7 +395,7 @@ export function ReceiptPreview({
   const copy = getDocumentPreviewCopy(locale);
 
   return (
-    <div className="min-h-[600px] border border-slate-200 bg-white p-8 font-sans text-[13px] text-slate-800">
+    <div className="min-h-[600px] min-w-0 border border-slate-200 bg-white p-4 font-sans text-[13px] text-slate-800 [overflow-wrap:anywhere] sm:p-8">
       {type === "envelope" ? (
         <div className="mb-6 border border-slate-300 p-4 text-[12px] text-slate-600">
           <p>{copy.envelopePostalCode}</p>
@@ -394,7 +410,7 @@ export function ReceiptPreview({
         </div>
       ) : null}
 
-      <div className="mb-6 flex items-start justify-between">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4 [&>div]:min-w-0 [&>div]:flex-1 [&>div]:basis-48">
         <div className="ml-auto text-right text-[12px] text-slate-500">
           <p>{localizedUi.sampleDate}</p>
           <p>{localizedUi.sampleReceiptNo}</p>
@@ -405,7 +421,7 @@ export function ReceiptPreview({
         {copy.receiptTitle}
       </h1>
 
-      <div className="mb-6 flex items-start justify-between">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4 [&>div]:min-w-0 [&>div]:flex-1 [&>div]:basis-48">
         <div>
           <p className="text-[15px] font-semibold">
             {formatClientNameWithHonorific(
@@ -458,7 +474,7 @@ export function ReceiptThumbnail({
   clientHonorific?: ClientHonorific;
 }) {
   return (
-    <DocumentPreviewThumbnail scaleClass="scale-[0.45]" widthClass="w-[220%]">
+    <DocumentPreviewThumbnail>
       <ReceiptPreview
         ui={ui}
         type={type}

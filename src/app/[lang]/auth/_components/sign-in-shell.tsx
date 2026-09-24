@@ -118,15 +118,11 @@ export function SignInMarketingPanel({ lang }: { lang: string }) {
 
 export function SignInMobileHero({ lang }: { lang: string }) {
   return (
-    <div className="mb-6 lg:hidden">
+    <div className="mx-auto mb-5 w-full max-w-[440px] lg:hidden">
       <BrandMark lang={lang} />
-      <p className="mt-4 text-lg font-bold leading-snug text-slate-900">
+      <p className="mt-3 text-sm leading-relaxed text-slate-600">
         請求書・見積書・顧客管理を、もっとシンプルに。
       </p>
-      <p className="mt-2 text-sm leading-relaxed text-slate-600">
-        日々の請求業務をすばやく整理できるクラウドサービスです。
-      </p>
-      <FeatureCards compact />
     </div>
   );
 }
@@ -139,11 +135,11 @@ export function SignInPageShell({
   children: ReactNode;
 }) {
   return (
-    <div className="w-full max-w-[1120px]">
+    <div className="w-full min-w-0 max-w-[1120px] [overflow-wrap:anywhere]">
       <SignInMobileHero lang={lang} />
       <div className="grid grid-cols-1 items-stretch gap-0 lg:grid-cols-[minmax(0,1fr)_minmax(380px,440px)] lg:gap-14 xl:gap-16">
         <SignInMarketingPanel lang={lang} />
-        <div className="flex w-full flex-col justify-center">{children}</div>
+        <div className="mx-auto flex w-full min-w-0 max-w-[440px] flex-col justify-center lg:max-w-none">{children}</div>
       </div>
     </div>
   );

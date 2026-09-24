@@ -1,8 +1,10 @@
 import type { z } from "zod";
-import { taxCategorySchema, taxRoundingSchema } from "@/lib/validators/document";
+import type { taxCategorySchema, taxRoundingSchema, taxDisplaySchema, withholdingTypeSchema } from "@/lib/validators/document";
 
 export type TaxCategory = z.infer<typeof taxCategorySchema>;
 export type TaxRounding = z.infer<typeof taxRoundingSchema>;
+export type TaxDisplay = z.infer<typeof taxDisplaySchema>;
+export type WithholdingType = z.infer<typeof withholdingTypeSchema>;
 
 /** 화면 세율 라벨 ↔ DB enum */
 export const TAX_LABEL_TO_CATEGORY: Record<string, TaxCategory> = {
@@ -45,7 +47,7 @@ export function taxRateSnapshotFor(category: TaxCategory): number {
 
 export function applyRounding(value: number, rounding: TaxRounding): number {
   if (rounding === "round_up") return Math.ceil(value);
-  if (rounding === "round_half") return Math.round(value);
+  if (rounding === "round_half") return Math.sign(value) * Math.round(Math.abs(value));
   return Math.floor(value);
 }
 
@@ -53,47 +55,101 @@ export type TotalsLine = {
   qty: number;
   unitPrice: number;
   taxCategory: TaxCategory;
+  withholdingExempt?: boolean;
+};
+
+export type DocumentTaxOptions = {
+  taxDisplay?: TaxDisplay;
+  withholdingType?: WithholdingType;
+  documentType?: "estimate" | "invoice" | "delivery_note" | "receipt";
 };
 
 export type DocumentTotals = {
   subtotal: number;
   tax: number;
+  withholding: number;
   total: number;
-  /** 세율 구분별 내역 (적격청구서 표기에 필요) */
   breakdown: Array<{ taxCategory: TaxCategory; rate: number; taxableAmount: number; taxAmount: number }>;
 };
 
+// Match the database's numeric(18,4) quantity precision, without binary floating
+// point errors (for example 0.29 * 100 must be 29, not 28.999999999999996).
+const SCALE = BigInt(10_000);
+function scaledAmount(line: Pick<TotalsLine, "qty" | "unitPrice">): bigint {
+  if (!Number.isFinite(line.qty) || !Number.isFinite(line.unitPrice)) return BigInt(0);
+  return BigInt(Math.round(line.qty * 10_000)) * BigInt(Math.trunc(line.unitPrice));
+}
+
+export function computeLineAmount(line: Pick<TotalsLine, "qty" | "unitPrice">): number {
+  return Number(roundRatio(scaledAmount(line), SCALE, "round_down"));
+}
+
+function roundRatio(numerator: bigint, denominator: bigint, rounding: TaxRounding): bigint {
+  const negative = numerator < BigInt(0);
+  const absolute = negative ? -numerator : numerator;
+  let whole = absolute / denominator;
+  const remainder = absolute % denominator;
+  if (remainder !== BigInt(0)) {
+    if ((rounding === "round_up" && !negative) || (rounding === "round_down" && negative) ||
+      (rounding === "round_half" && remainder * BigInt(2) >= denominator)) whole += BigInt(1);
+  }
+  return negative ? -whole : whole;
+}
+
 /**
- * 소계는 행별 절사 없이 합산하고, 세액은 세율 그룹별로 한 번만 반올림한다.
- * (일본 적격청구서 제도의 "세율마다 1회 단수처리" 규칙)
+ * Round once per tax bucket, using the same decimal arithmetic as PostgreSQL.
+ * Included prices already contain consumption tax. Withholding is deducted
+ * from the line subtotal and always truncated, independently of tax rounding.
+ * Misoca's rate brackets: https://support.yayoi-kk.co.jp/subcontents.html?page_id=23228
  */
 export function computeDocumentTotals(
   lines: TotalsLine[],
   rounding: TaxRounding = "round_down",
+  options: DocumentTaxOptions = {},
 ): DocumentTotals {
-  const groups = new Map<TaxCategory, number>();
-  let subtotal = 0;
+  const taxDisplay = options.taxDisplay ?? "separate";
+  const withholdingType = options.withholdingType ?? "none";
+  const groups = new Map<number, { taxCategory: TaxCategory; amount: bigint }>();
+  let subtotalScaled = BigInt(0);
+  let withholdingBase = BigInt(0);
 
   for (const line of lines) {
-    const amount = line.qty * line.unitPrice;
-    subtotal += amount;
-    groups.set(line.taxCategory, (groups.get(line.taxCategory) ?? 0) + amount);
+    const amount = scaledAmount(line);
+    subtotalScaled += amount;
+    if (!line.withholdingExempt) withholdingBase += amount;
+    // These resolve to the same tax bucket; round their combined amount once.
+    const category = line.taxCategory === "follow_company" ? "standard_10" : line.taxCategory;
+    const rate = taxRateFor(category);
+    const group = groups.get(rate);
+    groups.set(rate, { taxCategory: group?.taxCategory ?? category, amount: (group?.amount ?? BigInt(0)) + amount });
   }
 
-  const breakdown = [...groups.entries()]
-    .filter(([, taxable]) => taxable > 0)
-    .map(([taxCategory, taxableAmount]) => {
-      const rate = taxRateFor(taxCategory);
+  const noTax = taxDisplay === "exempt" ||
+    (taxDisplay === "separate_on_invoice" && options.documentType === "delivery_note");
+  const breakdown = [...groups.values()]
+    .filter(({ amount }) => amount !== BigInt(0))
+    .map(({ taxCategory, amount }) => {
+      const rate = noTax ? 0 : taxRateFor(taxCategory);
+      const percent = BigInt(Math.round(rate * 100));
+      const denominator = SCALE * (taxDisplay === "included" ? BigInt(100) + percent : BigInt(100));
       return {
         taxCategory,
         rate,
-        taxableAmount: Math.floor(taxableAmount),
-        taxAmount: applyRounding(taxableAmount * rate, rounding),
+        taxableAmount: Number(roundRatio(amount, SCALE, "round_down")),
+        taxAmount: Number(roundRatio(amount * percent, denominator, rounding)),
       };
     });
 
   const tax = breakdown.reduce((sum, entry) => sum + entry.taxAmount, 0);
-  const flooredSubtotal = Math.floor(subtotal);
-
-  return { subtotal: flooredSubtotal, tax, total: flooredSubtotal + tax, breakdown };
+  const subtotal = Number(roundRatio(subtotalScaled, SCALE, "round_down"));
+  const threshold = BigInt(1_000_000) * SCALE;
+  const base = withholdingBase > BigInt(0) ? withholdingBase : BigInt(0);
+  const lower = base < threshold ? base : threshold;
+  const excess = base > threshold ? base - threshold : BigInt(0);
+  const basisPoints = withholdingType === "with_recovery" ? BigInt(1021) : BigInt(1000);
+  const withholding = withholdingType === "none" ? 0 : Number(
+    (lower * basisPoints + excess * basisPoints * BigInt(2)) / (SCALE * BigInt(10_000)),
+  );
+  const addedTax = taxDisplay === "included" ? 0 : tax;
+  return { subtotal, tax, withholding, total: subtotal + addedTax - withholding, breakdown };
 }

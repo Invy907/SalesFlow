@@ -18,7 +18,7 @@ export default function AnnouncementDetailPage() {
 
   return (
     <SalesFlowShell activeItem="support">
-      <div className="mx-auto w-full max-w-[860px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
+      <div className="mx-auto w-full min-w-0 [overflow-wrap:anywhere] max-w-[860px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
         <Link
           href={getAnnouncementsHref(lang)}
           className="inline-flex items-center gap-1 text-sm text-slate-500 transition hover:text-[#0A4D34]"
@@ -46,12 +46,12 @@ export default function AnnouncementDetailPage() {
               <span>{announcement.date}</span>
             </div>
 
-            <h1 className="mt-4 text-[30px] font-bold tracking-tight text-slate-900">
+            <h1 className="mt-4 text-2xl font-bold sm:text-[30px] tracking-tight text-slate-900">
               {announcement.title}
             </h1>
             <p className="mt-4 text-[16px] leading-8 text-slate-700">{announcement.summary}</p>
 
-            <div className="mt-8 space-y-5 rounded border border-slate-200 bg-white px-6 py-6">
+            <div className="mt-8 space-y-5 rounded border border-slate-200 bg-white px-4 py-5 sm:px-6 sm:py-6">
               {announcement.body.map((paragraph) => (
                 <p key={paragraph} className="text-[15px] leading-7 text-slate-600">
                   {paragraph}

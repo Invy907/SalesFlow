@@ -61,3 +61,16 @@ export function downloadCsv(fileName: string, body: string, { bom = true } = {})
   a.click();
   URL.revokeObjectURL(url);
 }
+
+/** Prefer UTF-8 and accept the Shift-JIS encoding used by Japanese Excel files. */
+export function decodeCsvBytes(bytes: ArrayBuffer): string {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return new TextDecoder("shift-jis", { fatal: true }).decode(bytes);
+  }
+}
+
+export async function readCsvFile(file: Blob): Promise<string> {
+  return decodeCsvBytes(await file.arrayBuffer());
+}

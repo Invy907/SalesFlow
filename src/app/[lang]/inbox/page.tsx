@@ -40,6 +40,7 @@ export default async function InboxPage({
 
   return (
     <InboxList
+      key={`${page}:${unreadOnly}:${query ?? ""}`}
       rows={rows}
       total={total}
       page={page}
@@ -51,7 +52,7 @@ export default async function InboxPage({
         sp.connected === "1"
           ? "connected"
           : sp.gmail_error
-            ? decodeURIComponent(sp.gmail_error)
+            ? sp.gmail_error
             : null
       }
     />

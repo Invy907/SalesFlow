@@ -8,7 +8,7 @@ type PageContainerProps = {
 };
 
 const baseClass =
-  "mx-auto w-full max-w-[1260px] px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10";
+  "mx-auto w-full min-w-0 max-w-[1260px] px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10";
 
 export function pageContainerClass(options?: { spaciousBottom?: boolean; className?: string }) {
   return [

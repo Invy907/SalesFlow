@@ -88,12 +88,17 @@ async function issueShareToken(
 
   if (shareError) return fail(shareError.message);
 
-  const { error: updateError } = await supabase
+  const { data: updated, error: updateError } = await supabase
     .from(TABLE[params.kind])
     .update({ share_token: token })
-    .eq("id", params.documentId);
+    .eq("id", params.documentId)
+    .eq("organization_id", params.organizationId)
+    .is("deleted_at", null)
+    .select("id")
+    .maybeSingle();
 
   if (updateError) return fail(updateError.message);
+  if (!updated) return fail("書類が見つからないか、変更権限がありません");
 
   return done({ token, expiresAt });
 }
@@ -135,6 +140,8 @@ export async function sendSalesDocumentEmail(
     .from(table)
     .select("*, clients(id, name, email, email_cc)")
     .eq("id", params.documentId)
+    .eq("organization_id", params.organizationId)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (fetchErr) return fail(fetchErr.message);

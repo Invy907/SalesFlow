@@ -1,16 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { canWriteOrganizationBusinessData } from "@/lib/organization-permissions";
+import { todayInScheduleTz } from "@/lib/periodic/schedule-math";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getActiveOrganization } from "@/lib/db/organizations";
 import { createEstimateSchema, type CreateEstimateInput } from "@/lib/validators/document";
 import { hasContentLineItem } from "@/lib/validators/document";
 import { maybeImportIssuedEstimateAsAiSource } from "@/lib/actions/ai-estimates";
 import { newShareToken, shareExpiryFromNow } from "@/lib/share-tokens";
-import { computeDocumentTotals } from "@/lib/tax";
+import { saveSalesDocument } from "@/lib/documents/save-sales-document";
 import { sendSalesDocumentEmail } from "@/lib/documents/send-document-email";
 import { getServerSiteUrl } from "@/lib/site-url.server";
-import { getEstimateById } from "@/lib/db/estimates";
 import { createInvoice } from "@/lib/actions/invoices";
 import { createDeliveryNote } from "@/lib/actions/delivery-notes";
 import { createOrder } from "@/lib/actions/orders";
@@ -62,11 +63,7 @@ export async function createEstimate(
   });
   if (seqErr) return { ok: false, error: seqErr.message };
 
-  const totals = computeDocumentTotals(parsed.data.lineItems, parsed.data.taxRounding);
-
-  const { data: estimate, error: insertErr } = await supabase
-    .from("estimates")
-    .insert({
+  const { data: estimate, error: insertErr } = await saveSalesDocument(supabase, "estimate", {
       organization_id: org.organization_id,
       client_id: parsed.data.clientId ?? null,
       client_destination_id: parsed.data.clientDestinationId ?? null,
@@ -74,7 +71,6 @@ export async function createEstimate(
       subject: parsed.data.subject ?? null,
       issue_date: parsed.data.issueDate.toISOString().slice(0, 10),
       expiry_date: parsed.data.expiryDate?.toISOString().slice(0, 10) ?? null,
-      status: "draft",
       tax_display: parsed.data.taxDisplay,
       tax_rounding: parsed.data.taxRounding,
       withholding_type: parsed.data.withholdingType,
@@ -89,32 +85,9 @@ export async function createEstimate(
       internal_memo: parsed.data.internalMemo ?? null,
       recipient_snapshot: parsed.data.recipientSnapshot ?? null,
       sender_snapshot: parsed.data.senderSnapshot ?? null,
-      subtotal: totals.subtotal,
-      tax_amount: totals.tax,
-      created_by: user.id,
-    })
-    .select("id")
-    .single();
+    }, parsed.data.lineItems, undefined, parsed.data.aiSuggestionIds);
 
   if (insertErr || !estimate) return { ok: false, error: insertErr?.message ?? "Insert failed" };
-
-  if (parsed.data.lineItems.length > 0) {
-    const lines = parsed.data.lineItems.map((li, idx) => ({
-      document_id: estimate.id,
-      line_no: idx + 1,
-      item_id: li.itemId ?? null,
-      name_snapshot: li.name,
-      qty: li.qty,
-      unit_snapshot: li.unit ?? null,
-      unit_price_snapshot: li.unitPrice,
-      tax_category: li.taxCategory,
-      tax_rate_snapshot: li.taxRateSnapshot,
-      withholding_exempt_snapshot: li.withholdingExempt ?? null,
-    }));
-
-    const { error: lineErr } = await supabase.from("estimate_line_items").insert(lines);
-    if (lineErr) return { ok: false, error: lineErr.message };
-  }
 
   revalidatePath("/[lang]/estimates", "page");
   return { ok: true, data: estimate.id };
@@ -134,12 +107,11 @@ export async function updateEstimate(
   }
 
   const supabase = await getSupabaseServerClient();
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
 
-  const totals = computeDocumentTotals(parsed.data.lineItems, parsed.data.taxRounding);
-
-  const { error } = await supabase
-    .from("estimates")
-    .update({
+  const { error } = await saveSalesDocument(supabase, "estimate", {
+      organization_id: org.organization_id,
       client_id: parsed.data.clientId ?? null,
       client_destination_id: parsed.data.clientDestinationId ?? null,
       subject: parsed.data.subject ?? null,
@@ -151,38 +123,16 @@ export async function updateEstimate(
       template_key: parsed.data.templateKey ?? null,
       output_locale: parsed.data.outputLocale,
       client_honorific: parsed.data.clientHonorific,
+      show_seal: parsed.data.showSeal,
       show_client_honorific: parsed.data.clientHonorific !== "none",
       template_message: parsed.data.templateMessage ?? null,
       remarks: parsed.data.remarks ?? null,
       internal_memo: parsed.data.internalMemo ?? null,
       recipient_snapshot: parsed.data.recipientSnapshot ?? null,
       sender_snapshot: parsed.data.senderSnapshot ?? null,
-      subtotal: totals.subtotal,
-      tax_amount: totals.tax,
-    })
-    .eq("id", estimateId);
+    }, parsed.data.lineItems, estimateId, parsed.data.aiSuggestionIds);
 
   if (error) return { ok: false, error: error.message };
-
-  await supabase.from("estimate_line_items").delete().eq("document_id", estimateId);
-
-  if (parsed.data.lineItems.length > 0) {
-    const lines = parsed.data.lineItems.map((li, idx) => ({
-      document_id: estimateId,
-      line_no: idx + 1,
-      item_id: li.itemId ?? null,
-      name_snapshot: li.name,
-      qty: li.qty,
-      unit_snapshot: li.unit ?? null,
-      unit_price_snapshot: li.unitPrice,
-      tax_category: li.taxCategory,
-      tax_rate_snapshot: li.taxRateSnapshot,
-      withholding_exempt_snapshot: li.withholdingExempt ?? null,
-    }));
-
-    const { error: lineErr } = await supabase.from("estimate_line_items").insert(lines);
-    if (lineErr) return { ok: false, error: lineErr.message };
-  }
 
   revalidatePath("/[lang]/estimates", "page");
   revalidatePath(`/[lang]/estimates/${estimateId}`, "page");
@@ -197,7 +147,7 @@ export async function issueEstimate(estimateId: string): Promise<ActionResult> {
   const { error } = await supabase
     .from("estimates")
     .update({ status: "issued" })
-    .eq("id", estimateId);
+    .eq("id", estimateId).is("deleted_at", null);
 
   if (error) return { ok: false, error: error.message };
   await maybeImportIssuedEstimateAsAiSource(estimateId);
@@ -211,13 +161,13 @@ export async function toggleEstimateIssueFlag(estimateId: string): Promise<Actio
   const { data: current, error: readErr } = await supabase
     .from("estimates")
     .select("issue_marked_at")
-    .eq("id", estimateId)
+    .eq("id", estimateId).is("deleted_at", null)
     .maybeSingle();
   if (readErr) return { ok: false, error: readErr.message };
   if (!current) return { ok: false, error: "見積書が見つかりません" };
 
   const next = current.issue_marked_at ? null : new Date().toISOString();
-  const { error } = await supabase.from("estimates").update({ issue_marked_at: next }).eq("id", estimateId);
+  const { error } = await supabase.from("estimates").update({ issue_marked_at: next }).eq("id", estimateId).is("deleted_at", null);
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/[lang]/estimates", "page");
@@ -230,13 +180,13 @@ export async function toggleEstimateOrderFlag(estimateId: string): Promise<Actio
   const { data: current, error: readErr } = await supabase
     .from("estimates")
     .select("ordered_at")
-    .eq("id", estimateId)
+    .eq("id", estimateId).is("deleted_at", null)
     .maybeSingle();
   if (readErr) return { ok: false, error: readErr.message };
   if (!current) return { ok: false, error: "見積書が見つかりません" };
 
   const next = current.ordered_at ? null : new Date().toISOString();
-  const { error } = await supabase.from("estimates").update({ ordered_at: next }).eq("id", estimateId);
+  const { error } = await supabase.from("estimates").update({ ordered_at: next }).eq("id", estimateId).is("deleted_at", null);
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/[lang]/estimates", "page");
@@ -249,9 +199,9 @@ async function markEstimateOrdered(estimateId: string, orderId?: string) {
     await supabase
       .from("estimates")
       .update({ ordered_at: new Date().toISOString(), ordered_order_id: orderId })
-      .eq("id", estimateId);
+      .eq("id", estimateId).is("deleted_at", null);
   } else {
-    await supabase.from("estimates").update({ ordered_at: new Date().toISOString() }).eq("id", estimateId);
+    await supabase.from("estimates").update({ ordered_at: new Date().toISOString() }).eq("id", estimateId).is("deleted_at", null);
   }
 }
 
@@ -271,6 +221,7 @@ export async function bulkSetEstimatesStatus(
     .from("estimates")
     .update({ status })
     .in("id", validIds)
+    .is("deleted_at", null)
     .eq("organization_id", org.organization_id)
     .select("id");
   if (error) return { ok: false, error: error.message };
@@ -300,6 +251,7 @@ export async function bulkUnmarkEstimatesProcessed(ids: string[]): Promise<Actio
     .from("estimates")
     .select("id, issue_marked_at")
     .in("id", validIds)
+    .is("deleted_at", null)
     .eq("organization_id", org.organization_id);
   if (readErr) return { ok: false, error: readErr.message };
 
@@ -308,7 +260,7 @@ export async function bulkUnmarkEstimatesProcessed(ids: string[]): Promise<Actio
     const { error } = await supabase
       .from("estimates")
       .update({ status: row.issue_marked_at ? "issued" : "draft" })
-      .eq("id", row.id);
+      .eq("id", row.id).is("deleted_at", null);
     if (!error) updated += 1;
   }
 
@@ -328,6 +280,7 @@ export async function bulkIssueEstimates(ids: string[]): Promise<ActionResult<{ 
     .from("estimates")
     .update({ status: "issued" })
     .in("id", validIds)
+    .is("deleted_at", null)
     .eq("organization_id", org.organization_id)
     .select("id");
   if (error) return { ok: false, error: error.message };
@@ -377,7 +330,7 @@ async function loadEstimateForConversion(
     .select(
       "client_id, client_destination_id, subject, tax_display, tax_rounding, withholding_type, template_key, output_locale, client_honorific, show_seal, template_message, remarks, recipient_snapshot, sender_snapshot, estimate_line_items(*)",
     )
-    .eq("id", estimateId)
+    .eq("id", estimateId).is("deleted_at", null)
     .eq("organization_id", orgId)
     .is("deleted_at", null)
     .order("line_no", { referencedTable: "estimate_line_items", ascending: true })
@@ -400,7 +353,7 @@ function estimateLinesToInput(est: EstimateForConversion): LineItemInput[] {
 }
 
 function todayDate() {
-  return new Date();
+  return new Date(todayInScheduleTz());
 }
 
 /** 見積書 → 納品書/請求書/受注情報 변환 공용. 성공한 건마다 受注 배지를 자동 전환한다. */
@@ -559,10 +512,12 @@ export async function shareEstimate(
   const { data: existing } = await supabase
     .from("estimates")
     .select("share_token")
-    .eq("id", estimateId)
+    .eq("id", estimateId).is("deleted_at", null)
     .maybeSingle();
 
-  if (existing?.share_token) {
+  if (!existing) return { ok: false, error: "Document not found" };
+
+  if (existing.share_token) {
     await supabase
       .from("share_tokens")
       .update({ revoked_at: new Date().toISOString() })
@@ -584,7 +539,7 @@ export async function shareEstimate(
 
   if (error) return { ok: false, error: error.message };
 
-  await supabase.from("estimates").update({ share_token: token }).eq("id", estimateId);
+  await supabase.from("estimates").update({ share_token: token }).eq("id", estimateId).is("deleted_at", null);
 
   revalidatePath("/[lang]/estimates", "page");
   revalidatePath(`/[lang]/estimates/${estimateId}`, "page");
@@ -597,7 +552,7 @@ export async function revokeShareEstimate(estimateId: string): Promise<ActionRes
   const { data: estimate } = await supabase
     .from("estimates")
     .select("share_token")
-    .eq("id", estimateId)
+    .eq("id", estimateId).is("deleted_at", null)
     .single();
 
   if (estimate?.share_token) {
@@ -610,7 +565,7 @@ export async function revokeShareEstimate(estimateId: string): Promise<ActionRes
   const { error } = await supabase
     .from("estimates")
     .update({ share_token: null })
-    .eq("id", estimateId);
+    .eq("id", estimateId).is("deleted_at", null);
 
   if (error) return { ok: false, error: error.message };
 
@@ -623,7 +578,7 @@ export async function saveEstimateMemo(estimateId: string, memo: string): Promis
   const { error } = await supabase
     .from("estimates")
     .update({ internal_memo: memo })
-    .eq("id", estimateId);
+    .eq("id", estimateId).is("deleted_at", null);
 
   if (error) return { ok: false, error: error.message };
   revalidatePath(`/[lang]/estimates/${estimateId}`, "page");
@@ -649,6 +604,7 @@ export async function sendEstimateEmail(
 
   const org = await getActiveOrganization();
   if (!org) return { ok: false, error: "No active organization" };
+  if (!canWriteOrganizationBusinessData(org.role)) return { ok: false, error: "この操作を行う権限がありません" };
 
   const origin = await getServerSiteUrl();
   const result = await sendSalesDocumentEmail(supabase, {
@@ -671,7 +627,7 @@ export async function deleteEstimate(estimateId: string): Promise<ActionResult> 
   const { error } = await supabase
     .from("estimates")
     .update({ deleted_at: new Date().toISOString() })
-    .eq("id", estimateId);
+    .eq("id", estimateId).is("deleted_at", null);
 
   if (error) return { ok: false, error: error.message };
   revalidatePath("/[lang]/estimates", "page");

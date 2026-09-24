@@ -10,7 +10,6 @@ import {
 import { getSettingsContent } from "../content";
 import {
   SettingsIntegrationRow,
-  SettingsSaveBar,
   SettingsSectionHeader,
   SettingsSubNav,
 } from "../settings-shared";
@@ -94,8 +93,8 @@ export function PaymentFormClient({
     <SalesFlowShell activeItem="settings">
       <SettingsSubNav active="payment" />
 
-      <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
-        <h1 className="text-[30px] font-bold tracking-tight text-slate-900">{payment.title}</h1>
+      <div className="mx-auto w-full min-w-0 [overflow-wrap:anywhere] max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:py-10 lg:pb-16">
+        <h1 className="text-2xl font-bold sm:text-[30px] tracking-tight text-slate-900">{payment.title}</h1>
         <p className="mt-4 max-w-[900px] text-[15px] leading-7 text-slate-600">{payment.intro}</p>
 
         {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
@@ -103,13 +102,13 @@ export function PaymentFormClient({
         <div className="mt-10 space-y-8">
           <section className="overflow-hidden rounded border border-slate-200 bg-white">
             <SettingsSectionHeader title="入金口座" />
-            <div className="px-6 py-6 space-y-4">
+            <div className="px-4 py-5 sm:px-6 sm:py-6 space-y-4">
               {accounts.map((a) => (
                 <div
                   key={a.id}
                   className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 py-3 last:border-b-0"
                 >
-                  <div className="text-[15px] text-slate-700">
+                  <div className="min-w-0 text-[15px] text-slate-700">
                     {a.bankName} {a.branchName} {a.accountNumber} ({a.accountHolder})
                   </div>
                   <button

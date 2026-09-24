@@ -1,0 +1,21 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { applyAiDraftToForm, type AiDraftApplyOptions } from "./apply-draft";
+import { aiEstimateDraftSchema } from "./schemas";
+const blank = { name: "", qty: "1", unit: "", price: "", tax: "10%" };
+const existing = { ...blank, name: "Existing", price: "90", itemId: "master", withholdingExempt: true };
+const current = { subject: "Keep", templateMessage: "Keep message", remarks: "Keep notes", rows: [existing, blank] };
+const draft = aiEstimateDraftSchema.parse({ subject: "Draft", templateMessage: "New message", remarks: "New notes", lines: [{ name: "New", qty: 2, unit: "h", unitPrice: 100, taxCategory: "reduced_8", confidence: 1, reason: "Evidence" }], evidence: [], warnings: [] });
+const options: AiDraftApplyOptions = { lineIndexes: [0], mode: "append", subject: false, templateMessage: false, remarks: false };
+test("append preserves existing values and identity, removes only untouched blank rows", () => { const r = applyAiDraftToForm(current,draft,options); assert.equal(r.ok,true); if(r.ok) { assert.equal(r.value.rows.length,2); assert.deepEqual(r.value.rows[0],existing); assert.equal(r.value.rows[1].tax,"軽減8%"); assert.equal(r.value.subject,"Keep"); } });
+test("selected text and replace are explicit; duplicate indexes cannot duplicate rows", () => { const r=applyAiDraftToForm(current,draft,{...options, mode:"replace",subject:true,lineIndexes:[0,0]}); assert.equal(r.ok,true);if(r.ok){assert.equal(r.value.rows.length,1);assert.equal(r.value.subject,"Draft");assert.equal(r.value.remarks,"Keep notes");} });
+test("row limit fails atomically; replacing 80 existing rows is permitted",()=> { const full={...current,rows:Array.from({length:80},()=>existing)}; assert.deepEqual(applyAiDraftToForm(full,draft,options),{ok:false,error:"row_limit"}); assert.equal(applyAiDraftToForm(full,draft,{...options,mode:"replace"}).ok,true);assert.equal(full.subject,"Keep"); });
+test("text-only apply does not delete rows, invalid and empty selections fail",()=> { const r=applyAiDraftToForm(current,draft,{...options,lineIndexes:[],mode:"replace",remarks:true});assert.equal(r.ok,true);if(r.ok)assert.deepEqual(r.value.rows,current.rows);assert.deepEqual(applyAiDraftToForm(current,draft,{...options,lineIndexes:[]}),{ok:false,error:"empty_selection"}); assert.deepEqual(applyAiDraftToForm(current,draft,{...options,lineIndexes:[9]}),{ok:false,error:"invalid_selection"}); });
+test("unfinished tax choices survive append; unresolved source tax cannot silently become 10%", () => {
+  const unfinished = { ...blank, tax: "対象外" };
+  const appended = applyAiDraftToForm({ ...current, rows: [unfinished] }, draft, options);
+  assert.equal(appended.ok, true);
+  if (appended.ok) assert.deepEqual(appended.value.rows[0], unfinished);
+  const unresolved = { ...draft, lines: [{ ...draft.lines[0], taxCategory: "follow_company" as const }] };
+  assert.deepEqual(applyAiDraftToForm(current, unresolved, options), { ok: false, error: "invalid_tax" });
+});

@@ -1,18 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { pageContainerClass } from "@/components/page-container";
 import {
   clientHonorificSuffix,
   type ClientHonorific,
 } from "@/lib/documents/client-honorific";
-import { LocalizedFileInput } from "@/components/localized-file-input";
-import { appHrefs } from "@/lib/app-hrefs";
+import { useLanguage } from "@/contexts/language-context";
+import { getSettingsContent } from "../settings/content";
+import { documentLineQuantity, parseDocumentNumber } from "@/lib/documents/line-form-values";
 import { DateFieldInput } from "../estimates/date-field-input";
 import { toDateInputValue } from "../estimates/date-field-utils";
-import { TAX_CATEGORY_TO_LABEL, type TaxCategory } from "@/lib/tax";
-import { extractPostalDigits } from "@/lib/japan-postal-code";
+import { computeLineAmount, computeDocumentTotals, taxCategoryFromLabel, TAX_CATEGORY_TO_LABEL, type TaxCategory, type TaxRounding, type TaxDisplay, type WithholdingType } from "@/lib/tax";
 import { lookupJapanPostalCode } from "@/lib/actions/postal";
 
 export type DocumentTabKey = string;
@@ -84,9 +84,22 @@ type SimpleRemarksFieldProps = {
   name?: string;
 };
 
+export type SenderDetails = Partial<{
+  postalCode: string;
+  addressLine1: string;
+  addressLine2: string;
+  addressLine3: string;
+  tel: string;
+  fax: string;
+  email: string;
+  registrationNumber: string;
+}>;
+
 type SenderDetailFieldsProps = {
   storagePrefix: string;
   buttonLabel?: string;
+  value?: SenderDetails;
+  onChange?: (value: SenderDetails) => void;
 };
 
 type LineItemsTableProps = {
@@ -112,6 +125,10 @@ type LineItemsTableProps = {
   compact?: boolean;
   initialRowCount?: number;
   hideSummaryRows?: boolean;
+  taxRounding?: TaxRounding;
+  taxDisplay?: TaxDisplay;
+  withholdingType?: WithholdingType;
+  documentType?: "estimate" | "invoice" | "delivery_note" | "receipt";
 };
 
 type TaxRateSelectProps = {
@@ -140,6 +157,7 @@ type LineItemRow = {
   tax: string;
   /** 品目マスタから選択された場合のID。手入力・不一致になった場合は null。 */
   itemId?: string | null;
+  withholdingExempt?: boolean;
 };
 
 export type { LineItemRow };
@@ -151,35 +169,18 @@ export type ItemOption = {
   unit: string | null;
   unitPrice: number;
   taxCategory: string;
+  withholdingExempt?: boolean;
 };
 
 export type LineItemTotals = {
   subtotal: number;
   tax: number;
   total: number;
+  withholding?: number;
 };
 
 function createEmptyRow(): LineItemRow {
   return { name: "", qty: "", unit: "", price: "", tax: "10%", itemId: null };
-}
-
-function parseNumberInput(value: string) {
-  const normalized = value.replace(/,/g, "").trim();
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function getTaxRate(value: string) {
-  if (value === "\u5bfe\u8c61\u5916") {
-    return 0;
-  }
-  if (value === "\u8efd\u6e1b8%" || value === "8%") {
-    return 0.08;
-  }
-  if (value === "5%") {
-    return 0.05;
-  }
-  return 0.1;
 }
 
 function getTaxTargetLabel(value: string) {
@@ -212,6 +213,7 @@ type DocumentBottomBarProps = {
   onSave?: () => void;
   pending?: boolean;
   error?: string | null;
+  taxDisplay?: TaxDisplay;
 };
 
 export function DocumentBottomBar({
@@ -223,48 +225,52 @@ export function DocumentBottomBar({
   onSave,
   pending,
   error,
+  taxDisplay,
 }: DocumentBottomBarProps) {
+  const { lang } = useLanguage();
+  const withholdingLabel = lang === "ko" ? "원천징수" : lang === "en" ? "Withholding tax" : "源泉徴収税";
   return (
-    <div className="sticky bottom-0 border-t border-slate-300 bg-white/95 backdrop-blur">
+    <div className="sticky bottom-0 z-20 border-t border-slate-300 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
       <div
         className={[
-          pageContainerClass({ spaciousBottom: false, className: "py-4" }),
-          "flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between",
+          "mx-auto w-full max-w-[1680px] px-4 py-2 sm:px-6 sm:py-3 lg:px-8",
+          "flex min-w-0 flex-col gap-2 2xl:flex-row 2xl:items-center 2xl:justify-between 2xl:gap-6",
         ].join(" ")}
       >
-        <div className="flex flex-wrap items-center gap-4 text-base text-slate-700 sm:gap-8 sm:text-[18px]">
+        <div className="order-2 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600 sm:text-sm 2xl:order-1">
           <span>
             {subtotalLabel}{" "}
-            <strong className="ml-1 text-lg tabular-nums sm:ml-2 sm:text-[22px]">
+            <strong className="ml-1 tabular-nums [overflow-wrap:anywhere]">
               {formatDocumentAmount(totals.subtotal)} 円
             </strong>
           </span>
           <span>
-            {taxLabel}{" "}
-            <strong className="ml-1 text-lg tabular-nums sm:ml-2 sm:text-[22px]">
+            {taxLabel}{taxDisplay === "included" ? (lang === "ko" ? " (포함)" : lang === "en" ? " (included)" : " (内税)") : ""}{" "}
+            <strong className="ml-1 tabular-nums [overflow-wrap:anywhere]">
               {formatDocumentAmount(totals.tax)} 円
             </strong>
           </span>
+          {Boolean(totals.withholding) && (
+            <span>{withholdingLabel} <strong className="ml-1 tabular-nums [overflow-wrap:anywhere]">−{formatDocumentAmount(totals.withholding ?? 0)} 円</strong></span>
+          )}
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6 lg:gap-10">
-          <span className="text-lg font-semibold text-slate-800 sm:text-[22px]">
-            {totalLabel}{" "}
-            <strong className="ml-2 text-2xl tabular-nums sm:ml-4 sm:text-[44px]">
+        <div className="order-1 flex min-w-0 items-center justify-between gap-3 sm:gap-6 2xl:order-2">
+          <span className="min-w-0 text-xs font-semibold text-slate-800 sm:text-sm">
+            {totalLabel}
+            <strong className="block text-xl leading-tight tabular-nums [overflow-wrap:anywhere] sm:text-3xl">
               {formatDocumentAmount(totals.total)} 円
             </strong>
           </span>
-          <div className="flex flex-col items-end gap-2">
-            {error ? <p className="text-sm text-red-600">{error}</p> : null}
             <button
               type="button"
               onClick={onSave}
               disabled={pending || !onSave}
-              className="w-full rounded bg-[#0A4D34] px-8 py-3.5 text-base font-semibold text-white transition hover:bg-[#083D29] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-12 sm:py-4 sm:text-[18px]"
+              className="min-h-11 max-w-[45%] shrink-0 rounded bg-[#0A4D34] px-4 py-2.5 text-sm font-semibold text-white [overflow-wrap:anywhere] transition hover:bg-[#083D29] disabled:cursor-not-allowed disabled:opacity-60 sm:px-8 sm:text-base"
             >
               {pending ? "..." : saveLabel}
             </button>
-          </div>
         </div>
+        {error ? <p role="alert" className="order-3 max-h-20 overflow-y-auto text-sm text-red-600 [overflow-wrap:anywhere] 2xl:max-w-sm">{error}</p> : null}
       </div>
     </div>
   );
@@ -319,18 +325,18 @@ export function DocumentPageShell<T extends DocumentTabKey>({
 export function SectionTitle({ title }: { title: string }) {
   return (
     <div className="border-b border-slate-200 pb-3">
-      <h2 className="text-[24px] font-semibold text-slate-900">{title}</h2>
+      <h2 className="text-xl font-semibold text-slate-900 [overflow-wrap:anywhere] sm:text-[24px]">{title}</h2>
     </div>
   );
 }
 
 export function FormField({ label, required, children }: FormFieldProps) {
   return (
-    <label className="block">
-      <div className="mb-2 flex items-center gap-2 text-[16px] font-semibold text-slate-800">
+    <label className="block min-w-0">
+      <div className="mb-2 flex flex-wrap items-center gap-2 text-[16px] font-semibold text-slate-800">
         <span>{label}</span>
         {required ? (
-          <span className="rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">{required}</span>
+          <span className="shrink-0 rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">{required}</span>
         ) : null}
       </div>
       {children}
@@ -380,6 +386,8 @@ export function RecipientPostalCodeField({
         postalCode: result.formattedPostalCode,
         addressLine1: result.addressLine1,
       });
+    } catch {
+      setError(networkErrorMessage);
     } finally {
       setPending(false);
     }
@@ -387,15 +395,12 @@ export function RecipientPostalCodeField({
 
   return (
     <div>
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <input
           className="field w-full max-w-[180px]"
           placeholder={placeholder}
           value={postalCode}
           onChange={(e) => onPostalCodeChange(e.target.value)}
-          onBlur={() => {
-            if (extractPostalDigits(postalCode).length === 7) void runLookup(postalCode);
-          }}
         />
         <button
           type="button"
@@ -536,7 +541,7 @@ export function CommonBasicSection({
         <div className="mt-5 space-y-5">
           <FormField label={clientLabel} required={clientRequired}>
             <div className="flex gap-2">
-              <input className="field flex-1" />
+              <input className="field min-w-0 flex-1" />
               <HonorificField honorific={companyHonorific} />
             </div>
           </FormField>
@@ -597,7 +602,7 @@ export function CommonRecipientSection({
   const content = (
     <>
       <FormField label={postalCodeLabel}>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <input className="field w-full max-w-[180px]" placeholder={postalCodePlaceholder} />
           <button className="rounded border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700">
             {postalCodeLookupLabel}
@@ -620,7 +625,7 @@ export function CommonRecipientSection({
           />
         ))}
         <div className="mt-2 flex gap-2">
-          <input className="field flex-1" placeholder={contactPlaceholder} />
+          <input className="field min-w-0 flex-1" placeholder={contactPlaceholder} />
           <HonorificField honorific={companyHonorific} />
         </div>
       </FormField>
@@ -650,78 +655,58 @@ export function SimpleRemarksField({ label, name }: SimpleRemarksFieldProps) {
 
 export function SenderDetailFields({
   storagePrefix,
-  buttonLabel = "詳細（住所, 連絡先など）",
+  buttonLabel,
+  value,
+  onChange,
 }: SenderDetailFieldsProps) {
+  const { lang } = useLanguage();
+  const ui = getSettingsContent(lang).company;
   const [isOpen, setIsOpen] = useState(false);
+  const [localValue, setLocalValue] = useState<SenderDetails>({});
+  const sender = value ?? localValue;
+  const update = (next: SenderDetails) => onChange ? onChange(next) : setLocalValue(next);
+  const set = (key: keyof SenderDetails, next: string) => update({ ...sender, [key]: next });
 
   return (
     <div className="pt-1">
-      <button
-        type="button"
-        onClick={() => setIsOpen((open) => !open)}
-        className="inline-flex items-center gap-2 text-[15px] font-medium text-[#0A4D34]"
-      >
+      <button type="button" aria-expanded={isOpen} onClick={() => setIsOpen((open) => !open)}
+        className="inline-flex items-center gap-2 text-[15px] font-medium text-[#0A4D34]">
         <span className={["text-xs transition", isOpen ? "rotate-90" : ""].join(" ")}>▶</span>
-        <span>{buttonLabel}</span>
+        <span>{buttonLabel ?? ui.basicSection}</span>
       </button>
-
       {isOpen ? (
-        <div className="mt-5 space-y-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
-          <FormField label="郵便番号">
-            <p className="mb-2 text-sm text-slate-500">000-0000形式(半角)で入力してください</p>
-            <div className="flex flex-wrap gap-3">
-              <input
-                name={`${storagePrefix}PostalCode`}
-                className="field w-full max-w-[180px]"
-                placeholder="000-0000"
-              />
-              <button
-                type="button"
-                className="rounded border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700"
-              >
-                郵便番号から検索
-              </button>
-            </div>
+        <div className="mt-5 space-y-5 rounded-xl border border-slate-200 bg-slate-50/70 p-5">
+          <FormField label={ui.postalCode}>
+            <RecipientPostalCodeField
+              postalCode={sender.postalCode ?? ""}
+              onPostalCodeChange={(next) => set("postalCode", next)}
+              onAddressResolved={({ postalCode, addressLine1 }) => update({ ...sender, postalCode, addressLine1 })}
+              lookupLabel={ui.postalCodeLookup}
+              placeholder="000-0000"
+              invalidMessage={ui.postalCodeInvalid}
+              notFoundMessage={ui.postalCodeLookupFailed}
+              networkErrorMessage={ui.postalCodeLookupNetworkError}
+            />
           </FormField>
-
-          <FormField label="住所">
-            <input name={`${storagePrefix}Address1`} className="field" />
-            <input name={`${storagePrefix}Address2`} className="field mt-2" />
-            <input name={`${storagePrefix}Address3`} className="field mt-2" />
+          <FormField label={ui.address}>
+            {(["addressLine1", "addressLine2", "addressLine3"] as const).map((key, index) => (
+              <input key={key} name={`${storagePrefix}-${key}`} aria-label={`${ui.address} ${index + 1}`}
+                className={index ? "field mt-2" : "field"} value={sender[key] ?? ""}
+                onChange={(event) => set(key, event.target.value)} />
+            ))}
           </FormField>
-
-          <FormField label="TEL">
-            <input name={`${storagePrefix}Tel`} className="field max-w-[320px]" />
-          </FormField>
-
-          <FormField label="FAX">
-            <input name={`${storagePrefix}Fax`} className="field max-w-[320px]" />
-          </FormField>
-
-          <FormField label="メールアドレス">
-            <input name={`${storagePrefix}Email`} className="field" />
-          </FormField>
-
-          <FormField label="登録番号">
-            <p className="mb-2 text-sm text-slate-500">
-              適格請求書(インボイス)に記載が必要な番号です。{" "}
-              <Link href={appHrefs.supportInvoiceGuide} className="text-[#0A4D34] underline">
-                適格請求書について詳しく
-              </Link>
-            </p>
-            <input name={`${storagePrefix}InvoiceNumber`} className="field max-w-[320px]" />
-          </FormField>
-
-          <FormField label="ロゴ">
-            <p className="text-sm text-slate-500">窓付封筒対応テンプレートはロゴが印字されません</p>
-            <p className="mb-3 text-sm text-slate-500">1MB までの png/jpeg/gif形式に対応</p>
-            <LocalizedFileInput name={`${storagePrefix}Logo`} accept=".png,.jpg,.jpeg,.gif" />
-          </FormField>
-
-          <FormField label="印影">
-            <p className="mb-3 text-sm text-slate-500">1MB までの png/jpeg/gif形式に対応</p>
-            <LocalizedFileInput name={`${storagePrefix}Seal`} accept=".png,.jpg,.jpeg,.gif" />
-          </FormField>
+          {([
+            ["tel", ui.tel, "tel"], ["fax", ui.fax, "tel"],
+            ["email", ui.email, "email"], ["registrationNumber", ui.invoiceNumber, "text"],
+          ] as const).map(([key, label, type]) => (
+            <FormField key={key} label={label}>
+              <input name={`${storagePrefix}-${key}`} type={type} className="field" value={sender[key] ?? ""}
+                onChange={(event) => set(key, event.target.value)} />
+            </FormField>
+          ))}
+          <Link href={`/${lang}/settings/company`} target="_blank" rel="noopener noreferrer" className="inline-block text-sm text-[#0A4D34] underline">
+            {ui.title} · {ui.logo} / {ui.seal} ↗
+          </Link>
         </div>
       ) : null}
     </div>
@@ -749,7 +734,13 @@ export function CommonLineItemsTable({
   initialRowCount,
   hideSummaryRows = false,
   items = [],
+  taxRounding = "round_down",
+  taxDisplay = "separate",
+  withholdingType = "none",
+  documentType,
 }: LineItemsTableProps) {
+  const { lang } = useLanguage();
+  const withholdingLabel = lang === "ko" ? "원천징수" : lang === "en" ? "Withholding tax" : "源泉徴収税";
   const itemOptionsId = useId();
   const defaultRowCount = initialRowCount ?? (compact ? 1 : 5);
   const [rows, setRows] = useState<LineItemRow[]>(
@@ -759,42 +750,29 @@ export function CommonLineItemsTable({
   const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
-    // Normally initialRows (DB value) wins. Only the edit screen (preferDraftOverInitialRows)
-    // prefers a saved draft over it.
-    if (initialRows?.length && !preferDraftOverInitialRows) {
-      setRows(initialRows);
-      setHasLoaded(true);
-      return;
-    }
-
-    if (!storageKey || typeof window === "undefined") {
-      setHasLoaded(true);
-      return;
-    }
-
-    try {
-      const raw = window.localStorage.getItem(storageKey);
-      if (raw) {
-        const saved = JSON.parse(raw) as { rows?: LineItemRow[]; bulkTax?: string; savedAt?: number };
-        const stale =
-          preferDraftOverInitialRows &&
-          typeof saved.savedAt === "number" &&
-          Date.now() - saved.savedAt > LINE_ITEMS_DRAFT_MAX_AGE_MS;
-        if (!stale) {
-          if (saved.rows?.length) {
-            setRows(saved.rows);
-          }
-          if (saved.bulkTax) {
-            setBulkTax(saved.bulkTax);
+    let restoredRows: LineItemRow[] | undefined;
+    let restoredTax: string | undefined;
+    if (storageKey && (!initialRows?.length || preferDraftOverInitialRows)) {
+      try {
+        const raw = window.localStorage.getItem(storageKey);
+        if (raw) {
+          const saved = JSON.parse(raw) as { rows?: LineItemRow[]; bulkTax?: string; savedAt?: number };
+          const stale = typeof saved.savedAt === "number" && Date.now() - saved.savedAt > LINE_ITEMS_DRAFT_MAX_AGE_MS;
+          if (!stale && Array.isArray(saved.rows) && saved.rows.length > 0 && saved.rows.length <= 80 &&
+            saved.rows.every((row) => row && [row.name, row.qty, row.unit, row.price, row.tax].every((value) => typeof value === "string"))) {
+            restoredRows = saved.rows;
+            restoredTax = saved.bulkTax;
           }
         }
-      }
-    } catch {
-      // Ignore invalid draft data and keep defaults.
+      } catch { /* Ignore unreadable drafts. */ }
     }
-
-    setHasLoaded(true);
-  // Restore once on mount only (the mode doesn't change during the session).
+    const frame = window.requestAnimationFrame(() => {
+      if (restoredRows) setRows(restoredRows);
+      if (restoredTax) setBulkTax(restoredTax);
+      setHasLoaded(true);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  // Restore once on mount; changing tabs keeps the editor mounted.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -803,14 +781,18 @@ export function CommonLineItemsTable({
       return;
     }
 
-    window.localStorage.setItem(
+    try {
+      window.localStorage.setItem(
       storageKey,
       JSON.stringify({
         rows,
         bulkTax,
         savedAt: Date.now(),
       }),
-    );
+      );
+    } catch {
+      // Storage can be disabled or full; editing and saving must remain available.
+    }
   }, [bulkTax, hasLoaded, rows, storageKey]);
 
   const updateRow = (index: number, key: keyof LineItemRow, nextValue: string) => {
@@ -836,9 +818,10 @@ export function CommonLineItemsTable({
             price: String(matched.unitPrice),
             tax: TAX_CATEGORY_TO_LABEL[matched.taxCategory as TaxCategory] ?? row.tax,
             itemId: matched.id,
+            withholdingExempt: matched.withholdingExempt ?? false,
           };
         }
-        return { ...row, name: nextValue, itemId: null };
+        return { ...row, name: nextValue, itemId: null, withholdingExempt: false };
       }),
     );
   };
@@ -848,7 +831,7 @@ export function CommonLineItemsTable({
   };
 
   const addRow = () => {
-    setRows((current) => [...current, createEmptyRow()]);
+    setRows((current) => current.length < 80 ? [...current, createEmptyRow()] : current);
   };
 
   /** Remove a row. The last one is emptied instead so the table never disappears. */
@@ -860,50 +843,44 @@ export function CommonLineItemsTable({
     );
   };
 
-  const subtotal = rows.reduce((sum, row) => sum + parseNumberInput(row.qty) * parseNumberInput(row.price), 0);
-  const taxBreakdown = TAX_RATE_OPTIONS.map((taxType) => {
-    const taxableAmount = rows.reduce((sum, row) => {
-      if (row.tax !== taxType) {
-        return sum;
-      }
-      return sum + parseNumberInput(row.qty) * parseNumberInput(row.price);
-    }, 0);
-
-    const rate = getTaxRate(taxType);
-    const taxAmount = Math.floor(taxableAmount * rate);
-
-    return {
-      taxType,
-      taxableAmount,
-      taxAmount,
-      rate,
-    };
-  }).filter((item) => item.taxableAmount > 0);
-
-  const tax = taxBreakdown.reduce((sum, item) => sum + item.taxAmount, 0);
-  const total = subtotal + tax;
-  const visibleTaxBreakdown = taxBreakdown.filter((item) => item.rate > 0);
+  const calculated = computeDocumentTotals(
+    rows.map((row) => ({
+      qty: documentLineQuantity(row),
+      unitPrice: parseDocumentNumber(row.price),
+      taxCategory: taxCategoryFromLabel(row.tax),
+      withholdingExempt: row.withholdingExempt,
+    })),
+    taxRounding,
+    { taxDisplay, withholdingType, documentType },
+  );
+  const { subtotal, tax, total, withholding } = calculated;
+  const visibleTaxBreakdown = calculated.breakdown.filter((item) => item.rate > 0).map((item) => ({
+    ...item,
+    taxType: TAX_CATEGORY_TO_LABEL[item.taxCategory],
+  }));
   const showTaxBreakdown = visibleTaxBreakdown.length > 0;
 
   useEffect(() => {
-    onTotalsChange?.({ subtotal, tax, total });
-  }, [onTotalsChange, subtotal, tax, total]);
+    onTotalsChange?.({ subtotal, tax, total, withholding });
+  }, [onTotalsChange, subtotal, tax, total, withholding]);
 
   useEffect(() => {
     onRowsChange?.(rows);
   }, [onRowsChange, rows]);
 
   return (
-    <div className={compact ? "mt-2 min-w-0" : "mt-12"}>
+    <div className={compact ? "mt-2 min-w-0" : "mt-12 min-w-0"}>
       {topNotice}
 
       <div className={["flex flex-wrap items-center justify-end gap-2 md:flex-nowrap", compact ? "mb-2" : "mb-4"].join(" ")}>
         <span className={["shrink-0 whitespace-nowrap text-slate-600", compact ? "text-[13px]" : ""].join(" ")}>
           {batchTaxLabel}
         </span>
-        <TaxRateSelect value={bulkTax} onChange={setBulkTax} compact={compact} />
+        <div className="w-36 max-w-full shrink-0">
+          <TaxRateSelect value={bulkTax} onChange={setBulkTax} compact={compact} />
+        </div>
         <span className={["shrink-0 whitespace-nowrap text-slate-600", compact ? "text-[13px]" : ""].join(" ")}>
-          {"\u306b"}
+          {lang === "ja" ? "に" : ""}
         </span>
         <button
           type="button"
@@ -920,13 +897,13 @@ export function CommonLineItemsTable({
       <div
         className={[
           "max-w-full rounded border border-slate-300",
-          compact ? "min-w-0" : "overflow-x-auto",
+          "overflow-x-auto",
         ].join(" ")}
       >
         <table
           className={[
             "w-full table-fixed border-collapse bg-white text-left",
-            compact ? "min-w-0" : "min-w-[1080px]",
+            compact ? "min-w-[600px]" : "min-w-[1080px]",
           ].join(" ")}
         >
           <colgroup>
@@ -963,7 +940,7 @@ export function CommonLineItemsTable({
           </thead>
           <tbody>
             {rows.map((row, index) => {
-              const amount = parseNumberInput(row.qty) * parseNumberInput(row.price);
+              const amount = computeLineAmount({ qty: documentLineQuantity(row), unitPrice: parseDocumentNumber(row.price) });
               const inputClass = compact
                 ? "w-full border-0 border-b border-dashed border-slate-300 bg-transparent px-1 py-1 text-[13px] leading-normal text-slate-800 outline-none transition focus:border-[#3AA87A]"
                 : "w-full border-0 border-b border-dashed border-slate-300 bg-transparent px-2 py-2 text-[17px] leading-normal text-slate-800 outline-none transition focus:border-[#3AA87A]";
@@ -973,6 +950,8 @@ export function CommonLineItemsTable({
                   <td className={["border-b border-r border-slate-200 align-middle", compact ? "px-1 py-1" : "px-3 py-2"].join(" ")}>
                     <input
                       className={inputClass}
+                      aria-label={`${itemHeaders[0]} ${index + 1}`}
+                      maxLength={255}
                       value={row.name}
                       list={items.length ? itemOptionsId : undefined}
                       onChange={(event) => updateName(index, event.target.value)}
@@ -982,6 +961,8 @@ export function CommonLineItemsTable({
                     <input
                       inputMode="decimal"
                       className={[inputClass, "text-right"].join(" ")}
+                      aria-label={`${itemHeaders[1]} ${index + 1}`}
+                      placeholder="1"
                       value={row.qty}
                       onChange={(event) => updateRow(index, "qty", event.target.value)}
                     />
@@ -990,6 +971,8 @@ export function CommonLineItemsTable({
                     <input
                       className={[inputClass, "text-center text-slate-700"].join(" ")}
                       placeholder={unitPlaceholder}
+                      aria-label={`${itemHeaders[2]} ${index + 1}`}
+                      maxLength={255}
                       value={row.unit}
                       onChange={(event) => updateRow(index, "unit", event.target.value)}
                     />
@@ -998,6 +981,7 @@ export function CommonLineItemsTable({
                     <input
                       inputMode="numeric"
                       className={[inputClass, "text-right"].join(" ")}
+                      aria-label={`${itemHeaders[3]} ${index + 1}`}
                       value={row.price}
                       onChange={(event) => updateRow(index, "price", event.target.value)}
                     />
@@ -1066,7 +1050,8 @@ export function CommonLineItemsTable({
                       <tbody>
                         {[
                           { label: subtotalLabel, value: subtotal },
-                          { label: taxLabel, value: tax },
+                          { label: taxDisplay === "included" ? `${taxLabel} (${lang === "ko" ? "포함" : lang === "en" ? "included" : "内税"})` : taxLabel, value: tax },
+                          ...(withholding ? [{ label: withholdingLabel, value: -withholding }] : []),
                           { label: totalLabel, value: total },
                         ].map((item) => (
                           <tr key={item.label}>
@@ -1100,8 +1085,8 @@ export function CommonLineItemsTable({
 
       {showTaxBreakdown && !compact ? (
         <div className="mt-8 flex justify-end">
-          <div className="w-full max-w-[560px] overflow-hidden rounded border border-slate-300 bg-white">
-            <table className="w-full border-collapse">
+          <div className="w-full max-w-[560px] overflow-x-auto rounded border border-slate-300 bg-white">
+            <table className="w-full min-w-[440px] border-collapse">
               <tbody>
                 {visibleTaxBreakdown.map((item) => (
                   <tr key={item.taxType}>
@@ -1162,6 +1147,10 @@ export function DocumentLineItemsTable({
   initialRowCount,
   hideSummaryRows = false,
   items,
+  taxRounding,
+  taxDisplay,
+  withholdingType,
+  documentType,
 }: {
   ui: LineItemsUiContent;
   storageKey?: string;
@@ -1174,6 +1163,10 @@ export function DocumentLineItemsTable({
   initialRowCount?: number;
   hideSummaryRows?: boolean;
   items?: ItemOption[];
+  taxRounding?: TaxRounding;
+  taxDisplay?: TaxDisplay;
+  withholdingType?: WithholdingType;
+  documentType?: "estimate" | "invoice" | "delivery_note" | "receipt";
 }) {
   return (
     <CommonLineItemsTable
@@ -1197,6 +1190,10 @@ export function DocumentLineItemsTable({
       compact={compact}
       initialRowCount={initialRowCount}
       hideSummaryRows={hideSummaryRows}
+      taxRounding={taxRounding}
+      taxDisplay={taxDisplay}
+      withholdingType={withholdingType}
+      documentType={documentType}
     />
   );
 }
@@ -1207,84 +1204,26 @@ export function TaxRateSelect({
   value,
   onChange,
 }: TaxRateSelectProps) {
-  const rootRef = useRef<HTMLDivElement | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
+  const { lang } = useLanguage();
   const [internalSelected, setInternalSelected] = useState(defaultValue);
-  const selected = value ?? internalSelected;
-
-  useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleEscape);
-
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, []);
-
+  const label = lang === "ko" ? "세율" : lang === "en" ? "Tax rate" : "税率";
   return (
-    <div ref={rootRef} className={compact ? "relative w-full min-w-0" : "relative w-[148px]"}>
-      <button
-        type="button"
-        onClick={() => setIsOpen((open) => !open)}
-        className={[
-          "flex w-full items-center justify-between gap-1 rounded-md border border-sky-300 bg-white px-2 text-left leading-normal text-slate-900 shadow-[0_0_0_1px_rgba(125,211,252,0.08)] transition",
-          compact ? "min-h-[30px] py-1 text-[13px]" : "min-h-[52px] py-2.5 text-[16px]",
-          isOpen ? "ring-2 ring-sky-200" : "hover:border-sky-400",
-        ].join(" ")}
-      >
-        <span className="min-w-0 flex-1 font-medium">{selected}</span>
-        <svg viewBox="0 0 20 20" aria-hidden="true" className="h-5 w-5 shrink-0 text-slate-500">
-          <path
-            d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.17l3.71-3.94a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z"
-            fill="currentColor"
-          />
-        </svg>
-      </button>
-
-      {isOpen ? (
-        <div className="absolute left-0 top-[calc(100%+2px)] z-30 w-full overflow-hidden rounded-md border border-slate-300 bg-white shadow-[0_14px_28px_rgba(15,23,42,0.14)]">
-          {TAX_RATE_OPTIONS.map((option) => {
-            const isSelected = option === selected;
-
-            return (
-              <button
-                key={option}
-                type="button"
-                onClick={() => {
-                  if (onChange) {
-                    onChange(option);
-                  } else {
-                    setInternalSelected(option);
-                  }
-                  setIsOpen(false);
-                }}
-                className={[
-                  "block w-full px-4 py-3 text-left text-[16px] transition",
-                  isSelected
-                    ? "bg-[#2d6fd2] font-semibold text-white"
-                    : "bg-white text-slate-900 hover:bg-sky-50",
-                ].join(" ")}
-              >
-                {option}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
-    </div>
+    <select
+      aria-label={label}
+      value={value ?? internalSelected}
+      onChange={(event) => onChange ? onChange(event.target.value) : setInternalSelected(event.target.value)}
+      className={[
+        "min-w-0 rounded-md border border-slate-300 bg-white px-2 text-slate-900 focus:border-[#1A7A57] focus:outline-none focus:ring-2 focus:ring-[#1A7A57]/20",
+        compact ? "min-h-[34px] w-full py-1 text-[13px]" : "min-h-[48px] w-[148px] py-2 text-[16px]",
+      ].join(" ")}
+    >
+      {TAX_RATE_OPTIONS.map((option) => (
+        <option key={option} value={option}>
+          {option === "軽減8%" ? (lang === "ko" ? "경감 8%" : lang === "en" ? "Reduced 8%" : option)
+            : option === "対象外" ? (lang === "ko" ? "대상 외" : lang === "en" ? "Exempt" : option) : option}
+        </option>
+      ))}
+    </select>
   );
 }
 

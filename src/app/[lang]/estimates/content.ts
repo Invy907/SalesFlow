@@ -108,7 +108,7 @@ const labels = {
     shareModal: {
       title: "共有リンク（チャット/SNS）",
       description: "見積書を共有・閲覧できるリンクを取得します。",
-      caution: "※「リンクを取得」をクリックすると文書は確定し、以後の編集はできなくなります。",
+      caution: "※リンクを知っている方が閲覧できます。編集した内容は共有ページにも反映されます。",
       submit: "リンクを取得",
       copied: "共有リンクをコピーしました。"
     },
@@ -310,7 +310,7 @@ const labels = {
     shareModal: {
       title: "공유 링크(채팅/SNS)",
       description: "견적서를 공유하고 열람할 수 있는 링크를 발급합니다.",
-      caution: "※ 링크를 발급하면 문서가 확정되어 이후에는 편집할 수 없습니다.",
+      caution: "※ 링크를 아는 사람은 문서를 열람할 수 있습니다. 이후 수정한 내용도 공유 화면에 반영됩니다.",
       submit: "링크 발급",
       copied: "공유 링크를 복사했습니다."
     },
@@ -508,7 +508,7 @@ const labels = {
     shareModal: {
       title: "Share link (chat/SNS)",
       description: "Get a shareable link to view this estimate.",
-      caution: "Once you get the link, this document is finalized and can no longer be edited.",
+      caution: "Anyone with the link can view this document. Later edits also appear on the shared page.",
       submit: "Get link",
       copied: "Share link copied."
     },

@@ -26,3 +26,9 @@ test("상세 상태를 기존 UI 상태로 매핑한다", () => {
   assert.equal(toLegacySourceStatus("needs_review"), "review_required");
   assert.equal(toLegacySourceStatus("indexed"), "approved");
 });
+
+
+test("고신뢰 추출도 검수 없이 승인하거나 승인자료를 재추출할 수 없다", () => {
+  assert.equal(canTransition("validating", "approved"), false);
+  assert.equal(canTransition("indexed", "queued"), false);
+});

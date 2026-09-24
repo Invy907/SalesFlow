@@ -18,6 +18,7 @@ import { StatusAddInlineForm } from "./status-add-inline-form";
 import { createOrder } from "@/lib/actions/orders";
 import { taxCategoryFromLabel } from "@/lib/tax";
 import type { ClientOptionRow } from "@/lib/db/clients";
+import { ModalDialog } from "@/components/modal-dialog";
 
 export type OrderLineItemInitial = LineItemRow;
 export type OrderStatusSelectOption = { id: string; name: string };
@@ -139,21 +140,21 @@ export function CreateOrderModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
-      <div className="relative flex max-h-[calc(100vh-1.5rem)] w-full max-w-[980px] min-w-0 flex-col overflow-hidden rounded-lg bg-white shadow-2xl">
-        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-5 py-3">
-          <h2 className="text-[18px] font-semibold text-slate-900">{ui.title}</h2>
+    <ModalDialog label={ui.title} onClose={onClose} className="max-w-[980px] overflow-hidden rounded-lg">
+      <div className="relative flex max-h-[calc(100dvh_-_2rem)] w-full min-w-0 flex-col overflow-hidden bg-white">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
+          <h2 className="min-w-0 text-[18px] font-semibold text-slate-900">{ui.title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-2xl leading-none text-slate-400 hover:text-slate-600"
-            aria-label="Close"
+            className="shrink-0 p-1 text-2xl leading-none text-slate-400 hover:text-slate-600"
+            aria-label={lang === "ko" ? "닫기" : lang === "en" ? "Close" : "閉じる"}
           >
             ×
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-5 py-3">
+        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-3 sm:px-5">
           <div className="min-w-0 space-y-2.5">
             <CompactFormField label={ui.client} required={ui.required}>
               <input
@@ -198,7 +199,7 @@ export function CreateOrderModal({
 
             <CompactFormField label={ui.status}>
               <div className="space-y-1.5">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <select
                     className={compactSelectClass}
                     value={status}
@@ -266,8 +267,8 @@ export function CreateOrderModal({
           ) : null}
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-2.5">
-          <div className="flex flex-wrap items-center gap-4 text-[14px] text-slate-700">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-4 py-2.5 sm:px-5">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-[14px] text-slate-700 [overflow-wrap:anywhere]">
             <span>
               {lineItemsUi.subtotal}{" "}
               <strong className="ml-1 tabular-nums">{formatDocumentAmount(totals.subtotal)} 円</strong>
@@ -285,13 +286,13 @@ export function CreateOrderModal({
             type="button"
             onClick={handleSave}
             disabled={pending}
-            className="rounded bg-[#0A4D34] px-7 py-2 text-[14px] font-semibold text-white transition hover:bg-[#083D29] disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded bg-[#0A4D34] px-7 py-2 text-[14px] font-semibold text-white transition hover:bg-[#083D29] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
             {ui.save}
           </button>
         </div>
       </div>
-    </div>
+    </ModalDialog>
   );
 }
 
@@ -306,7 +307,7 @@ function CompactFormField({
 }) {
   return (
     <label className="block">
-      <div className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-slate-800">
+      <div className="mb-1 flex flex-wrap items-center gap-2 text-[13px] font-semibold text-slate-800">
         <span>{label}</span>
         {required ? (
           <span className="rounded bg-[#0A4D34] px-1.5 py-0.5 text-[10px] font-bold text-white">{required}</span>

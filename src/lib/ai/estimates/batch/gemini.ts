@@ -1,3 +1,4 @@
+import { setTimeout as delay } from "node:timers/promises";
 import {
   ApiError,
   createPartFromUri,
@@ -8,6 +9,7 @@ import {
   GEMINI_EXTRACTION_RESPONSE_SCHEMA,
   parseExtractionResult,
   type EstimateExtractionResult,
+  type SourceDocumentKind,
 } from "./extraction-schema";
 import {
   buildExtractionUserPrompt,
@@ -43,6 +45,7 @@ export interface GeminiExtractionInput {
   displayName: string;
   pageCount: number | null;
   model: string;
+  documentKind?: SourceDocumentKind;
 }
 
 export interface GeminiExtractionOutput {
@@ -64,27 +67,55 @@ function apiError(error: unknown): GeminiBatchError {
     if (status === 408) return new GeminiBatchError("Gemini 요청 시간 초과", "timeout", true, "http_408");
     return new GeminiBatchError("Gemini 요청 실패", "unknown", false, `http_${status || "unknown"}`);
   }
+  if (error instanceof Error && /TimeoutError|AbortError/.test(error.name)) {
+    return new GeminiBatchError("Gemini 요청 시간이 초과되었습니다.", "timeout", true, "request_timeout");
+  }
   if (error instanceof Error && /fetch|network|socket|ECONN/i.test(error.message)) {
     return new GeminiBatchError("Gemini 네트워크 오류", "network", true, "network_error");
   }
   return new GeminiBatchError("Gemini 처리 중 알 수 없는 오류", "unknown", false, "unknown_error");
 }
 
-function normalizeVector(values: number[]): number[] {
+export function normalizeVector(values: number[]): number[] {
+  if (values.length !== 1536 || values.some((value) => !Number.isFinite(value))) {
+    throw new GeminiBatchError("임베딩 벡터 형식 오류", "schema", false, "invalid_embedding");
+  }
   const norm = Math.sqrt(values.reduce((sum, value) => sum + value * value, 0));
   if (!Number.isFinite(norm) || norm === 0) throw new GeminiBatchError("빈 임베딩", "schema", false, "empty_embedding");
   return values.map((value) => value / norm);
 }
 
-export class GeminiEstimateProvider {
-  private readonly ai: GoogleGenAI;
+export type GeminiProviderClient = {
+  files: Pick<GoogleGenAI["files"], "upload" | "get" | "delete">;
+  models: Pick<GoogleGenAI["models"], "generateContent" | "embedContent">;
+};
+interface GeminiProviderOptions {
+  client?: GeminiProviderClient;
+  /** Shorter limits are injectable for offline timeout regression tests. */
+  operationTimeoutMs?: number;
+  cleanupTimeoutMs?: number;
+  pollIntervalMs?: number;
+}
 
-  constructor(private readonly env: GeminiEnv) {
-    this.ai = new GoogleGenAI({ apiKey: env.apiKey });
+export class GeminiEstimateProvider {
+  readonly provider = "gemini";
+  private readonly ai: GeminiProviderClient;
+  private readonly operationTimeoutMs: number;
+  private readonly cleanupTimeoutMs: number;
+  private readonly pollIntervalMs: number;
+
+  constructor(private readonly env: GeminiEnv, options: GeminiProviderOptions = {}) {
+    this.ai = options.client ?? new GoogleGenAI({ apiKey: env.apiKey });
+    this.operationTimeoutMs = Math.max(1, Math.min(180_000, options.operationTimeoutMs ?? 180_000));
+    this.cleanupTimeoutMs = Math.max(1, Math.min(10_000, options.cleanupTimeoutMs ?? 10_000));
+    this.pollIntervalMs = Math.max(1, Math.min(2_000, options.pollIntervalMs ?? 2_000));
   }
 
   async extract(input: GeminiExtractionInput): Promise<GeminiExtractionOutput> {
     const startedAt = Date.now();
+    const deadline = startedAt + this.operationTimeoutMs;
+    const operationSignal = AbortSignal.timeout(this.operationTimeoutMs);
+    const stepSignal = (milliseconds: number) => AbortSignal.any([operationSignal, AbortSignal.timeout(milliseconds)]);
     let uploadedName: string | undefined;
     try {
       const uploaded = await this.ai.files.upload({
@@ -92,7 +123,7 @@ export class GeminiEstimateProvider {
         config: {
           mimeType: input.mimeType,
           displayName: input.displayName,
-          abortSignal: AbortSignal.timeout(120_000),
+          abortSignal: stepSignal(120_000),
         },
       });
       uploadedName = uploaded.name;
@@ -102,8 +133,10 @@ export class GeminiEstimateProvider {
 
       let file = uploaded;
       for (let attempt = 0; file.state === "PROCESSING" && attempt < 30; attempt += 1) {
-        await new Promise((resolve) => setTimeout(resolve, 2_000));
-        file = await this.ai.files.get({ name: uploaded.name });
+        if (operationSignal.aborted || Date.now() >= deadline) break;
+        await delay(Math.min(this.pollIntervalMs, Math.max(1, deadline - Date.now())), undefined, { signal: operationSignal });
+        if (operationSignal.aborted || Date.now() >= deadline) break;
+        file = await this.ai.files.get({ name: uploaded.name, config: { abortSignal: stepSignal(10_000) } });
       }
       if (file.state === "PROCESSING") {
         throw new GeminiBatchError("Gemini 파일 처리 시간 초과", "timeout", true, "file_processing_timeout");
@@ -112,20 +145,27 @@ export class GeminiEstimateProvider {
         throw new GeminiBatchError("Gemini가 파일을 처리하지 못함", "unsupported_file", false, "file_processing_failed");
       }
 
+      operationSignal.throwIfAborted();
       const response = await this.ai.models.generateContent({
         model: input.model,
         contents: [
           createPartFromUri(file.uri ?? uploaded.uri, file.mimeType ?? uploaded.mimeType),
-          buildExtractionUserPrompt({ mimeType: input.mimeType, pageCount: input.pageCount }),
+          buildExtractionUserPrompt({ mimeType: input.mimeType, pageCount: input.pageCount, documentKind: input.documentKind }),
         ],
         config: {
           systemInstruction: EXTRACTION_SYSTEM_INSTRUCTION,
           responseMimeType: "application/json",
           responseSchema: GEMINI_EXTRACTION_RESPONSE_SCHEMA,
-          abortSignal: AbortSignal.timeout(120_000),
+          maxOutputTokens: 16000,
+          abortSignal: stepSignal(120_000),
         },
       });
 
+      if (response.candidates?.[0]?.finishReason !== "STOP") {
+        const reason = response.candidates?.[0]?.finishReason;
+        const blocked = Boolean(response.promptFeedback?.blockReason) || Boolean(reason && ["SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII"].includes(reason));
+        throw new GeminiBatchError("문서 추출 응답이 끝까지 완료되지 않았습니다.", "schema", !blocked, blocked ? "extraction_refused" : "incomplete_response");
+      }
       const text = response.text;
       if (!text) throw new GeminiBatchError("Gemini JSON 응답이 비어 있음", "invalid_json", true, "empty_response");
       let rawOutput: unknown;
@@ -151,18 +191,19 @@ export class GeminiEstimateProvider {
       throw apiError(error);
     } finally {
       if (uploadedName) {
-        await this.ai.files.delete({ name: uploadedName }).catch(() => undefined);
+        await this.ai.files.delete({ name: uploadedName, config: { abortSignal: AbortSignal.timeout(this.cleanupTimeoutMs) } }).catch(() => undefined);
       }
     }
   }
 
-  async embed(content: string): Promise<number[]> {
+  async embed(content: string, operationSignal?: AbortSignal): Promise<number[]> {
     try {
       const response = await this.ai.models.embedContent({
         model: this.env.embeddingModel,
         contents: content,
         config: {
           outputDimensionality: 1536,
+          abortSignal: operationSignal ? AbortSignal.any([operationSignal, AbortSignal.timeout(60_000)]) : AbortSignal.timeout(60_000),
           taskType: "RETRIEVAL_DOCUMENT",
           title: content.slice(0, 120),
         },

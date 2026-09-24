@@ -1,10 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { todayInScheduleTz } from "@/lib/periodic/schedule-math";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getActiveOrganization } from "@/lib/db/organizations";
 import { createDeliveryNoteSchema, hasContentLineItem, type CreateDeliveryNoteInput } from "@/lib/validators/document";
-import { computeDocumentTotals } from "@/lib/tax";
+import { saveSalesDocument } from "@/lib/documents/save-sales-document";
 import type { LineItemInput } from "@/lib/validators/document";
 import { createInvoice } from "@/lib/actions/invoices";
 
@@ -54,11 +55,7 @@ export async function createDeliveryNote(
   });
   if (seqErr) return { ok: false, error: seqErr.message };
 
-  const totals = computeDocumentTotals(parsed.data.lineItems, parsed.data.taxRounding);
-
-  const { data: deliveryNote, error: insertErr } = await supabase
-    .from("delivery_notes")
-    .insert({
+  const { data: deliveryNote, error: insertErr } = await saveSalesDocument(supabase, "delivery_note", {
       organization_id: org.organization_id,
       client_id: parsed.data.clientId ?? null,
       client_destination_id: parsed.data.clientDestinationId ?? null,
@@ -67,7 +64,6 @@ export async function createDeliveryNote(
       issue_date: parsed.data.issueDate.toISOString().slice(0, 10),
       delivery_date: parsed.data.deliveryDate?.toISOString().slice(0, 10) ?? null,
       linked_invoice_id: parsed.data.linkedInvoiceId ?? null,
-      status: "draft",
       tax_display: parsed.data.taxDisplay,
       tax_rounding: parsed.data.taxRounding,
       withholding_type: parsed.data.withholdingType,
@@ -81,35 +77,56 @@ export async function createDeliveryNote(
       internal_memo: parsed.data.internalMemo ?? null,
       recipient_snapshot: parsed.data.recipientSnapshot ?? null,
       sender_snapshot: parsed.data.senderSnapshot ?? null,
-      subtotal: totals.subtotal,
-      tax_amount: totals.tax,
-      created_by: user.id,
-    })
-    .select("id")
-    .single();
+    }, parsed.data.lineItems);
 
   if (insertErr || !deliveryNote) return { ok: false, error: insertErr?.message ?? "Insert failed" };
 
-  if (parsed.data.lineItems.length > 0) {
-    const lines = parsed.data.lineItems.map((li, idx) => ({
-      document_id: deliveryNote.id,
-      line_no: idx + 1,
-      item_id: li.itemId ?? null,
-      name_snapshot: li.name,
-      qty: li.qty,
-      unit_snapshot: li.unit ?? null,
-      unit_price_snapshot: li.unitPrice,
-      tax_category: li.taxCategory,
-      tax_rate_snapshot: li.taxRateSnapshot,
-      withholding_exempt_snapshot: li.withholdingExempt ?? null,
-    }));
-
-    const { error: lineErr } = await supabase.from("delivery_note_line_items").insert(lines);
-    if (lineErr) return { ok: false, error: lineErr.message };
-  }
-
   revalidatePath("/[lang]/delivery-notes", "page");
   return { ok: true, data: deliveryNote.id };
+}
+
+/** Replace the existing document and lines in one transaction. */
+export async function updateDeliveryNote(
+  deliveryNoteId: string,
+  formData: CreateDeliveryNoteInput,
+): Promise<ActionResult> {
+  const parsed = createDeliveryNoteSchema.safeParse(formData);
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const [field, messages] of Object.entries(parsed.error.flatten().fieldErrors)) {
+      fieldErrors[field] = messages?.[0] ?? "Invalid";
+    }
+    return { ok: false, error: "Validation failed", fieldErrors };
+  }
+  const org = await getActiveOrganization();
+  if (!org) return { ok: false, error: "No active organization" };
+  const supabase = await getSupabaseServerClient();
+  const { error } = await saveSalesDocument(supabase, "delivery_note", {
+      organization_id: org.organization_id,
+      client_id: parsed.data.clientId ?? null,
+      client_destination_id: parsed.data.clientDestinationId ?? null,
+      subject: parsed.data.subject ?? null,
+      issue_date: parsed.data.issueDate.toISOString().slice(0, 10),
+      delivery_date: parsed.data.deliveryDate?.toISOString().slice(0, 10) ?? null,
+      linked_invoice_id: parsed.data.linkedInvoiceId ?? null,
+      tax_display: parsed.data.taxDisplay,
+      tax_rounding: parsed.data.taxRounding,
+      withholding_type: parsed.data.withholdingType,
+      template_key: parsed.data.templateKey,
+      output_locale: parsed.data.outputLocale,
+      client_honorific: parsed.data.clientHonorific,
+      show_client_honorific: parsed.data.clientHonorific !== "none",
+      show_seal: parsed.data.showSeal,
+      template_message: parsed.data.templateMessage ?? null,
+      remarks: parsed.data.remarks ?? null,
+      internal_memo: parsed.data.internalMemo ?? null,
+      recipient_snapshot: parsed.data.recipientSnapshot ?? null,
+      sender_snapshot: parsed.data.senderSnapshot ?? null,
+    }, parsed.data.lineItems, deliveryNoteId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[lang]/delivery-notes", "page");
+  revalidatePath(`/[lang]/delivery-notes/${deliveryNoteId}`, "page");
+  return { ok: true, data: undefined };
 }
 
 export async function deleteDeliveryNote(deliveryNoteId: string): Promise<ActionResult> {
@@ -117,7 +134,7 @@ export async function deleteDeliveryNote(deliveryNoteId: string): Promise<Action
   const { error } = await supabase
     .from("delivery_notes")
     .update({ deleted_at: new Date().toISOString() })
-    .eq("id", deliveryNoteId);
+    .eq("id", deliveryNoteId).is("deleted_at", null);
 
   if (error) return { ok: false, error: error.message };
   revalidatePath("/[lang]/delivery-notes", "page");
@@ -130,7 +147,7 @@ export async function toggleDeliveryNoteIssueFlag(deliveryNoteId: string): Promi
   const { data: current, error: readErr } = await supabase
     .from("delivery_notes")
     .select("issued_marked_at")
-    .eq("id", deliveryNoteId)
+    .eq("id", deliveryNoteId).is("deleted_at", null)
     .maybeSingle();
   if (readErr) return { ok: false, error: readErr.message };
   if (!current) return { ok: false, error: "納品書が見つかりません" };
@@ -139,7 +156,7 @@ export async function toggleDeliveryNoteIssueFlag(deliveryNoteId: string): Promi
   const { error } = await supabase
     .from("delivery_notes")
     .update({ issued_marked_at: next })
-    .eq("id", deliveryNoteId);
+    .eq("id", deliveryNoteId).is("deleted_at", null);
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/[lang]/delivery-notes", "page");
@@ -162,6 +179,7 @@ export async function bulkSetDeliveryNotesStatus(
     .from("delivery_notes")
     .update({ status })
     .in("id", validIds)
+    .is("deleted_at", null)
     .eq("organization_id", org.organization_id)
     .select("id");
   if (error) return { ok: false, error: error.message };
@@ -191,6 +209,7 @@ export async function bulkUnmarkDeliveryNotesProcessed(ids: string[]): Promise<A
     .from("delivery_notes")
     .select("id, issued_marked_at")
     .in("id", validIds)
+    .is("deleted_at", null)
     .eq("organization_id", org.organization_id);
   if (readErr) return { ok: false, error: readErr.message };
 
@@ -199,7 +218,7 @@ export async function bulkUnmarkDeliveryNotesProcessed(ids: string[]): Promise<A
     const { error } = await supabase
       .from("delivery_notes")
       .update({ status: row.issued_marked_at ? "issued" : "draft" })
-      .eq("id", row.id);
+      .eq("id", row.id).is("deleted_at", null);
     if (!error) updated += 1;
   }
 
@@ -244,7 +263,7 @@ async function loadDeliveryNoteForConversion(
     .select(
       "client_id, client_destination_id, subject, tax_display, tax_rounding, withholding_type, template_key, output_locale, client_honorific, show_seal, template_message, remarks, recipient_snapshot, sender_snapshot, delivery_note_line_items(*)",
     )
-    .eq("id", deliveryNoteId)
+    .eq("id", deliveryNoteId).is("deleted_at", null)
     .eq("organization_id", orgId)
     .is("deleted_at", null)
     .order("line_no", { referencedTable: "delivery_note_line_items", ascending: true })
@@ -267,7 +286,7 @@ function deliveryNoteLinesToInput(note: DeliveryNoteForConversion): LineItemInpu
 }
 
 function todayDate() {
-  return new Date();
+  return new Date(todayInScheduleTz());
 }
 
 async function markDeliveryNoteBilled(deliveryNoteId: string, invoiceId: string) {
@@ -275,7 +294,7 @@ async function markDeliveryNoteBilled(deliveryNoteId: string, invoiceId: string)
   await supabase
     .from("delivery_notes")
     .update({ billed_marked_at: new Date().toISOString(), linked_invoice_id: invoiceId })
-    .eq("id", deliveryNoteId);
+    .eq("id", deliveryNoteId).is("deleted_at", null);
 }
 
 /** 納品書を「請求書に変換」。成功した件ごとに請求バッジを自動で「請求済」に切り替える。 */

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import {
   documentOutputLocaleSchema,
-  lineItemSchema,
+  documentLineItemsSchema,
   taxDisplaySchema,
   taxRoundingSchema,
   withholdingTypeSchema,
@@ -57,7 +57,7 @@ export const createPeriodicScheduleSchema = z
     remarks: z.string().max(2000).optional(),
     internalMemo: z.string().max(2000).optional(),
 
-    lineItems: z.array(lineItemSchema).min(1).max(80),
+    lineItems: documentLineItemsSchema,
   })
   .superRefine((value, ctx) => {
     if (value.cycle === "monthly" && value.dayMode === "day" && value.dayValue == null) {

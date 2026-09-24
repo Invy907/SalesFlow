@@ -1,3 +1,5 @@
+import { mapSalesDocumentDetail } from "@/lib/documents/map-document-detail";
+import { getDocumentSealUrl } from "@/lib/documents/seal-url";
 import { notFound } from "next/navigation";
 import { requireActiveOrg } from "@/lib/guards";
 import { getEstimateById } from "@/lib/db/estimates";
@@ -34,24 +36,37 @@ export default async function EstimateDetailPage({
     shareExpiresAt = (shareRow?.expires_at as string | null) ?? null;
   }
 
-  const recipient = (estimate.recipient_snapshot ?? {}) as Record<string, string>;
   const lines = (estimate.estimate_line_items ?? []) as Array<{
     line_no: number;
     name_snapshot: string;
     qty: number | string;
     unit_snapshot: string | null;
     unit_price_snapshot: number | string;
+    tax_category: string;
   }>;
+
+  const mapped = mapSalesDocumentDetail(estimate, lines, {
+    companyName: profile?.company_name_line1 ?? "",
+    postalCode: profile?.postal_code ?? "",
+    addressLine1: profile?.address_line1 ?? "",
+    addressLine2: profile?.address_line2 ?? "",
+    addressLine3: profile?.address_line3 ?? "",
+    tel: profile?.tel ?? "",
+    fax: profile?.fax ?? "",
+    email: profile?.email ?? "",
+    registrationNumber: profile?.invoice_registration_number ?? "",
+    sealUrl: estimate.show_seal !== false ? await getDocumentSealUrl(profile?.seal_path) : null,
+  });
 
   const detail: EstimateDetail = {
     id: estimate.id as string,
     documentNumber: (estimate.document_number as string) ?? "",
     clientId: (estimate.client_id as string | null) ?? null,
     clientEmail: ((estimate.clients as { email?: string | null } | null)?.email as string) ?? "",
-    clientName:
-      ((estimate.clients as { name?: string } | null)?.name as string) ?? recipient.clientName ?? "",
+    clientName: mapped.clientName,
     subject: (estimate.subject as string) ?? "",
     issueDate: (estimate.issue_date as string) ?? "",
+    issueMarkedAt: estimate.issue_marked_at ?? null,
     expiryDate: (estimate.expiry_date as string) ?? "",
     status: (estimate.status as string) ?? "draft",
     outputLocale: normalizeDocumentOutputLocale(estimate.output_locale),
@@ -61,6 +76,9 @@ export default async function EstimateDetailPage({
     remarks: (estimate.remarks as string) ?? "",
     subtotal: Number(estimate.subtotal ?? 0),
     tax: Number(estimate.tax_amount ?? 0),
+    taxDisplay: mapped.taxDisplay,
+    withholding: mapped.withholding,
+    taxBreakdown: mapped.taxBreakdown,
     total: Number(estimate.total ?? 0),
     shareToken: (estimate.share_token as string | null) ?? null,
     shareExpiresAt,
@@ -70,12 +88,11 @@ export default async function EstimateDetailPage({
       qty: Number(l.qty ?? 0),
       unit: l.unit_snapshot ?? "",
       unitPrice: Number(l.unit_price_snapshot) || 0,
+      taxCategory: mapped.lines[index]?.taxCategory,
     })),
-    sender: {
-      companyName: profile?.company_name_line1 ?? "",
-      tel: profile?.tel ?? "",
-      email: profile?.email ?? "",
-    },
+    sender: mapped.sender,
+    recipient: mapped.recipient,
+    showSeal: mapped.showSeal,
   };
 
   return (

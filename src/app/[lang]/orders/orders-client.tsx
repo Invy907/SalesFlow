@@ -145,7 +145,7 @@ export function OrdersClient({
       <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-12 sm:px-6 sm:py-8 sm:pb-14 lg:px-8 lg:pb-16">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-[32px] font-bold tracking-tight text-slate-900">{ui.title}</h1>
+            <h1 className="min-w-0 text-[28px] font-bold tracking-tight text-slate-900 [overflow-wrap:anywhere] sm:text-[32px]">{ui.title}</h1>
             <ListPrimaryButton label={ui.createOrder} onClick={() => setIsModalOpen(true)} />
           </div>
 
@@ -223,18 +223,18 @@ export function OrdersClient({
           </div>
         ) : null}
 
-        <div className="mt-6 grid min-h-[720px] grid-cols-1 gap-0 overflow-hidden rounded border border-slate-200 bg-white xl:grid-cols-[320px_1fr]">
+        <div className="mt-6 grid min-w-0 grid-cols-1 gap-0 overflow-hidden rounded border border-slate-200 bg-white xl:min-h-[720px] xl:grid-cols-[320px_minmax(0,1fr)]">
           <section className="border-b border-slate-200 xl:border-r xl:border-b-0">
             <div className="border-b border-slate-200 px-4 py-3 text-[15px] font-semibold text-slate-800">
               {listTitle} {rows.length}
             </div>
 
             {rows.length === 0 ? (
-              <div className="flex min-h-[560px] items-center justify-center px-4 text-[15px] text-slate-300">
+              <div className="flex min-h-[160px] items-center justify-center px-4 py-8 text-center text-[15px] text-slate-500 xl:min-h-[560px]">
                 {ui.emptyList}
               </div>
             ) : (
-              <ul className="max-h-[640px] divide-y divide-slate-100 overflow-y-auto">
+              <ul className="max-h-[36dvh] divide-y divide-slate-100 overflow-y-auto xl:max-h-[640px]">
                 {rows.map((row) => (
                   <li key={row.id}>
                     <button
@@ -245,18 +245,18 @@ export function OrdersClient({
                         detail?.id === row.id ? "bg-[#E8F5EF]/70" : "hover:bg-slate-50",
                       ].join(" ")}
                     >
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-[14px] font-semibold text-slate-900">
+                      <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
+                        <span className="min-w-0 max-w-full text-[14px] font-semibold text-slate-900 [overflow-wrap:anywhere]">
                           {row.clientName || ui.noClient}
                         </span>
-                        <span className="shrink-0 text-[13px] tabular-nums text-slate-600">
+                        <span className="min-w-0 max-w-full text-[13px] tabular-nums text-slate-600 [overflow-wrap:anywhere]">
                           {yen(row.total)}
                         </span>
                       </div>
                       <p className="mt-1 truncate text-[13px] text-slate-500">
                         {row.subject || ui.detail.noValue}
                       </p>
-                      <p className="mt-1 text-[12px] tabular-nums text-slate-400">
+                      <p className="mt-1 text-[12px] tabular-nums text-slate-400 [overflow-wrap:anywhere]">
                         {row.orderNumber} · {row.orderDate}
                       </p>
                     </button>
@@ -269,7 +269,7 @@ export function OrdersClient({
           {detail ? (
             <OrderDetailPanel detail={detail} ui={ui} />
           ) : (
-            <section className="flex min-h-[560px] items-center justify-center px-6 text-[15px] text-slate-300">
+            <section className="flex min-h-[160px] items-center justify-center px-4 py-8 text-center text-[15px] text-slate-500 sm:px-6 xl:min-h-[560px]">
               {ui.emptyDetail}
             </section>
           )}
@@ -335,19 +335,19 @@ function OrderDetailPanel({
   ];
 
   return (
-    <section className="min-h-[560px] px-6 py-5">
-      <div className="flex items-start justify-between gap-4">
-        <h2 className="text-[18px] font-semibold text-slate-900">
+    <section className="min-w-0 px-4 py-5 sm:px-6 xl:min-h-[560px]">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <h2 className="min-w-0 max-w-full text-[18px] font-semibold text-slate-900 [overflow-wrap:anywhere]">
           {detail.clientName || ui.noClient}
         </h2>
-        <p className="text-[18px] font-bold tabular-nums text-slate-900">{yen(detail.total)}</p>
+        <p className="min-w-0 max-w-full text-[18px] font-bold tabular-nums text-slate-900 [overflow-wrap:anywhere]">{yen(detail.total)}</p>
       </div>
 
       <dl className="mt-5 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
         {fields.map((field) => (
           <div key={field.label} className="flex gap-3 text-[14px]">
             <dt className="w-[88px] shrink-0 text-slate-500">{field.label}</dt>
-            <dd className="min-w-0 flex-1 truncate text-slate-800">{field.value}</dd>
+            <dd className="min-w-0 flex-1 text-slate-800 [overflow-wrap:anywhere]">{field.value}</dd>
           </div>
         ))}
       </dl>
@@ -355,7 +355,7 @@ function OrderDetailPanel({
       {detail.comment ? (
         <div className="mt-6">
           <p className="text-[13px] font-semibold text-slate-500">{d.comment}</p>
-          <p className="mt-1 whitespace-pre-line text-[14px] leading-6 text-slate-700">
+          <p className="mt-1 whitespace-pre-line text-[14px] leading-6 text-slate-700 [overflow-wrap:anywhere]">
             {detail.comment}
           </p>
         </div>
@@ -366,7 +366,7 @@ function OrderDetailPanel({
         {detail.lineItems.length === 0 ? (
           <p className="mt-3 text-[14px] text-slate-400">{d.noItems}</p>
         ) : (
-          <div className="mt-3 overflow-x-auto rounded border border-slate-200">
+          <div className="mt-3 min-w-0 overflow-x-auto rounded border border-slate-200" tabIndex={0} role="region" aria-label={d.items}>
             <table className="w-full min-w-[420px] border-collapse text-[13px]">
               <thead>
                 <tr className="border-b border-slate-200 bg-[#f8fafc]">
@@ -386,14 +386,14 @@ function OrderDetailPanel({
               <tbody>
                 {detail.lineItems.map((item) => (
                   <tr key={item.id} className="border-b border-slate-100 last:border-b-0">
-                    <td className="px-3 py-2.5 text-slate-800">{item.name}</td>
-                    <td className="px-3 py-2.5 text-right tabular-nums text-slate-600">
+                    <td className="max-w-[260px] px-3 py-2.5 text-slate-800 [overflow-wrap:anywhere]">{item.name}</td>
+                    <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-slate-600">
                       {item.qty.toLocaleString("ja-JP")}
                     </td>
-                    <td className="px-3 py-2.5 text-right tabular-nums text-slate-600">
+                    <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-slate-600">
                       {yen(item.unitPrice)}
                     </td>
-                    <td className="px-3 py-2.5 text-right tabular-nums text-slate-900">
+                    <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-slate-900">
                       {yen(item.amount)}
                     </td>
                   </tr>

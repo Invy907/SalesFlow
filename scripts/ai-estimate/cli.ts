@@ -2,6 +2,7 @@ import { loadBatchEnv, requireGeminiEnv } from "../../src/lib/ai/estimates/batch
 import { parseCliOptions } from "../../src/lib/ai/estimates/batch/cli-options";
 import { GeminiEstimateProvider } from "../../src/lib/ai/estimates/batch/gemini";
 import { AiEstimateBatchRepository } from "../../src/lib/ai/estimates/batch/repository";
+import { extractionConfig, makeExtractionProvider } from "../../src/lib/ai/estimates/extraction-provider";
 import {
   dryRunSummary,
   reindexApprovedSources,
@@ -34,14 +35,18 @@ async function main(): Promise<void> {
     return;
   }
 
-  const geminiEnv = requireGeminiEnv();
-  const provider = new GeminiEstimateProvider(geminiEnv);
   if (options.command === "reindex") {
+    const geminiEnv = requireGeminiEnv();
+    const provider = new GeminiEstimateProvider(geminiEnv);
     print(await reindexApprovedSources(repository, provider, geminiEnv, options.limit ?? 100));
     return;
   }
-
-  print(await runExtractionBatch(repository, provider, env, geminiEnv, {
+  const configuration = extractionConfig(process.env);
+  const model = configuration?.model ?? "salesflow-file-parser-v1";
+  const providerEnv = { apiKey: configuration?.apiKey ?? "", extractionModel: model,
+    retryModel: configuration?.provider === "gemini" ? process.env.GEMINI_RETRY_MODEL?.trim() || "gemini-3.8-flash" : model,
+    embeddingModel: process.env.GEMINI_EMBEDDING_MODEL?.trim() || "gemini-embedding-001" };
+  print(await runExtractionBatch(repository, makeExtractionProvider(configuration), env, providerEnv, {
     command: options.command,
     limit: options.limit,
     all: options.all,

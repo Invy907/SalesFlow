@@ -15,7 +15,8 @@
 import { z } from "zod";
 
 /** 스키마를 바꾸면 반드시 올린다. DB의 extraction_version 에 그대로 저장된다. */
-export const EXTRACTION_SCHEMA_VERSION = "1.0.0";
+export const EXTRACTION_SCHEMA_VERSION = "2.0.0";
+export type SourceDocumentKind = "estimate" | "price_list" | "design" | "work_scope";
 
 export const SUPPORTED_CURRENCIES = ["JPY", "KRW", "USD", "EUR"] as const;
 export type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number];
@@ -28,6 +29,8 @@ export type TaxMode = (typeof TAX_MODES)[number];
 /* ------------------------------------------------------------------ */
 
 export interface EstimateExtractionLine {
+  /** Deterministic table imports can distinguish explicitly labelled reduced/standard 8%. */
+  printedTaxCategory?: "standard_10" | "reduced_8" | "standard_8" | "exempt" | "standard_5";
   lineNumber: number;
   rawItemName: string | null;
   specification: string | null;
@@ -45,6 +48,10 @@ export interface EstimateExtractionLine {
 
 export interface EstimateExtractionResult {
   schemaVersion: string;
+  documentKind?: SourceDocumentKind;
+  workDetails?: string;
+  assumptions?: string;
+  exclusions?: string;
 
   document: {
     estimateNumber: string | null;
@@ -108,6 +115,10 @@ export const extractionLineSchema: z.ZodType<EstimateExtractionLine> = z.object(
 
 export const extractionResultSchema: z.ZodType<EstimateExtractionResult> = z.object({
   schemaVersion: z.string().min(1).max(20),
+  documentKind: z.enum(["estimate", "price_list", "design", "work_scope"]).optional(),
+  workDetails: z.string().max(16000).optional(),
+  assumptions: z.string().max(4000).optional(),
+  exclusions: z.string().max(4000).optional(),
   document: z.object({
     estimateNumber: text(100),
     issueDate: isoDate,
@@ -132,7 +143,7 @@ export const extractionResultSchema: z.ZodType<EstimateExtractionResult> = z.obj
     printedTotal: amount,
     taxMode: z.enum(TAX_MODES),
   }),
-  lines: z.array(extractionLineSchema).max(500),
+  lines: z.array(extractionLineSchema).max(80),
   tableRecognitionFailed: z.boolean(),
   confidence: z.number().min(0).max(1).nullable(),
   notes: z.array(z.string().max(1000)).max(50),
@@ -168,14 +179,20 @@ export function parseExtractionResult(raw: unknown): ExtractionParseResult {
 export const GEMINI_EXTRACTION_RESPONSE_SCHEMA = {
   type: "OBJECT",
   required: [
+    "documentKind", "workDetails", "assumptions", "exclusions",
     "schemaVersion", "document", "supplier", "customer",
     "totals", "lines", "tableRecognitionFailed", "confidence", "notes", "warnings",
   ],
   propertyOrdering: [
+    "documentKind", "workDetails", "assumptions", "exclusions",
     "schemaVersion", "document", "supplier", "customer",
     "totals", "lines", "tableRecognitionFailed", "confidence", "notes", "warnings",
   ],
   properties: {
+    documentKind: { type: "STRING", enum: ["estimate", "price_list", "design", "work_scope"] },
+    workDetails: { type: "STRING", description: "작업 범위·규격·공수·수량 산정에 필요한 원문 내용. 최대 16000자. 없으면 빈 문자열" },
+    assumptions: { type: "STRING", description: "원문에 명시된 전제조건. 최대 4000자. 없으면 빈 문자열" },
+    exclusions: { type: "STRING", description: "원문에 명시된 제외 범위. 최대 4000자. 없으면 빈 문자열" },
     schemaVersion: { type: "STRING", description: `항상 "${EXTRACTION_SCHEMA_VERSION}"` },
     document: {
       type: "OBJECT",

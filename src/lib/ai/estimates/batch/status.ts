@@ -45,7 +45,7 @@ export const RETRYABLE_STATUSES: readonly ProcessingStatus[] = ["failed_retryabl
  * 허용된 상태 전이. 여기에 없는 이동은 코드 버그로 취급한다.
  *
  * - needs_review → queued : 사람이 "재처리"를 눌렀을 때 (상위 모델로 재추출)
- * - indexed → queued      : 프롬프트/모델 버전을 올려 전체 재처리할 때
+ * - indexed 자료는 자동 재추출하지 않는다. 사람의 검수 저장이 승인/인덱스를 무효화한다.
  * - failed_permanent → queued : 사람이 명시적으로 되살릴 때만
  */
 const TRANSITIONS: Record<ProcessingStatus, readonly ProcessingStatus[]> = {
@@ -53,11 +53,11 @@ const TRANSITIONS: Record<ProcessingStatus, readonly ProcessingStatus[]> = {
   queued: ["extracting", "duplicate", "rejected"],
   extracting: ["extracted", "failed_retryable", "failed_permanent"],
   extracted: ["validating", "failed_retryable", "failed_permanent"],
-  validating: ["needs_review", "approved", "failed_retryable", "failed_permanent"],
+  validating: ["needs_review", "failed_retryable", "failed_permanent"],
   needs_review: ["approved", "rejected", "queued"],
   approved: ["indexing", "rejected"],
   indexing: ["indexed", "failed_retryable", "failed_permanent"],
-  indexed: ["queued"],
+  indexed: ["rejected"],
   failed_retryable: ["queued", "failed_permanent", "rejected"],
   failed_permanent: ["queued"],
   rejected: [],

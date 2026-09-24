@@ -38,7 +38,7 @@ export function CollectionsClient({ report }: { report: CollectionsReport }) {
             </p>
           </div>
 
-          <div className="flex items-end gap-3">
+          <div className="flex flex-wrap items-end gap-3">
             <label className="block">
               <span className="mb-1 block text-[13px] font-medium text-slate-600">
                 {page.aggregationMonth}
@@ -58,8 +58,8 @@ export function CollectionsClient({ report }: { report: CollectionsReport }) {
         </div>
 
         <div className="mt-8 rounded border border-slate-200 bg-white">
-          <div className="overflow-x-auto sm:overflow-visible">
-            <table className="w-full border-collapse text-[14px]">
+          <div className="overflow-x-auto" tabIndex={0} role="region" aria-label={page.title}>
+            <table className="w-full min-w-[720px] border-collapse text-[14px]">
               <thead>
                 <tr className="border-b border-slate-200 bg-[#f8fafc]">
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">
@@ -79,7 +79,7 @@ export function CollectionsClient({ report }: { report: CollectionsReport }) {
                   {columns(report.totals).map((value, i) => (
                     <td
                       key={page.headers[i + 1]}
-                      className="px-4 py-4 text-right tabular-nums text-slate-900"
+                      className="px-4 py-4 whitespace-nowrap text-right tabular-nums text-slate-900"
                     >
                       {yen(value)}
                     </td>
@@ -95,11 +95,11 @@ export function CollectionsClient({ report }: { report: CollectionsReport }) {
                 ) : (
                   report.rows.map((row) => (
                     <tr key={row.clientId} className="border-b border-slate-100 last:border-b-0">
-                      <td className="px-4 py-4 text-slate-700">{row.clientName || page.noClient}</td>
+                      <td className="max-w-[240px] px-4 py-4 text-slate-700 [overflow-wrap:anywhere]">{row.clientName || page.noClient}</td>
                       {columns(row).map((value, i) => (
                         <td
                           key={`${row.clientId}-${i}`}
-                          className="px-4 py-4 text-right tabular-nums text-slate-600"
+                          className="px-4 py-4 whitespace-nowrap text-right tabular-nums text-slate-600"
                         >
                           {yen(value)}
                         </td>

@@ -1,5 +1,9 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## AI 견적 검증
+
+API 키 없이 `npm run ai-estimate:validate`로 합성 자료와 가격 처리를 검사할 수 있습니다. Gemini 또는 Claude 키를 설정한 실제 추출·생성 검증, 테스트 파일과 앱 검증 시나리오는 [AI 견적 API 검증 가이드](docs/AI_ESTIMATE_API_VALIDATION.md)를 참고하세요.
+
 ## Getting Started
 
 First, run the development server:

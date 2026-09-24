@@ -4,16 +4,19 @@ import Link from "next/link";
 import { useCallback, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SalesFlowShell } from "@/components/salesflow-shell";
+import { ModalDialog } from "@/components/modal-dialog";
 import { useLanguage } from "@/contexts/language-context";
 import { appHrefs } from "@/lib/app-hrefs";
 import {
   DocumentBottomBar,
+  type SenderDetails,
   ClientHonorificSelect,
   DocumentDateFieldRow,
   DocumentLineItemsTable,
   EMPTY_LINE_ITEM_TOTALS,
   HonorificField as SharedHonorificField,
   RecipientPostalCodeField,
+  SenderDetailFields,
   toIsoDate,
   useDocumentDateFields,
   type ItemOption,
@@ -39,7 +42,12 @@ import { buildDeliveryNoteDetailUi } from "@/lib/documents/build-detail-ui";
 import { getDocumentPreviewPanelLabels } from "@/lib/documents/preview-panel-labels";
 import type { TaxRounding } from "@/lib/tax";
 import { taxCategoryFromLabel } from "@/lib/tax";
-import { createDeliveryNote } from "@/lib/actions/delivery-notes";
+import { createDeliveryNote, updateDeliveryNote } from "@/lib/actions/delivery-notes";
+import type { SimpleDocumentFormInitial } from "@/lib/documents/simple-document-form";
+import type { CreateDeliveryNoteInput } from "@/lib/validators/document";
+import type { SimpleDocumentDefaults } from "../../documents/form-defaults";
+import type { TaxDisplay } from "@/lib/tax";
+import { taxRateSnapshotFor } from "@/lib/tax";
 import type { ClientOptionRow } from "@/lib/db/clients";
 
 type TabKey = "basic" | "recipient" | "tax" | "template";
@@ -73,32 +81,15 @@ type PreviewForm = {
   documentNumber: string;
   subject: string;
   senderCompanyName: string;
+  sender: SenderDetails;
+  taxDisplay: TaxDisplay;
   templateMessage: string;
   remarks: string;
   taxRounding: TaxRounding;
   recipient: RecipientState;
 };
 
-export type DeliveryNoteFormInitial = {
-  clientId?: string | null;
-  clientName?: string;
-  subject?: string;
-  clientHonorific?: ClientHonorific;
-  showSeal?: boolean;
-  outputLocale?: DocumentOutputLocale;
-  templateMessage?: string;
-  remarks?: string;
-  recipient?: Partial<{
-    postalCode: string;
-    addressLine1: string;
-    addressLine2: string;
-    companyName: string;
-    department: string;
-    contact: string;
-    phone: string;
-  }>;
-  lines?: LineItemRow[];
-};
+export type DeliveryNoteFormInitial = SimpleDocumentFormInitial;
 
 function isBlankLineRow(row: LineItemRow) {
   return !row.name && !row.qty && !row.unit && !row.price;
@@ -108,10 +99,14 @@ export function NewDeliveryNoteClient({
   clients = [],
   initial,
   items = [],
+  defaults,
+  documentId,
 }: {
   clients?: ClientOptionRow[];
   initial?: DeliveryNoteFormInitial;
   items?: ItemOption[];
+  defaults: SimpleDocumentDefaults;
+  documentId?: string;
 }) {
   const { lang } = useLanguage();
   const ui = getDeliveryNoteContent(lang);
@@ -122,7 +117,7 @@ export function NewDeliveryNoteClient({
   const [error, setError] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>("basic");
-  const [selectedTemplate, setSelectedTemplate] = useState<"standard" | "envelope">("standard");
+  const [selectedTemplate, setSelectedTemplate] = useState<"standard" | "envelope">((initial?.templateKey ?? defaults.templateKey) === "envelope" ? "envelope" : "standard");
   const [previewModal, setPreviewModal] = useState<TemplateType>(null);
   const [outputLocale, setOutputLocale] = useState<DocumentOutputLocale>(() =>
     normalizeDocumentOutputLocale(initial?.outputLocale),
@@ -132,18 +127,20 @@ export function NewDeliveryNoteClient({
   );
   const [lineItemTotals, setLineItemTotals] = useState<LineItemTotals>(EMPTY_LINE_ITEM_TOTALS);
   const [rows, setRows] = useState<LineItemRow[]>(initial?.lines?.length ? initial.lines : []);
-  const { primaryDate, setPrimaryDate, secondaryDate, setSecondaryDate } = useDocumentDateFields(ui.issueDateValue);
+  const { primaryDate, setPrimaryDate, secondaryDate, setSecondaryDate } = useDocumentDateFields(initial?.issueDate ?? defaults.issueDate, initial?.secondaryDate);
 
   // 프리뷰에 그대로 반영해야 하는 입력만 상태로 들고 있는다.
   const [form, setForm] = useState<PreviewForm>({
     clientId: initial?.clientId ?? null,
     clientName: initial?.clientName ?? "",
-    documentNumber: ui.deliveryNumberValue,
+    documentNumber: initial?.documentNumber ?? "",
     subject: initial?.subject ?? "",
-    senderCompanyName: ui.companyValue,
-    templateMessage: initial?.templateMessage ?? "",
-    remarks: initial?.remarks ?? "",
-    taxRounding: "round_down",
+    senderCompanyName: initial?.senderCompanyName ?? defaults.senderCompanyName,
+    sender: { ...defaults.sender, ...initial?.sender },
+    taxDisplay: initial?.taxDisplay ?? defaults.taxDisplay,
+    templateMessage: initial?.templateMessage ?? defaults.templateMessage,
+    remarks: initial?.remarks ?? defaults.remarks,
+    taxRounding: initial?.taxRounding ?? defaults.taxRounding,
     recipient: { ...EMPTY_RECIPIENT, ...(initial?.recipient ?? {}) },
   });
   const set = <K extends keyof PreviewForm>(key: K, value: PreviewForm[K]) =>
@@ -154,7 +151,7 @@ export function NewDeliveryNoteClient({
   /** 거래처를 고르면 등록해 둔 우편번호·주소·전화·부서를 송부처에 채운다. */
   const applyClient = useCallback((option: ClientOptionRow | null, typedName: string) => {
     setForm((f) => {
-      if (!option) return { ...f, clientName: typedName, clientId: null };
+      if (!option) return { ...f, clientName: typedName, clientId: null, recipient: f.clientId ? { ...EMPTY_RECIPIENT, companyName: typedName } : f.recipient };
       return {
         ...f,
         clientName: option.name,
@@ -179,10 +176,15 @@ export function NewDeliveryNoteClient({
   const lineItemsTable = (
     <DocumentLineItemsTable
       ui={ui}
-      storageKey="delivery-note-new-line-items"
+      storageKey={documentId ? undefined : "delivery-note-new-line-items"}
       initialRows={rows.length ? rows : undefined}
+      taxDisplay={form.taxDisplay}
+      taxRounding={form.taxRounding}
+      withholdingType={initial?.withholdingType ?? "none"}
+      documentType="delivery_note"
       onTotalsChange={handleTotalsChange}
       onRowsChange={handleRowsChange}
+      compact={previewOpen}
       items={items}
     />
   );
@@ -195,45 +197,58 @@ export function NewDeliveryNoteClient({
   );
 
   function handleSave() {
+    if (pending) return;
     setError(null);
     startTransition(async () => {
       const lineItems = rows.map((r) => {
         const taxCategory = taxCategoryFromLabel(r.tax);
         return isBlankLineRow(r)
-          ? { name: "", qty: 0, unit: "", unitPrice: 0, taxCategory, taxRateSnapshot: 0 }
+          ? { name: "", qty: 0, unit: "", unitPrice: 0, taxCategory, taxRateSnapshot: taxRateSnapshotFor(taxCategory) }
           : {
               itemId: r.itemId ?? undefined,
+              withholdingExempt: r.withholdingExempt,
               name: r.name,
-              qty: r.qty === "" ? 1 : Number(r.qty),
+              qty: r.qty.trim() === "" ? 1 : Number(r.qty.replace(/,/g, "")),
               unit: r.unit,
-              unitPrice: r.price === "" ? 0 : Number(r.price),
+              unitPrice: r.price.trim() === "" ? 0 : Number(r.price.replace(/,/g, "")),
               taxCategory,
-              taxRateSnapshot: 0,
+              taxRateSnapshot: taxRateSnapshotFor(taxCategory),
             };
       });
 
-      const result = await createDeliveryNote({
+      const payload: CreateDeliveryNoteInput = {
         clientId: form.clientId,
+        clientDestinationId: initial?.clientId === form.clientId ? initial?.clientDestinationId : null,
+        linkedInvoiceId: initial?.linkedInvoiceId,
+        internalMemo: initial?.internalMemo,
         subject: form.subject,
         issueDate: new Date(toIsoDate(primaryDate)),
         deliveryDate: secondaryDate ? new Date(toIsoDate(secondaryDate)) : null,
-        taxDisplay: "separate",
+        taxDisplay: form.taxDisplay,
         taxRounding: form.taxRounding,
-        withholdingType: "none",
-        templateKey: "standard",
+        withholdingType: initial?.withholdingType ?? "none",
+        templateKey: selectedTemplate,
         outputLocale,
         clientHonorific,
         showSeal: initial?.showSeal ?? true,
         templateMessage: form.templateMessage,
         remarks: form.remarks,
-        recipientSnapshot: form.recipient,
+        recipientSnapshot: { ...initial?.recipientSnapshot, ...form.recipient, clientName: form.clientName },
+        senderSnapshot: { ...initial?.senderSnapshot, ...form.sender, companyName: form.senderCompanyName },
         lineItems,
-      });
+      };
 
-      if (result.ok) {
-        router.push(`/${lang}/delivery-notes/${result.data}`);
-      } else {
-        setError(result.error);
+      try {
+        const result = documentId ? await updateDeliveryNote(documentId, payload) : await createDeliveryNote(payload);
+        if (result.ok) {
+          try { if (!documentId) window.localStorage.removeItem("delivery-note-new-line-items"); } catch { /* Browser storage is optional. */ }
+          router.push(`/${lang}/delivery-notes/${documentId ?? result.data}`);
+          router.refresh();
+        } else {
+          setError([result.error, ...Object.values(result.fieldErrors ?? {})].filter(Boolean).join(" · "));
+        }
+      } catch {
+        setError(lang === "ko" ? "저장하지 못했습니다. 다시 시도해 주세요." : lang === "en" ? "Could not save. Please try again." : "保存できませんでした。もう一度お試しください。");
       }
     });
   }
@@ -242,10 +257,11 @@ export function NewDeliveryNoteClient({
     <SalesFlowShell
       activeItem="delivery-notes"
     >
-      <div className="mx-auto w-full max-w-[1260px] px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-28 lg:px-8 lg:py-10 lg:pb-32">
+      <div className="mx-auto w-full max-w-[1680px] px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-28 lg:px-8 lg:py-10 lg:pb-32">
+        <Link href={documentId ? `/${lang}/delivery-notes/${documentId}` : `/${lang}/delivery-notes`} className="mb-4 inline-block text-sm font-medium text-[#0A4D34] hover:underline">← {lang === "ko" ? "돌아가기" : lang === "en" ? "Back" : "戻る"}</Link>
         <div className="flex flex-wrap items-center gap-4">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[30px]">
-            {ui.newTitle}
+            {documentId ? (lang === "ko" ? "납품서 편집" : lang === "en" ? "Edit delivery note" : "納品書の編集") : ui.newTitle}
           </h1>
           <button
             type="button"
@@ -256,7 +272,7 @@ export function NewDeliveryNoteClient({
           </button>
         </div>
 
-        {error ? <p className="mt-4 text-[14px] text-red-600">{error}</p> : null}
+        {error ? <p role="alert" className="mt-4 text-[14px] text-red-600">{error}</p> : null}
 
         <div
           className={
@@ -283,16 +299,15 @@ export function NewDeliveryNoteClient({
           </div>
         </div>
 
-        {activeTab === "basic" && (
-          <>
-            <div className="mt-10 grid gap-8 xl:grid-cols-2">
+        <div className={activeTab === "basic" ? "" : "hidden"}>
+            <div className={`mt-10 grid gap-8 ${previewOpen ? "grid-cols-1" : "xl:grid-cols-2"}`}>
               <section>
                 <SectionTitle title={ui.deliveryInfo} />
                 <div className="mt-5 space-y-5">
                   <FormField label={ui.client} required={ui.required}>
                     <div className="flex gap-2">
                       <input
-                        className="field flex-1"
+                        className="field min-w-0 flex-1"
                         list="delivery-note-client-options"
                         value={form.clientName}
                         onChange={(e) => {
@@ -340,9 +355,9 @@ export function NewDeliveryNoteClient({
                   <FormField label={ui.deliveryNumber} required={ui.required}>
                     <p className="mb-2 text-sm text-[#0A4D34]">{ui.deliveryHint}</p>
                     <input
-                      className="field"
-                      value={form.documentNumber}
-                      onChange={(e) => set("documentNumber", e.target.value)}
+                      className="field bg-slate-50 text-slate-500"
+                      readOnly
+                      value={form.documentNumber || (lang === "ko" ? "저장 시 자동 발급" : lang === "en" ? "Assigned when saved" : "保存時に自動採番")}
                     />
                   </FormField>
 
@@ -369,17 +384,16 @@ export function NewDeliveryNoteClient({
                       value={form.senderCompanyName}
                       onChange={(e) => set("senderCompanyName", e.target.value)}
                     />
-                    <input className="field mt-2" />
-                    <input className="field mt-2" />
                   </FormField>
+                  <SenderDetailFields storagePrefix="deliverySender" buttonLabel={ui.detailLink}
+                    value={form.sender} onChange={(sender) => set("sender", sender)} />
                 </div>
               </section>
             </div>
 
             {lineItemsTable}
             <RemarksField ui={ui} value={form.remarks} onChange={(v) => set("remarks", v)} />
-          </>
-        )}
+        </div>
 
         {activeTab === "recipient" && (
           <>
@@ -428,7 +442,7 @@ export function NewDeliveryNoteClient({
                 />
                 <div className="mt-2 flex gap-2">
                   <input
-                    className="field flex-1"
+                    className="field min-w-0 flex-1"
                     placeholder={ui.contactPlaceholder}
                     value={form.recipient.contact}
                     onChange={(e) => setRecipient("contact", e.target.value)}
@@ -477,7 +491,8 @@ export function NewDeliveryNoteClient({
                       <input
                         type="radio"
                         name="taxDisplay"
-                        defaultChecked={index === 0}
+                        checked={form.taxDisplay === (["separate", "separate_on_invoice", "included", "exempt"] as const)[index]}
+                        onChange={() => set("taxDisplay", (["separate", "separate_on_invoice", "included", "exempt"] as const)[index])}
                         className="h-4 w-4 accent-[#0A4D34]"
                       />
                       {label}
@@ -513,7 +528,7 @@ export function NewDeliveryNoteClient({
 
         {activeTab === "template" && (
           <>
-            <div className="mt-10 grid gap-8 xl:grid-cols-[280px_1fr]">
+            <div className="mt-10 grid gap-8 xl:grid-cols-[280px_minmax(0,1fr)]">
               <div className="flex flex-col items-center gap-3">
                 <button
                   onClick={() => setPreviewModal(selectedTemplate)}
@@ -550,7 +565,7 @@ export function NewDeliveryNoteClient({
                     onChange={setOutputLocale}
                   />
 
-                  <label className="block">
+                  <label className="block min-w-0">
                     <div className="mb-2 text-[16px] font-semibold text-slate-800">{ui.templateMessageLabel}</div>
                     <input
                       className="field"
@@ -560,23 +575,9 @@ export function NewDeliveryNoteClient({
                     />
                   </label>
 
-                  <div>
-                    <p className="mb-3 text-[16px] font-semibold text-slate-800">{ui.templateFieldsTitle}</p>
-                    <div className="space-y-4">
-                      {[
-                        { label: ui.templateFieldItemName, limit: ui.templateFieldItemNameLimit, placeholder: ui.templateFieldItemName },
-                        { label: ui.templateFieldQty, limit: ui.templateFieldQtyLimit, placeholder: ui.templateFieldQty },
-                        { label: ui.templateFieldUnitPrice, limit: ui.templateFieldUnitPriceLimit, placeholder: ui.templateFieldUnitPrice },
-                        { label: ui.templateFieldAmount, limit: ui.templateFieldAmountLimit, placeholder: ui.templateFieldAmount },
-                      ].map((field) => (
-                        <div key={field.label}>
-                          <p className="mb-1 text-[15px] font-semibold text-slate-700">{field.label}</p>
-                          <p className="mb-2 text-xs text-slate-400">{field.limit}</p>
-                          <input className="field max-w-[320px]" placeholder={field.placeholder} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <p className="text-sm text-slate-500">
+                    {lang === "ko" ? "품목 열 제목은 문서 출력 언어에 맞춰 표시됩니다." : lang === "en" ? "Line item headings follow the document language." : "明細の見出しは文書の出力言語に合わせて表示されます。"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -601,6 +602,18 @@ export function NewDeliveryNoteClient({
                 templateMessage: form.templateMessage,
                 remarks: form.remarks,
                 senderCompanyName: form.senderCompanyName,
+                senderPostalCode: form.sender.postalCode,
+                senderAddressLine1: form.sender.addressLine1,
+                senderAddressLine2: form.sender.addressLine2,
+                senderAddressLine3: form.sender.addressLine3,
+                senderTel: form.sender.tel,
+                senderFax: form.sender.fax,
+                senderEmail: form.sender.email,
+                senderRegistrationNumber: form.sender.registrationNumber,
+                sealUrl: initial?.showSeal === false ? null : defaults.sealUrl,
+                taxDisplay: form.taxDisplay,
+                withholdingType: initial?.withholdingType ?? "none",
+                documentType: "delivery_note",
                 taxRounding: form.taxRounding,
                 rows,
               }}
@@ -612,48 +625,53 @@ export function NewDeliveryNoteClient({
 
       {/* 템플릿 프리뷰 모달 */}
       {previewModal !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="relative mx-4 flex max-h-[90vh] w-full max-w-[680px] flex-col rounded-lg bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-              <h2 className="text-[20px] font-semibold text-slate-900">
+        <ModalDialog label={previewModal === "standard" ? ui.templateStandard : ui.templateEnvelope} onClose={() => setPreviewModal(null)} className="max-w-[680px]">
+          <div className="relative flex max-h-[calc(100dvh-2rem)] w-full flex-col rounded-lg bg-white shadow-2xl">
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-6 sm:py-4">
+              <h2 className="min-w-0 text-lg font-semibold text-slate-900 [overflow-wrap:anywhere] sm:text-[20px]">
                 {previewModal === "standard" ? ui.templateStandard : ui.templateEnvelope}
               </h2>
               <button
+                type="button"
                 onClick={() => setPreviewModal(null)}
-                className="text-2xl leading-none text-slate-400 hover:text-slate-600"
+                aria-label={lang === "ko" ? "닫기" : lang === "en" ? "Close" : "閉じる"}
+                className="flex h-10 w-10 shrink-0 items-center justify-center text-2xl leading-none text-slate-400 hover:text-slate-600"
               >
                 ×
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="min-h-0 flex-1 overflow-auto p-3 sm:p-6">
               <DeliveryNotePreview
                 ui={ui}
                 outputLocale={outputLocale}
                 clientHonorific={clientHonorific}
               />
             </div>
-            <div className="flex items-center justify-end gap-4 border-t border-slate-200 px-6 py-4">
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-slate-200 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
               <button
+                type="button"
                 onClick={() => setPreviewModal(null)}
-                className="rounded border border-slate-300 px-8 py-3 text-[15px] font-medium text-slate-700 hover:bg-slate-50"
+                className="rounded border border-slate-300 px-4 py-3 text-sm sm:px-8 sm:text-[15px] font-medium text-slate-700 hover:bg-slate-50"
               >
                 {ui.templateModalCancel}
               </button>
               <button
+                type="button"
                 onClick={() => {
                   setSelectedTemplate(previewModal);
                   setPreviewModal(null);
                 }}
-                className="rounded bg-[#0A4D34] px-8 py-3 text-[15px] font-semibold text-white hover:bg-[#083D29]"
+                className="rounded bg-[#0A4D34] px-4 py-3 text-sm sm:px-8 sm:text-[15px] font-semibold text-white hover:bg-[#083D29]"
               >
                 {ui.templateModalSelect}
               </button>
             </div>
           </div>
-        </div>
+        </ModalDialog>
       )}
 
       <DocumentBottomBar
+        taxDisplay={form.taxDisplay as TaxDisplay}
         subtotalLabel={ui.subtotal}
         taxLabel={ui.tax}
         totalLabel={ui.total}
@@ -692,7 +710,7 @@ function RemarksField({
 function SectionTitle({ title }: { title: string }) {
   return (
     <div className="border-b border-slate-200 pb-3">
-      <h2 className="text-[24px] font-semibold text-slate-900">{title}</h2>
+      <h2 className="text-xl font-semibold text-slate-900 [overflow-wrap:anywhere] sm:text-[24px]">{title}</h2>
     </div>
   );
 }
@@ -707,11 +725,11 @@ function FormField({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block">
-      <div className="mb-2 flex items-center gap-2 text-[16px] font-semibold text-slate-800">
+    <label className="block min-w-0">
+      <div className="mb-2 flex flex-wrap items-center gap-2 text-[16px] font-semibold text-slate-800">
         <span>{label}</span>
         {required ? (
-          <span className="rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">
+          <span className="shrink-0 rounded bg-[#0A4D34] px-2 py-0.5 text-xs font-bold text-white">
             {required}
           </span>
         ) : null}

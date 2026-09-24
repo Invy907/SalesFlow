@@ -1,5 +1,8 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import type { DocumentStatus } from "./estimates";
+import { collectAllRows } from "./paginate";
+import { dashboardMonthBounds } from "@/lib/business-date";
+import { documentRecipientName } from "@/lib/document-list-state";
 
 /**
  * 홈 대시보드 집계.
@@ -55,10 +58,6 @@ export type Dashboard = {
 const OPEN_STATUSES: DocumentStatus[] = ["draft", "issued", "sent", "overdue"];
 const DAY_MS = 86_400_000;
 
-function toDateKey(d: Date) {
-  return d.toISOString().slice(0, 10);
-}
-
 /** 로컬 자정 기준 일수 차이. 날짜 문자열(YYYY-MM-DD) 비교용. */
 function dayDiffFromToday(dateKey: string, todayKey: string) {
   return Math.round((Date.parse(`${dateKey}T00:00:00Z`) - Date.parse(`${todayKey}T00:00:00Z`)) / DAY_MS);
@@ -76,12 +75,9 @@ export async function getDashboard(orgId: string): Promise<Dashboard> {
   const supabase = await getSupabaseServerClient();
 
   const now = new Date();
-  const todayKey = toDateKey(now);
-  const monthStart = toDateKey(new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1)));
-  const nextMonthStart = toDateKey(new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 1)));
-  const lastMonthStart = toDateKey(new Date(Date.UTC(now.getFullYear(), now.getMonth() - 1, 1)));
+  const { today: todayKey, monthStart, nextMonthStart, lastMonthStart } = dashboardMonthBounds(now);
 
-  const recentSelect = "id, document_number, status, total, updated_at, clients(name)";
+  const recentSelect = "id, document_number, status, total, updated_at, recipient_snapshot, clients(name)";
 
   const [
     thisMonth,
@@ -94,30 +90,35 @@ export async function getDashboard(orgId: string): Promise<Dashboard> {
     recentDeliveryNotes,
     recentReceipts,
   ] = await Promise.all([
-    supabase
+    collectAllRows((from, to) => supabase
       .from("invoices")
       .select("total")
       .eq("organization_id", orgId)
       .is("deleted_at", null)
       .gte("issue_date", monthStart)
-      .lt("issue_date", nextMonthStart),
-    supabase
+      .lt("issue_date", nextMonthStart)
+      .order("id")
+      .range(from, to)),
+    collectAllRows((from, to) => supabase
       .from("invoices")
       .select("total")
       .eq("organization_id", orgId)
       .is("deleted_at", null)
       .gte("issue_date", lastMonthStart)
-      .lt("issue_date", monthStart),
-    supabase
+      .lt("issue_date", monthStart)
+      .order("id")
+      .range(from, to)),
+    collectAllRows((from, to) => supabase
       .from("invoices")
-      .select("id, document_number, status, total, paid_amount, payment_due, clients(name)")
+      .select("id, document_number, status, total, paid_amount, payment_due, payment_marked_at, recipient_snapshot, clients(name)")
       .eq("organization_id", orgId)
       .is("deleted_at", null)
       .in("status", OPEN_STATUSES)
-      .limit(500),
+      .order("id")
+      .range(from, to)),
     supabase
       .from("estimates")
-      .select("id, document_number, total, issue_date, clients(name)")
+      .select("id, document_number, total, issue_date, recipient_snapshot, clients(name)")
       .eq("organization_id", orgId)
       .is("deleted_at", null)
       .eq("status", "draft")
@@ -125,7 +126,7 @@ export async function getDashboard(orgId: string): Promise<Dashboard> {
       .limit(20),
     supabase
       .from("delivery_notes")
-      .select("id, document_number, total, issue_date, clients(name)")
+      .select("id, document_number, total, issue_date, recipient_snapshot, clients(name)")
       .eq("organization_id", orgId)
       .is("deleted_at", null)
       .eq("status", "draft")
@@ -162,9 +163,6 @@ export async function getDashboard(orgId: string): Promise<Dashboard> {
   ]);
 
   for (const result of [
-    thisMonth,
-    lastMonth,
-    open,
     draftEstimates,
     draftDeliveryNotes,
     recentEstimates,
@@ -187,13 +185,14 @@ export async function getDashboard(orgId: string): Promise<Dashboard> {
   const dueSoon: TaskItem[] = [];
   const awaitingPayment: TaskItem[] = [];
 
-  for (const inv of open.data ?? []) {
+  for (const inv of open) {
     const status = String(inv.status ?? "draft");
     if (status === "draft") draftCount += 1;
-    if (status === "issued" || status === "sent") awaitingCount += 1;
+    if (inv.payment_marked_at) continue;
 
     const remaining = Number(inv.total ?? 0) - Number(inv.paid_amount ?? 0);
     if (remaining <= 0) continue;
+    if (status === "issued" || status === "sent" || status === "overdue") awaitingCount += 1;
     unpaidTotal += remaining;
     unpaidCount += 1;
 
@@ -204,10 +203,10 @@ export async function getDashboard(orgId: string): Promise<Dashboard> {
     const item: TaskItem = {
       id: String(inv.id),
       docKind: "invoice",
-      clientName: clientName(inv.clients as ClientRef),
+      clientName: documentRecipientName(inv.recipient_snapshot, clientName(inv.clients as ClientRef)),
       documentNumber: String(inv.document_number ?? ""),
       amount: remaining,
-      href: "/invoices",
+      href: `/invoices/${String(inv.id)}`,
       dayDiff: diff,
     };
 
@@ -224,17 +223,17 @@ export async function getDashboard(orgId: string): Promise<Dashboard> {
   awaitingPayment.sort((a, b) => a.dayDiff - b.dayDiff);
 
   const draftTask = (
-    rows: { id: unknown; document_number: unknown; total: unknown; issue_date: unknown; clients: ClientRef }[],
+    rows: { id: unknown; document_number: unknown; total: unknown; issue_date: unknown; recipient_snapshot: unknown; clients: ClientRef }[],
     docKind: DocKind,
     href: string,
   ): TaskItem[] =>
     rows.map((row) => ({
       id: String(row.id),
       docKind,
-      clientName: clientName(row.clients),
+      clientName: documentRecipientName(row.recipient_snapshot, clientName(row.clients)),
       documentNumber: String(row.document_number ?? ""),
       amount: Number(row.total ?? 0),
-      href: docKind === "estimate" ? `/estimates/${String(row.id)}` : href,
+      href: `${href}/${String(row.id)}`,
       dayDiff: row.issue_date ? -dayDiffFromToday(String(row.issue_date), todayKey) : 0,
     }));
 
@@ -261,6 +260,7 @@ export async function getDashboard(orgId: string): Promise<Dashboard> {
       status: unknown;
       total: unknown;
       updated_at: unknown;
+      recipient_snapshot: unknown;
       clients: ClientRef;
     }[],
     docKind: DocKind,
@@ -269,11 +269,11 @@ export async function getDashboard(orgId: string): Promise<Dashboard> {
     rows.map((row) => ({
       id: String(row.id),
       docKind,
-      clientName: clientName(row.clients),
+      clientName: documentRecipientName(row.recipient_snapshot, clientName(row.clients)),
       documentNumber: String(row.document_number ?? ""),
       amount: Number(row.total ?? 0),
       status: String(row.status ?? "draft"),
-      href: docKind === "estimate" ? `/estimates/${String(row.id)}` : href,
+      href: `${href}/${String(row.id)}`,
       minutesAgo: Math.max(0, Math.round((nowMs - Date.parse(String(row.updated_at))) / 60_000)),
     }));
 
@@ -289,8 +289,8 @@ export async function getDashboard(orgId: string): Promise<Dashboard> {
 
   return {
     kpi: {
-      billedThisMonth: sumTotal(thisMonth.data),
-      billedLastMonth: sumTotal(lastMonth.data),
+      billedThisMonth: sumTotal(thisMonth),
+      billedLastMonth: sumTotal(lastMonth),
       unpaidTotal,
       unpaidCount,
       draftCount,

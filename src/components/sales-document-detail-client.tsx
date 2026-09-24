@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { documentSummaryRows } from "@/lib/documents/summary-rows";
+import { ModalDialog } from "@/components/modal-dialog";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SalesFlowShell, type ActiveItem } from "@/components/salesflow-shell";
@@ -120,6 +122,8 @@ export function SalesDocumentDetailClient({
 
     downloadSalesDocumentXlsx({
       title: documentUi.listTitle,
+      outputLocale: detail.outputLocale,
+      taxDisplay: detail.taxDisplay,
       filenameBase: detail.documentNumber || detail.id,
       fields,
       lineHeaders: [
@@ -127,14 +131,11 @@ export function SalesDocumentDetailClient({
         documentUi.itemHeaders[1],
         documentUi.itemHeaders[2],
         documentUi.itemHeaders[3],
+        documentUi.itemHeaders[4],
         documentUi.itemHeaders[5],
       ],
       lines: detail.lines,
-      summaryRows: [
-        [documentUi.subtotal, detail.subtotal],
-        [documentUi.tax, detail.tax],
-        [documentUi.total, detail.total],
-      ],
+      summaryRows: documentSummaryRows(detail, documentUi),
       remarks: detail.remarks,
       remarksLabel: documentUi.remarks,
     });
@@ -186,6 +187,15 @@ export function SalesDocumentDetailClient({
     });
   }
 
+  async function copyShareLink(value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setToast(ui.shareModal?.copied ?? "");
+    } catch {
+      setToast(lang === "ko" ? "클립보드에 복사하지 못했습니다. 표시된 링크를 직접 복사해 주세요." : lang === "en" ? "Could not copy the link. Please copy the displayed link manually." : "コピーできませんでした。表示されたリンクを手動でコピーしてください。");
+    }
+  }
+
   function handleShare() {
     if (!isInvoice) return;
     startTransition(async () => {
@@ -196,7 +206,7 @@ export function SalesDocumentDetailClient({
       }
       setShareToken(result.data.token);
       setShareExpiresAt(result.data.expiresAt);
-      setToast(ui.shareModal?.copied ?? "");
+      await copyShareLink(`${window.location.origin}/${lang}/invoices/shared/${result.data.token}`);
       router.refresh();
     });
   }
@@ -252,7 +262,7 @@ export function SalesDocumentDetailClient({
           </Link>
         </div>
         <div className="no-print mt-2 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-          <h1 className="text-[34px] font-bold tracking-tight text-slate-900">{ui.detailTitle}</h1>
+          <h1 className="min-w-0 text-2xl font-bold tracking-tight sm:text-[34px] text-slate-900">{ui.detailTitle}</h1>
 
           <div className="relative flex flex-wrap items-center gap-3" ref={exportMenuRef}>
             <button
@@ -262,17 +272,17 @@ export function SalesDocumentDetailClient({
             >
               {ui.exportAction}
             </button>
-            {isInvoice && ui.editAction ? (
+            {(isInvoice || shellActiveItem === "delivery-notes" || shellActiveItem === "receipts") ? (
               <Link
-                href={`/${lang}/invoices/${detail.id}/edit`}
+                href={`${listHref}/${detail.id}/edit`}
                 className="rounded border border-slate-300 bg-white px-6 py-3 text-[18px] font-semibold text-slate-700 transition hover:bg-slate-50"
               >
-                {ui.editAction}
+                {ui.editAction ?? (lang === "ko" ? "편집" : lang === "en" ? "Edit" : "編集")}
               </Link>
             ) : null}
 
             {isExportMenuOpen ? (
-              <div className="absolute right-0 top-[72px] z-30 w-[320px] rounded-lg border border-slate-200 bg-white p-4 shadow-[0_12px_35px_rgba(15,23,42,0.18)]">
+              <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-[min(320px,calc(100vw-2rem))] rounded-lg border border-slate-200 bg-white p-4 shadow-[0_12px_35px_rgba(15,23,42,0.18)]">
                 <ExportMenuItem
                   label={ui.exportMenu.download}
                   onClick={() => handleExportAction("download")}
@@ -302,7 +312,7 @@ export function SalesDocumentDetailClient({
           </div>
         </div>
 
-        <div className="no-print mt-8 grid grid-cols-1 gap-y-3 text-base sm:grid-cols-[160px_1fr] sm:text-[18px]">
+        <div className="no-print mt-8 grid min-w-0 grid-cols-1 gap-y-3 text-base [overflow-wrap:anywhere] sm:grid-cols-[160px_minmax(0,1fr)] sm:text-[18px]">
           <div className="text-slate-700">{ui.documentNumberLabel}</div>
           <div className="font-medium">{detail.documentNumber}</div>
           <div className="text-slate-700">{ui.client}</div>
@@ -322,7 +332,7 @@ export function SalesDocumentDetailClient({
           <div className="text-slate-700">{ui.status}</div>
           <div>
             {formatSalesDocumentStatus(
-              detail.outputLocale as "ja" | "ko" | "en",
+              (lang === "ko" || lang === "en" ? lang : "ja"),
               detail.status,
             )}
           </div>
@@ -333,10 +343,10 @@ export function SalesDocumentDetailClient({
         </div>
       </div>
 
-      {toast ? (
+      {toast && !isEmailModalOpen && !isShareModalOpen ? (
         <div
           role="status"
-          className="no-print fixed bottom-8 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900/90 px-6 py-3 text-[15px] text-white shadow-lg"
+          className="no-print fixed bottom-4 left-1/2 z-50 w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-lg [overflow-wrap:anywhere] sm:bottom-8 sm:rounded-full bg-slate-900/90 px-6 py-3 text-[15px] text-white shadow-lg"
         >
           {toast}
         </div>
@@ -353,6 +363,7 @@ export function SalesDocumentDetailClient({
           body={mailBody}
           attachment={attachment}
           pending={pending}
+          feedback={toast}
           onClose={() => setIsEmailModalOpen(false)}
           onEmailChange={setEmail}
           onCcChange={setCc}
@@ -366,10 +377,10 @@ export function SalesDocumentDetailClient({
       ) : null}
 
       {isShareModalOpen && ui.shareModal ? (
-        <div className="no-print fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 p-6">
+        <ModalDialog feedback={toast} label={ui.shareModal.title} onClose={() => setIsShareModalOpen(false)} className="max-w-[560px]">
           <div className="w-full max-w-[560px] overflow-hidden rounded-2xl bg-white shadow-[0_24px_60px_rgba(15,23,42,0.28)]">
             <ModalHeader title={ui.shareModal.title} onClose={() => setIsShareModalOpen(false)} />
-            <div className="space-y-4 px-9 py-8">
+            <div className="space-y-4 px-4 py-6 sm:px-9 sm:py-8">
               <p className="text-[16px] text-slate-800">{ui.shareModal.description}</p>
               <p className="text-[13px] text-slate-500">{ui.shareModal.caution}</p>
               {shareToken ? (
@@ -383,10 +394,7 @@ export function SalesDocumentDetailClient({
                   <div className="flex gap-3">
                     <button
                       type="button"
-                      onClick={() => {
-                        navigator.clipboard?.writeText(shareUrl);
-                        setToast(ui.shareModal!.copied);
-                      }}
+                      onClick={() => copyShareLink(shareUrl)}
                       className="text-[13px] font-semibold text-[#0A4D34] hover:underline"
                     >
                       {ui.shareModal.copyAction ?? ui.shareModal.submit}
@@ -405,7 +413,7 @@ export function SalesDocumentDetailClient({
                 </div>
               ) : null}
             </div>
-            <div className="flex justify-end gap-3 border-t border-slate-200 px-9 py-5">
+            <div className="flex flex-wrap justify-end gap-3 border-t border-slate-200 px-4 py-4 sm:px-9 sm:py-5">
               <button
                 type="button"
                 onClick={handleShare}
@@ -416,7 +424,7 @@ export function SalesDocumentDetailClient({
               </button>
             </div>
           </div>
-        </div>
+        </ModalDialog>
       ) : null}
     </SalesFlowShell>
   );
@@ -432,6 +440,7 @@ function InvoiceEmailModal({
   body,
   attachment,
   pending,
+  feedback,
   onClose,
   onEmailChange,
   onCcChange,
@@ -451,6 +460,7 @@ function InvoiceEmailModal({
   body: string;
   attachment: File | null;
   pending: boolean;
+  feedback: string;
   onClose: () => void;
   onEmailChange: (value: string) => void;
   onCcChange: (value: string) => void;
@@ -464,7 +474,7 @@ function InvoiceEmailModal({
   if (!ui.emailModal) return null;
 
   return (
-    <div className="no-print fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 p-6">
+    <ModalDialog feedback={feedback} label={ui.emailModal.title} onClose={onClose} className="max-w-[720px]">
       <div className="w-full max-w-[720px] overflow-hidden rounded-2xl bg-white shadow-[0_24px_60px_rgba(15,23,42,0.28)]">
         <form
           onSubmit={(event) => {
@@ -473,7 +483,7 @@ function InvoiceEmailModal({
           }}
         >
           <ModalHeader title={ui.emailModal.title} onClose={onClose} />
-          <div className="max-h-[70vh] space-y-5 overflow-y-auto px-9 py-8">
+          <div className="max-h-[60dvh] space-y-5 overflow-y-auto px-4 py-6 sm:px-9 sm:py-8">
             <p className="text-[18px] text-slate-800">{ui.emailModal.description}</p>
             <MailField label={ui.emailModal.toLabel}>
               <input className="field" type="email" required value={email} onChange={(e) => onEmailChange(e.target.value)} />
@@ -501,12 +511,12 @@ function InvoiceEmailModal({
                 type="file"
                 onChange={(event) => onAttachmentChange(event.target.files?.[0] ?? null)}
               />
-              <p className="mt-1 text-[12px] text-slate-500">
+              <p className="mt-1 text-[12px] text-slate-500 [overflow-wrap:anywhere]">
                 {attachment ? `${attachment.name} (${Math.ceil(attachment.size / 1024)} KB)` : ui.emailModal.attachmentHint}
               </p>
             </MailField>
           </div>
-          <div className="flex justify-end gap-3 border-t border-slate-200 px-9 py-5">
+          <div className="flex flex-wrap justify-end gap-3 border-t border-slate-200 px-4 py-4 sm:px-9 sm:py-5">
             <button
               type="submit"
               disabled={pending}
@@ -517,7 +527,7 @@ function InvoiceEmailModal({
           </div>
         </form>
       </div>
-    </div>
+    </ModalDialog>
   );
 }
 
@@ -548,12 +558,13 @@ async function fileToBase64(file: File) {
 
 function ModalHeader({ title, onClose }: { title: string; onClose: () => void }) {
   return (
-    <div className="flex items-center justify-between border-b border-slate-200 px-9 py-5">
-      <h2 className="text-[22px] font-bold text-slate-900">{title}</h2>
+    <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-9 sm:py-5">
+      <h2 className="min-w-0 text-lg font-bold text-slate-900 [overflow-wrap:anywhere] sm:text-[22px]">{title}</h2>
       <button
         type="button"
         onClick={onClose}
-        className="rounded px-3 py-1 text-[15px] text-slate-500 hover:bg-slate-100"
+        aria-label="Close"
+        className="min-h-10 shrink-0 rounded px-3 py-1 text-[15px] text-slate-500 hover:bg-slate-100"
       >
         ✕
       </button>

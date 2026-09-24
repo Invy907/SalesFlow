@@ -23,7 +23,6 @@ import {
 } from "../../documents/document-previews";
 import { getInvoiceContent } from "../content";
 
-type Locale = "ja" | "ko" | "en";
 type TabKey = "basic" | "recipient" | "payment" | "tax" | "template";
 type TemplateKey = string;
 

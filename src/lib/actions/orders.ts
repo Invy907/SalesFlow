@@ -15,7 +15,7 @@ type ActionResult<T = void> =
  * 受注(orders)는 見積書/請求書/納品書/領収書와 달리 세율표시·인감·템플릿 같은 문서
  * 헤더 필드가 없는 가벼운 스키마라 createEstimateSchema를 확장하지 않고 별도로 둔다.
  */
-export const createOrderSchema = z.object({
+const createOrderSchema = z.object({
   clientId: z.string().uuid().nullable().optional(),
   subject: z.string().max(70).optional(),
   orderDate: z.coerce.date(),
@@ -97,7 +97,10 @@ export async function createOrder(formData: CreateOrderInput): Promise<ActionRes
     }));
 
     const { error: lineErr } = await supabase.from("order_line_items").insert(lines);
-    if (lineErr) return { ok: false, error: lineErr.message };
+    if (lineErr) {
+      await supabase.from("orders").delete().eq("id", order.id);
+      return { ok: false, error: lineErr.message };
+    }
   }
 
   revalidatePath("/[lang]/orders", "page");

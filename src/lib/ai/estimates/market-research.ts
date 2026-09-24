@@ -3,10 +3,10 @@ import "server-only";
 import { GoogleGenAI } from "@google/genai";
 import { aiMarketResearchResultSchema, type AiMarketResearchResult } from "./schemas";
 
-export const MARKET_RESEARCH_MODEL = process.env.GEMINI_MARKET_RESEARCH_MODEL ?? "gemini-3.6-flash";
+export const MARKET_RESEARCH_MODEL = process.env.GEMINI_MARKET_RESEARCH_MODEL ?? "gemini-3.8-flash";
 
 export function isMarketResearchConfigured() {
-  return Boolean(process.env.GEMINI_API_KEY);
+  return /^AIza[A-Za-z0-9_-]{20,}$/.test(process.env.GEMINI_API_KEY ?? "");
 }
 
 const resultJsonSchema = {
@@ -76,7 +76,7 @@ export async function researchPublicMarketPrice({
   currency: "JPY" | "KRW" | "USD";
 }): Promise<AiMarketResearchResult> {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GEMINI_API_KEY가 설정되지 않아 웹 조사를 실행할 수 없습니다.");
+  if (!apiKey || !isMarketResearchConfigured()) throw new Error("GEMINI_API_KEY가 설정되지 않아 웹 조사를 실행할 수 없습니다.");
 
   const countryName = { JP: "Japan", KR: "South Korea", US: "United States", GLOBAL: "global" }[countryCode];
   const prompt = [
@@ -99,9 +99,10 @@ export async function researchPublicMarketPrice({
       tools: [{ googleSearch: {} }],
       responseMimeType: "application/json",
       responseJsonSchema: resultJsonSchema,
-      abortSignal: AbortSignal.timeout(90_000),
+      abortSignal: AbortSignal.timeout(45_000),
     },
   });
+  if (response.candidates?.[0]?.finishReason !== "STOP") throw new Error("PUBLIC_RESEARCH_INCOMPLETE");
   if (!response.text) throw new Error("웹 조사 응답에 구조화된 결과가 없습니다.");
   let raw: unknown;
   try {
@@ -115,8 +116,9 @@ export async function researchPublicMarketPrice({
   const citedSources = response.candidates?.[0]?.groundingMetadata?.groundingChunks
     ?.map((chunk) => ({ title: chunk.web?.title?.trim() || "Source", url: validPublicUrl(chunk.web?.uri) }))
     .filter((source): source is { title: string; url: string } => Boolean(source.url));
-  const allSources = [...parsed.data.sources, ...(citedSources ?? [])];
-  const sources = [...new Map(allSources.map((source) => [source.url, source])).values()].slice(0, 12);
+  if (parsed.data.currency !== currency || parsed.data.countryCode !== countryCode) throw new Error("PUBLIC_RESEARCH_MARKET_MISMATCH");
+  // Only search-tool citations establish provenance; model-written URLs are unverified.
+  const sources = [...new Map((citedSources ?? []).map((source) => [source.url, source])).values()].slice(0, 12);
   if (!sources.length) throw new Error("웹 조사 결과에 확인 가능한 출처가 없습니다.");
 
   return aiMarketResearchResultSchema.parse({

@@ -6,7 +6,7 @@ import { SalesFlowShell } from "@/components/salesflow-shell";
 import { useLanguage } from "@/contexts/language-context";
 import { bulkUpsertClients } from "@/lib/actions/clients";
 import { CLIENTS_TEMPLATE_COLUMNS, parseClientsCsv } from "@/lib/clients-bulk";
-import { downloadCsv } from "@/lib/csv";
+import { downloadCsv, readCsvFile } from "@/lib/csv";
 import { BulkInfoTable, BulkSection, ListPageTabs } from "../../list-page-shared";
 import { getClientsContent, getClientsHref } from "../content";
 
@@ -21,8 +21,7 @@ export default function ClientsBulkPage() {
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
   const [pending, startTransition] = useTransition();
 
-  function downloadTemplate(encoding: "utf-8" | "shift-jis") {
-    // Shift-JIS 인코더는 브라우저에 없으므로, Excel 이 열 수 있도록 BOM 붙인 UTF-8 로 내려준다.
+  function downloadTemplate(encoding: "utf-8" | "utf-8-bom") {
     downloadCsv(`clients-template-${encoding}.csv`, `${CLIENTS_TEMPLATE_COLUMNS.join(",")}\r\n`, {
       bom: encoding !== "utf-8",
     });
@@ -34,7 +33,13 @@ export default function ClientsBulkPage() {
     setRowErrors({});
 
     startTransition(async () => {
-      const text = await selectedFile.text();
+      let text: string;
+      try {
+        text = await readCsvFile(selectedFile);
+      } catch {
+        setMessage({ kind: "error", text: lang === "ko" ? "UTF-8 또는 Shift-JIS CSV 파일을 선택해 주세요." : lang === "en" ? "Choose a UTF-8 or Shift-JIS CSV file." : "UTF-8またはShift-JISのCSVファイルを選択してください。" });
+        return;
+      }
       const rows = parseClientsCsv(text);
       if (rows.length === 0) {
         setMessage({ kind: "error", text: bulk.emptyFile });
@@ -80,12 +85,13 @@ export default function ClientsBulkPage() {
                   {bulk.chooseFile}
                   <input
                     type="file"
+                    disabled={pending}
                     accept=".csv"
                     className="hidden"
                     onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
                   />
                 </label>
-                <span className="text-[14px] text-slate-500">
+                <span className="min-w-0 max-w-full [overflow-wrap:anywhere] text-[14px] text-slate-500">
                   {selectedFile?.name ?? bulk.noFile}
                 </span>
               </div>
@@ -149,14 +155,14 @@ export default function ClientsBulkPage() {
                   ),
                 },
                 {
-                  label: bulk.templateShiftJis,
+                  label: "Excel · UTF-8 (BOM)",
                   value: (
                     <button
                       type="button"
-                      onClick={() => downloadTemplate("shift-jis")}
+                      onClick={() => downloadTemplate("utf-8-bom")}
                       className="rounded border border-slate-300 bg-white px-4 py-2 text-[14px] text-slate-700 hover:bg-slate-50"
                     >
-                      {bulk.templateShiftJisButton}
+                      {lang === "ko" ? "Excel용 UTF-8 템플릿" : lang === "en" ? "Excel UTF-8 template" : "Excel用 UTF-8テンプレート"}
                     </button>
                   ),
                 },
@@ -165,14 +171,14 @@ export default function ClientsBulkPage() {
           </BulkSection>
 
           <BulkSection title={bulk.formatSection}>
-            <table className="w-full border-collapse text-[14px]">
-              <tbody>
+            <table className="block w-full border-collapse text-[14px] sm:table">
+              <tbody className="block sm:table-row-group">
                 {bulk.formatRows.map(([label, value]) => (
-                  <tr key={label} className="border-b border-slate-200 last:border-b-0">
-                    <td className="w-[240px] bg-[#f8fafc] px-4 py-4 font-medium text-slate-700">
+                  <tr key={label} className="grid border-b border-slate-200 last:border-b-0 sm:table-row">
+                    <td className="block bg-[#f8fafc] sm:table-cell sm:w-[240px] px-4 py-4 font-medium text-slate-700">
                       {label}
                     </td>
-                    <td className="px-4 py-4 text-slate-700">{value}</td>
+                    <td className="block px-4 py-4 text-slate-700 [overflow-wrap:anywhere] sm:table-cell">{value}</td>
                   </tr>
                 ))}
               </tbody>

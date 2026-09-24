@@ -1,6 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { documentSummaryRows } from "@/lib/documents/summary-rows";
+import type { SalesDocumentDetail } from "@/lib/documents/detail-types";
+import type { TaxDisplay, TaxCategory, DocumentTotals } from "@/lib/tax";
+import { ModalDialog } from "@/components/modal-dialog";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SalesFlowShell } from "@/components/salesflow-shell";
@@ -12,6 +16,7 @@ import {
   sendEstimateEmail,
   shareEstimate,
 } from "@/lib/actions/estimates";
+import { aiEstimateErrorMessage } from "@/components/ai-estimates/error-message";
 import { importEstimateAsAiSource } from "@/lib/actions/ai-estimates";
 import { formatSalesDocumentStatus } from "@/lib/document-status";
 import { getEstimateContent } from "../content";
@@ -33,6 +38,7 @@ export type EstimateDetail = {
   clientName: string;
   subject: string;
   issueDate: string;
+  issueMarkedAt?: string | null;
   expiryDate: string;
   status: string;
   outputLocale: DocumentOutputLocale;
@@ -42,11 +48,16 @@ export type EstimateDetail = {
   remarks: string;
   subtotal: number;
   tax: number;
+  taxDisplay?: TaxDisplay;
+  withholding?: number;
+  taxBreakdown?: DocumentTotals["breakdown"];
   total: number;
   shareToken: string | null;
   shareExpiresAt: string | null;
-  lines: Array<{ lineNo: number; name: string; qty: number; unit: string; unitPrice: number }>;
-  sender: { companyName: string; tel: string; email: string };
+  lines: Array<{ lineNo: number; name: string; qty: number; unit: string; unitPrice: number; taxCategory?: TaxCategory }>;
+  recipient?: SalesDocumentDetail["recipient"];
+  showSeal?: boolean;
+  sender: SalesDocumentDetail["sender"];
 };
 
 type IssueAction = "email" | "fax" | "download" | "excel" | "print" | "share";
@@ -108,10 +119,10 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
   async function copyToClipboard(value: string, message: string) {
     try {
       await navigator.clipboard.writeText(value);
+      setToast(message);
     } catch {
-      // 클립보드 권한이 없어도 링크는 화면에 남아 있으므로 안내만 한다.
+      setToast(lang === "ko" ? "클립보드에 복사하지 못했습니다. 표시된 링크를 직접 복사해 주세요." : lang === "en" ? "Could not copy the link. Please copy the displayed link manually." : "コピーできませんでした。表示されたリンクを手動でコピーしてください。");
     }
-    setToast(message);
   }
 
   function handleIssue() {
@@ -161,20 +172,22 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
   }
 
   function handleRegisterAiSource() {
+    if (!canRegisterAiSource || pending) return;
     startTransition(async () => {
-      const result = await importEstimateAsAiSource(detail.id);
-      if (!result.ok) {
-        setToast(result.error);
-        return;
-      }
-      router.push(`/${lang}/estimates/ai-library/${result.data}`);
-      router.refresh();
+      try {
+        const result = await importEstimateAsAiSource(detail.id);
+        if (!result.ok) { setToast(aiEstimateErrorMessage(result.error, lang, aiImportError)); return; }
+        router.push(`/${lang}/estimates/ai-library/${result.data}`);
+        router.refresh();
+      } catch { setToast(aiImportError); }
     });
   }
 
   function downloadEstimateExcel() {
     downloadSalesDocumentXlsx({
       title: documentUi.listTitle,
+      outputLocale: detail.outputLocale,
+      taxDisplay: detail.taxDisplay,
       filenameBase: detail.documentNumber || detail.id,
       fields: [
         [documentUi.estimateNumber, detail.documentNumber],
@@ -196,14 +209,11 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
         documentUi.itemHeaders[1],
         documentUi.itemHeaders[2],
         documentUi.itemHeaders[3],
+        documentUi.itemHeaders[4],
         documentUi.itemHeaders[5],
       ],
       lines: detail.lines,
-      summaryRows: [
-        [documentUi.subtotal, detail.subtotal],
-        [documentUi.tax, detail.tax],
-        [documentUi.total, detail.total],
-      ],
+      summaryRows: documentSummaryRows(detail, documentUi),
       remarks: detail.remarks,
       remarksLabel: documentUi.remarks,
     });
@@ -251,11 +261,11 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
     }
   }
 
-  const statusLabel =
-    detail.status === "confirmed"
-      ? ui.statusPending
-      : formatSalesDocumentStatus(lang, detail.status);
+  const statusLabel = formatSalesDocumentStatus(lang, detail.status);
 
+  const canRegisterAiSource = detail.status !== "archived" && (["issued", "sent", "confirmed", "overdue"].includes(detail.status) || Boolean(detail.issueMarkedAt));
+  const aiIssueRequired = lang === "ko" ? "발행 후 AI 자료로 등록할 수 있습니다." : lang === "en" ? "Issue this estimate before adding it to the AI library." : "発行後にAI資料として登録できます。";
+  const aiImportError = lang === "ko" ? "AI 자료로 등록하지 못했습니다. 다시 시도해 주세요." : lang === "en" ? "Could not add this estimate to the AI library. Please try again." : "AI資料に登録できませんでした。再試行してください。";
   const aiButtonLabel =
     lang === "ko" ? "AI 자료로 등록" : lang === "en" ? "Add to AI library" : "AI資料に登録";
 
@@ -271,17 +281,21 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
           </Link>
         </div>
         <div className="no-print mt-2 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-          <h1 className="text-[34px] font-bold tracking-tight text-slate-900">{ui.detailTitle}</h1>
+          <h1 className="min-w-0 text-2xl font-bold tracking-tight sm:text-[34px] text-slate-900">{ui.detailTitle}</h1>
 
           <div className="relative flex flex-wrap items-center gap-3" ref={issueMenuRef}>
+            <div className="max-w-xs">
             <button
               type="button"
               onClick={handleRegisterAiSource}
-              disabled={pending}
+              disabled={pending || !canRegisterAiSource}
+              aria-describedby={!canRegisterAiSource ? "ai-import-issue-required" : undefined}
               className="rounded border border-violet-200 bg-violet-50 px-5 py-3 text-[16px] font-semibold text-violet-700 transition hover:bg-violet-100 disabled:opacity-60"
             >
               {aiButtonLabel}
             </button>
+            {!canRegisterAiSource ? <p id="ai-import-issue-required" className="mt-1 text-sm text-slate-500">{aiIssueRequired}</p> : null}
+            </div>
             <button
               type="button"
               onClick={() => {
@@ -320,7 +334,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
             ) : null}
 
             {isIssueMenuOpen ? (
-              <div className="absolute right-0 top-[72px] z-30 w-[420px] rounded-lg border border-slate-200 bg-white p-4 shadow-[0_12px_35px_rgba(15,23,42,0.18)]">
+              <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-[min(420px,calc(100vw-2rem))] rounded-lg border border-slate-200 bg-white p-4 shadow-[0_12px_35px_rgba(15,23,42,0.18)]">
                 <IssueMenuItem
                   label={ui.issueMenu.email}
                   badge={ui.issueMenu.emailRecommended}
@@ -341,7 +355,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
             ) : null}
 
             {isConvertMenuOpen ? (
-              <div className="absolute right-0 top-[72px] z-30 w-[260px] rounded-lg border border-slate-200 bg-white p-2 shadow-[0_12px_35px_rgba(15,23,42,0.18)]">
+              <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-[min(260px,calc(100vw-2rem))] rounded-lg border border-slate-200 bg-white p-2 shadow-[0_12px_35px_rgba(15,23,42,0.18)]">
                 <ConvertMenuItem
                   label={lang === "ko" ? "납품서로 변환" : lang === "en" ? "Convert to delivery note" : "納品書に変換"}
                   href={`/${lang}/delivery-notes/new?fromEstimate=${detail.id}`}
@@ -359,8 +373,8 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
           </div>
         </div>
 
-        <div className="no-print mt-8 grid gap-8 lg:grid-cols-[1.3fr_0.9fr]">
-          <div className="grid grid-cols-1 gap-y-3 text-base sm:grid-cols-[160px_1fr] sm:text-[18px]">
+        <div className="no-print mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.9fr)]">
+          <div className="grid min-w-0 grid-cols-1 gap-y-3 text-base [overflow-wrap:anywhere] sm:grid-cols-[160px_minmax(0,1fr)] sm:text-[18px]">
             <div className="text-slate-700">{ui.estimateNumber}</div>
             <div className="font-medium">{detail.documentNumber}</div>
             <div className="text-slate-700">{ui.client}</div>
@@ -441,7 +455,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
       </div>
 
       {modal ? (
-        <div className="no-print fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 p-6">
+        <ModalDialog feedback={toast} label={modal === "email" ? ui.emailModal.title : ui.shareModal.title} onClose={() => setModal(null)} className="max-w-[720px]">
           <div className="w-full max-w-[720px] overflow-hidden rounded-2xl bg-white shadow-[0_24px_60px_rgba(15,23,42,0.28)]">
             {modal === "email" ? (
               <form
@@ -451,12 +465,13 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
                 }}
               >
                 <ModalHeader title={ui.emailModal.title} onClose={() => setModal(null)} />
-                <div className="px-9 py-10">
+                <div className="px-4 py-6 sm:px-9 sm:py-10">
                   <p className="text-[18px] text-slate-800">{ui.emailModal.description}</p>
-                  <label className="mt-6 block text-[15px] font-semibold text-slate-700">
+                  <label htmlFor="estimate-recipient-email" className="mt-6 block text-[15px] font-semibold text-slate-700">
                     {ui.emailModal.fieldLabel}
                   </label>
                   <input
+                    id="estimate-recipient-email"
                     className="field mt-2"
                     type="email"
                     required
@@ -464,7 +479,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
                     onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
-                <div className="flex justify-end gap-3 border-t border-slate-200 px-9 py-5">
+                <div className="flex flex-wrap justify-end gap-3 border-t border-slate-200 px-4 py-4 sm:px-9 sm:py-5">
                   <button
                     type="submit"
                     disabled={pending}
@@ -477,7 +492,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
             ) : (
               <div>
                 <ModalHeader title={ui.shareModal.title} onClose={() => setModal(null)} />
-                <div className="px-9 py-10">
+                <div className="px-4 py-6 sm:px-9 sm:py-10">
                   <p className="text-[18px] text-slate-800">{ui.shareModal.description}</p>
                   <p className="mt-3 text-[14px] text-slate-500">{ui.shareModal.caution}</p>
                   {shareToken ? (
@@ -486,7 +501,7 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
                     </p>
                   ) : null}
                 </div>
-                <div className="flex justify-end gap-3 border-t border-slate-200 px-9 py-5">
+                <div className="flex flex-wrap justify-end gap-3 border-t border-slate-200 px-4 py-4 sm:px-9 sm:py-5">
                   <button
                     type="button"
                     onClick={handleShare}
@@ -499,13 +514,13 @@ export function EstimateDetailClient({ detail }: { detail: EstimateDetail }) {
               </div>
             )}
           </div>
-        </div>
+        </ModalDialog>
       ) : null}
 
-      {toast ? (
+      {toast && !modal ? (
         <div
           role="status"
-          className="no-print fixed bottom-8 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900/90 px-6 py-3 text-[15px] text-white shadow-lg"
+          className="no-print fixed bottom-4 left-1/2 z-50 w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-lg [overflow-wrap:anywhere] sm:bottom-8 sm:rounded-full bg-slate-900/90 px-6 py-3 text-[15px] text-white shadow-lg"
         >
           {toast}
         </div>
@@ -550,12 +565,13 @@ function IssueMenuItem({
 
 function ModalHeader({ title, onClose }: { title: string; onClose: () => void }) {
   return (
-    <div className="flex items-center justify-between border-b border-slate-200 px-9 py-5">
-      <h2 className="text-[20px] font-semibold text-slate-900">{title}</h2>
+    <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-9 sm:py-5">
+      <h2 className="min-w-0 text-lg font-semibold text-slate-900 [overflow-wrap:anywhere] sm:text-[20px]">{title}</h2>
       <button
         type="button"
         onClick={onClose}
-        className="text-2xl leading-none text-slate-400 hover:text-slate-600"
+        aria-label="Close"
+        className="flex h-10 w-10 shrink-0 items-center justify-center text-2xl leading-none text-slate-400 hover:text-slate-600"
       >
         ×
       </button>

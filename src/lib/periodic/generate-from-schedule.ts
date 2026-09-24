@@ -64,8 +64,10 @@ export async function generateInvoiceFromSchedule(
       qty: Number(l.qty),
       unitPrice: Number(l.unit_price_snapshot),
       taxCategory: l.tax_category,
+      withholdingExempt: l.withholding_exempt_snapshot ?? false,
     })),
     schedule.tax_rounding,
+    { taxDisplay: schedule.tax_display, withholdingType: schedule.withholding_type, documentType: "invoice" },
   );
 
   const paymentDue = computePaymentDue(issueDate, {
@@ -105,6 +107,7 @@ export async function generateInvoiceFromSchedule(
       sender_snapshot: { companyName: (profile?.company_name_line1 as string | undefined) ?? "" },
       subtotal: totals.subtotal,
       tax_amount: totals.tax,
+      withholding_amount: totals.withholding,
       periodic_schedule_id: schedule.id,
       created_by: schedule.created_by,
     })

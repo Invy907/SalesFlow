@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
+import { documentRecipientName, parseListInteger } from "@/lib/document-list-state";
 import { requireActiveOrg } from "@/lib/guards";
 import { getListPageSize } from "@/lib/display-settings.server";
-import { getInvoices } from "@/lib/db/invoices";
+import { getInvoices, getInvoiceOutstandingTotals } from "@/lib/db/invoices";
 import { InvoicesList, type InvoiceListRow } from "./invoices-list";
 
 export const dynamic = "force-dynamic";
@@ -28,12 +30,12 @@ export default async function InvoicesPage({
   const scope = await requireActiveOrg(lang);
   const pageSize = await getListPageSize(scope.orgId);
   const sp = await searchParams;
-  const tab = Math.min(2, Math.max(0, Number(sp.tab ?? "0") || 0));
-  const page = Math.max(1, Number(sp.page ?? "1") || 1);
+  const tab = parseListInteger(sp.tab, 0, 2);
+  const page = parseListInteger(sp.page, 1);
   const query = sp.q?.trim() || undefined;
   const filter = TAB_FILTERS[tab];
-  const issueFlag = parseFlag(sp.issueFlag);
-  const paymentFlag = parseFlag(sp.paymentFlag);
+  const issueFlag = tab === 2 ? undefined : parseFlag(sp.issueFlag);
+  const paymentFlag = tab === 2 ? undefined : parseFlag(sp.paymentFlag);
 
   const { invoices, total } = await getInvoices(scope.orgId, {
     statusIn: filter.statusIn ? [...filter.statusIn] : undefined,
@@ -45,27 +47,25 @@ export default async function InvoicesPage({
     pageSize,
   });
 
-  let unpaidTotal = 0;
-  let overdueTotal = 0;
-  const today = new Date().toISOString().slice(0, 10);
+  const { unpaidTotal, overdueTotal } = tab === 0
+    ? await getInvoiceOutstandingTotals(scope.orgId)
+    : { unpaidTotal: 0, overdueTotal: 0 };
 
-  if (tab === 0) {
-    const { invoices: openInvoices } = await getInvoices(scope.orgId, {
-      statusIn: ["draft", "issued", "sent", "overdue"],
-      pageSize: 500,
-    });
-    for (const inv of openInvoices) {
-      const remaining = Number(inv.total ?? 0) - Number(inv.paid_amount ?? 0);
-      if (remaining <= 0) continue;
-      unpaidTotal += remaining;
-      if (inv.payment_due && String(inv.payment_due) < today) overdueTotal += remaining;
-    }
+  const lastPage = Math.max(1, Math.ceil(total / pageSize));
+  if (page > lastPage) {
+    const params = new URLSearchParams();
+    if (tab) params.set("tab", String(tab));
+    if (query) params.set("q", query);
+    if (issueFlag !== undefined) params.set("issueFlag", issueFlag ? "1" : "0");
+    if (paymentFlag !== undefined) params.set("paymentFlag", paymentFlag ? "1" : "0");
+    if (lastPage > 1) params.set("page", String(lastPage));
+    redirect(`/${lang}/invoices${params.size ? `?${params}` : ""}`);
   }
 
   const rows: InvoiceListRow[] = invoices.map((inv) => ({
     id: inv.id as string,
     documentNumber: (inv.document_number as string) ?? "",
-    clientName: ((inv.clients as { name?: string } | null)?.name as string) ?? "",
+    clientName: documentRecipientName(inv.recipient_snapshot, (inv.clients as { name?: string } | null)?.name),
     subject: (inv.subject as string) ?? "",
     issueDate: (inv.issue_date as string) ?? "",
     paymentDue: (inv.payment_due as string) ?? "",
@@ -78,6 +78,7 @@ export default async function InvoicesPage({
 
   return (
     <InvoicesList
+      key={JSON.stringify([tab, page, query, issueFlag, paymentFlag])}
       rows={rows}
       total={total}
       page={page}

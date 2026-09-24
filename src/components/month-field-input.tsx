@@ -56,14 +56,22 @@ export function MonthFieldInput({ value, onChange, className = "field w-[120px] 
   const today = useMemo(() => new Date(), []);
   const selectedDate = useMemo(() => parseMonthValue(value), [value]);
   const [isOpen, setIsOpen] = useState(false);
+  const [panelLeft, setPanelLeft] = useState(0);
   const [viewYear, setViewYear] = useState(() => (selectedDate ?? today).getFullYear());
   const monthLabels = useMemo(() => getMonthLabels(lang), [lang]);
 
+  function positionPanel() {
+    const rect = rootRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const width = Math.min(280, window.innerWidth - 32);
+    setPanelLeft(Math.max(16 - rect.left, Math.min(0, window.innerWidth - 16 - rect.left - width)));
+  }
+
   useEffect(() => {
-    if (!isOpen) {
-      setViewYear((selectedDate ?? today).getFullYear());
-    }
-  }, [isOpen, selectedDate, today]);
+    if (!isOpen) return;
+    window.addEventListener("resize", positionPanel);
+    return () => window.removeEventListener("resize", positionPanel);
+  }, [isOpen]);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -93,7 +101,7 @@ export function MonthFieldInput({ value, onChange, className = "field w-[120px] 
   };
 
   const pickerPanel = isOpen ? (
-    <div className="absolute left-0 top-[calc(100%+8px)] z-40 w-[280px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.16)]">
+    <div style={{ left: panelLeft }} className="absolute top-[calc(100%+8px)] z-40 max-h-[70dvh] w-[min(280px,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.16)]">
       <div className="border-b border-slate-100 bg-[#f8fafc] px-4 py-3">
         <p className="text-xs font-medium tracking-wide text-slate-500">{ui.header}</p>
         <div className="mt-2 flex items-center justify-between gap-2">
@@ -152,10 +160,11 @@ export function MonthFieldInput({ value, onChange, className = "field w-[120px] 
   ) : null;
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative min-w-0">
       <button
         type="button"
-        onClick={() => setIsOpen((open) => !open)}
+        aria-expanded={isOpen}
+        onClick={() => { if (!isOpen) { setViewYear((selectedDate ?? today).getFullYear()); positionPanel(); } setIsOpen((open) => !open); }}
         className={[
           className,
           "cursor-pointer text-left transition",

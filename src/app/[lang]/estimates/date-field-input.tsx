@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useLanguage, type AppLocale } from "@/contexts/language-context";
 
 type Props = {
@@ -120,6 +121,8 @@ export function DateFieldInput({
   const { lang } = useLanguage();
   const ui = calendarCopy[lang] ?? calendarCopy.ja;
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const [panelPosition, setPanelPosition] = useState({ left: 16, top: 16, width: 320, maxHeight: 520 });
   const today = useMemo(() => new Date(), []);
   const selectedDate = useMemo(() => parseDateValue(value), [value]);
   const [isOpen, setIsOpen] = useState(false);
@@ -127,14 +130,8 @@ export function DateFieldInput({
   const displayValue = value ? formatDateLabel(value, lang) : placeholder;
 
   useEffect(() => {
-    if (!isOpen) {
-      setViewDate(selectedDate ?? today);
-    }
-  }, [isOpen, selectedDate, today]);
-
-  useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) {
+      if (!rootRef.current?.contains(event.target as Node) && !panelRef.current?.contains(event.target as Node)) {
         setIsOpen(false);
       }
     }
@@ -154,6 +151,50 @@ export function DateFieldInput({
     };
   }, []);
 
+  const positionCalendar = useCallback(() => {
+    const anchor = rootRef.current?.getBoundingClientRect();
+    if (!anchor) return;
+    const viewport = window.visualViewport;
+    const leftEdge = (viewport?.offsetLeft ?? 0) + 16;
+    const topEdge = (viewport?.offsetTop ?? 0) + 16;
+    const availableWidth = (viewport?.width ?? window.innerWidth) - 32;
+    const maxHeight = Math.max(120, (viewport?.height ?? window.innerHeight) - 32);
+    const width = Math.min(320, availableWidth);
+    const height = Math.min(panelRef.current?.scrollHeight || 520, maxHeight);
+    setPanelPosition({
+      left: Math.max(leftEdge, Math.min(anchor.left, leftEdge + availableWidth - width)),
+      top: Math.max(topEdge, Math.min(anchor.bottom + 10, topEdge + maxHeight - height)),
+      width,
+      maxHeight,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const observer = new ResizeObserver(positionCalendar);
+    if (panelRef.current) observer.observe(panelRef.current);
+    window.addEventListener("resize", positionCalendar);
+    window.addEventListener("scroll", positionCalendar, true);
+    window.visualViewport?.addEventListener("resize", positionCalendar);
+    window.visualViewport?.addEventListener("scroll", positionCalendar);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", positionCalendar);
+      window.removeEventListener("scroll", positionCalendar, true);
+      window.visualViewport?.removeEventListener("resize", positionCalendar);
+      window.visualViewport?.removeEventListener("scroll", positionCalendar);
+    };
+  }, [isOpen, positionCalendar]);
+
+  const toggleCalendar = () => {
+    onActivate?.();
+    if (!isOpen) {
+      setViewDate(selectedDate ?? today);
+      positionCalendar();
+    }
+    setIsOpen((open) => !open);
+  };
+
   const days = useMemo(() => getCalendarDays(viewDate), [viewDate]);
 
   const selectDate = (date: Date) => {
@@ -165,14 +206,14 @@ export function DateFieldInput({
     setViewDate((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
   };
 
-  const calendarPanel = isOpen ? (
-    <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-40 mx-auto w-full max-w-[min(320px,calc(100vw-2rem))] overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_28px_80px_rgba(15,23,42,0.18)] sm:right-auto sm:mx-0">
+  const calendarPanel = isOpen ? createPortal(
+    <div ref={panelRef} style={panelPosition} className="fixed z-[70] overflow-y-auto overscroll-contain rounded-[24px] border border-slate-200 bg-white shadow-[0_28px_80px_rgba(15,23,42,0.18)]">
       <div className="bg-linear-to-r from-slate-950 via-slate-900 to-[#083D29] px-5 py-4 text-white">
         <div className="flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={() => moveMonth(-1)}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/18"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/18"
             aria-label="Previous month"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 fill-current">
@@ -188,7 +229,7 @@ export function DateFieldInput({
           <button
             type="button"
             onClick={() => moveMonth(1)}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/18"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/18"
             aria-label="Next month"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 fill-current">
@@ -197,7 +238,7 @@ export function DateFieldInput({
           </button>
         </div>
 
-        <p className="mt-4 text-2xl font-semibold">{displayValue}</p>
+        <p className="mt-4 text-xl font-semibold [overflow-wrap:anywhere]">{displayValue}</p>
       </div>
 
       <div className="p-4">
@@ -256,7 +297,8 @@ export function DateFieldInput({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   ) : null;
 
   if (variant === "card") {
@@ -264,10 +306,8 @@ export function DateFieldInput({
       <div ref={rootRef} className="relative">
         <button
           type="button"
-          onClick={() => {
-            onActivate?.();
-            setIsOpen((open) => !open);
-          }}
+          onClick={toggleCalendar}
+          aria-expanded={isOpen}
           className={[
             "group flex w-full items-center justify-between rounded-2xl border px-5 py-4 text-left transition",
             "bg-linear-to-br from-white via-slate-50 to-[#E8F5EF]/60",
@@ -309,10 +349,8 @@ export function DateFieldInput({
     <div ref={rootRef} className="relative">
       <button
         type="button"
-        onClick={() => {
-          onActivate?.();
-          setIsOpen((open) => !open);
-        }}
+        onClick={toggleCalendar}
+        aria-expanded={isOpen}
         className={[
           "field flex w-full items-center gap-3 text-left text-[16px] transition",
           inactive && !isOpen ? "opacity-60" : "",

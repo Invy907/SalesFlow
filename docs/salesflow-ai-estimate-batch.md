@@ -1,5 +1,7 @@
 # SalesFlow AI 견적 배치 (과거 스캔 견적서 일괄 분석)
 
+> **현재 구현 안내 (2026-09-23):** 실제 동작과 운영 설정은 [AI 견적 RAG 구현 및 운영 안내](AI_ESTIMATE_RAG.md)를 기준으로 확인하세요. 이 문서에는 이전 제안이 남아 있습니다. **신뢰도에 따른 자동 승인은 폐기되었으며 모든 자료는 관리자의 수동 승인 후에만 추천에 사용됩니다.** 내부 근거 없이 웹 중앙값으로 견적을 만드는 이전 제안도 현재 구현에는 포함되지 않습니다. 외부 추출·임베딩·생성은 조직의 명시적 허용과 API 설정을 요구합니다. 이 안내는 프로덕션 적용 완료 기록이 아닙니다.
+
 과거 스캔 견적서 약 5,000건을 **Gemini API**로 분석해 SalesFlow AI 견적 검색·가격 통계
 데이터를 만드는 배치 프로그램. Claude API 는 쓰지 않는다.
 
@@ -56,7 +58,7 @@ amount_delta     printed - computed   (0 이 아니면 needs_review)
 
 ```
 uploaded -> queued -> extracting -> extracted -> validating
-         -> needs_review | approved -> indexing -> indexed
+         -> needs_review -> 관리자 수동 승인 -> approved -> indexing -> indexed
 ```
 
 실패/제외: `failed_retryable`, `failed_permanent`, `rejected`, `duplicate`
@@ -78,14 +80,14 @@ AI_ESTIMATE_ACTOR_USER_ID=         # uploaded_by로 기록할 auth.users.id
 
 # 모델 (기본값이 있으므로 생략 가능. 2026-08 기준 실존하는 ID)
 GEMINI_EXTRACTION_MODEL=gemini-3.5-flash-lite
-GEMINI_RETRY_MODEL=gemini-3.6-flash
+GEMINI_RETRY_MODEL=gemini-3.8-flash
 GEMINI_EMBEDDING_MODEL=gemini-embedding-001
-GEMINI_MARKET_RESEARCH_MODEL=gemini-3.6-flash
+GEMINI_MARKET_RESEARCH_MODEL=gemini-3.8-flash
 
 # 배치 튜닝
 AI_ESTIMATE_BATCH_CONCURRENCY=3      # 1~16, 처음에는 3 이하로 시작
 AI_ESTIMATE_MAX_RETRY=3              # 최대 시도 횟수 1~10(최초 호출 포함)
-AI_ESTIMATE_CONFIDENCE_THRESHOLD=0.8 # 미달이면 자동 승인하지 않음
+AI_ESTIMATE_CONFIDENCE_THRESHOLD=0.8 # 미달 시 추가 검수 사유. 승인은 항상 사람이 수행
 AI_ESTIMATE_TOTAL_TOLERANCE=1        # printed/computed 합계 허용 오차(엔)
 AI_ESTIMATE_INPUT_USD_PER_MILLION=0.30
 AI_ESTIMATE_OUTPUT_USD_PER_MILLION=2.50

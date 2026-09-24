@@ -1,0 +1,3 @@
+Item,Unit,Unit price,Tax rate,Quantity,Tax mode,Currency
+Design,screen,50000,10%,1,excluded,JPY
+Development,screen,80000,10%,1,excluded,JPY

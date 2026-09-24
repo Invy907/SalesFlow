@@ -103,6 +103,7 @@ export type BulkItemRow = {
   unit: string;
   unitPrice: string;
   taxCategory: CreateItemInput["taxCategory"];
+  withholdingExempt?: boolean;
 };
 
 export async function bulkCreateItems(rows: BulkItemRow[]): Promise<
@@ -121,6 +122,7 @@ export async function bulkCreateItems(rows: BulkItemRow[]): Promise<
       unit: r.unit,
       unitPrice: r.unitPrice,
       taxCategory: r.taxCategory,
+      withholdingExempt: r.withholdingExempt,
     });
     if (!parsed.success) {
       for (const [field, msgs] of Object.entries(parsed.error.flatten().fieldErrors)) {

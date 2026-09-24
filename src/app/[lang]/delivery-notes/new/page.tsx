@@ -1,11 +1,10 @@
+import { getSimpleDocumentDefaults } from "../../documents/form-defaults";
 import { requireActiveOrg } from "@/lib/guards";
 import { getClientOptions } from "@/lib/db/clients";
 import { getEstimateById } from "@/lib/db/estimates";
 import { getItems } from "@/lib/db/items";
-import { normalizeClientHonorific } from "@/lib/documents/client-honorific";
-import { normalizeDocumentOutputLocale } from "@/lib/documents/output-locale";
-import { TAX_CATEGORY_TO_LABEL, type TaxCategory } from "@/lib/tax";
-import type { ItemOption, LineItemRow } from "../../documents/new-document-shared";
+import { buildConvertedSimpleDocumentFormInitial } from "@/lib/documents/simple-document-form";
+import type { ItemOption } from "../../documents/new-document-shared";
 import { NewDeliveryNoteClient, type DeliveryNoteFormInitial } from "./new-delivery-note-client";
 
 function toItemOptions(items: Array<Record<string, unknown>>): ItemOption[] {
@@ -15,6 +14,7 @@ function toItemOptions(items: Array<Record<string, unknown>>): ItemOption[] {
     unit: (it.unit as string | null) ?? null,
     unitPrice: Number(it.unit_price ?? 0),
     taxCategory: (it.tax_category as string) ?? "follow_company",
+    withholdingExempt: Boolean(it.withholding_exempt),
   }));
 }
 
@@ -28,33 +28,7 @@ async function buildFromEstimateInitial(
   const source = await getEstimateById(estimateId).catch(() => null);
   if (!source || source.organization_id !== orgId) return null;
 
-  const recipient = (source.recipient_snapshot ?? {}) as Record<string, string>;
-  const lines: LineItemRow[] = (
-    (source.estimate_line_items ?? []) as Array<Record<string, unknown>>
-  ).map((line) => ({
-    itemId: (line.item_id as string | null) ?? null,
-    name: (line.name_snapshot as string) ?? "",
-    qty: line.qty === null || line.qty === undefined ? "" : String(line.qty),
-    unit: (line.unit_snapshot as string) ?? "",
-    price:
-      line.unit_price_snapshot === null || line.unit_price_snapshot === undefined
-        ? ""
-        : String(line.unit_price_snapshot),
-    tax: TAX_CATEGORY_TO_LABEL[line.tax_category as TaxCategory] ?? "10%",
-  }));
-
-  return {
-    clientId: (source.client_id as string | null) ?? null,
-    clientName: (source.clients?.name as string) ?? recipient.clientName ?? "",
-    subject: (source.subject as string) ?? "",
-    clientHonorific: normalizeClientHonorific(source.client_honorific),
-    showSeal: source.show_seal !== false,
-    outputLocale: normalizeDocumentOutputLocale(source.output_locale),
-    templateMessage: (source.template_message as string) ?? "",
-    remarks: (source.remarks as string) ?? "",
-    recipient,
-    lines,
-  };
+  return buildConvertedSimpleDocumentFormInitial(source, source.estimate_line_items ?? []);
 }
 
 export default async function NewDeliveryNotePage({
@@ -68,19 +42,27 @@ export default async function NewDeliveryNotePage({
   const scope = await requireActiveOrg(lang);
   const { fromEstimate, clientId } = await searchParams;
 
-  const [clients, initial, itemList] = await Promise.all([
+  const [clients, initial, itemList, defaults] = await Promise.all([
     getClientOptions(scope.orgId),
     fromEstimate ? buildFromEstimateInitial(scope.orgId, fromEstimate) : Promise.resolve(null),
     getItems(scope.orgId, { pageSize: 500 }),
+    getSimpleDocumentDefaults(scope.orgId, "delivery_note"),
   ]);
 
   const prefilledClient = clientId ? clients.find((c) => c.id === clientId) : undefined;
   const resolvedInitial =
-    initial ?? (prefilledClient ? { clientId: prefilledClient.id, clientName: prefilledClient.name } : undefined);
+    initial ?? (prefilledClient ? {
+      clientId: prefilledClient.id, clientName: prefilledClient.name,
+      recipient: { postalCode: prefilledClient.postalCode ?? "", addressLine1: prefilledClient.addressLine1 ?? "",
+        addressLine2: prefilledClient.addressLine2 ?? "", companyName: prefilledClient.name,
+        department: prefilledClient.department ?? "", phone: prefilledClient.phone ?? "" },
+    } : undefined);
 
   return (
     <NewDeliveryNoteClient
+      key={fromEstimate ?? clientId ?? "new"}
       clients={clients}
+      defaults={defaults}
       initial={resolvedInitial}
       items={toItemOptions(itemList.items)}
     />
